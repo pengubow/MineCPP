@@ -18,8 +18,13 @@ Particle::Particle(std::shared_ptr<Level>& level, float x, float y, float z, flo
     this->uo = Util::randomfr() * 3.0f;
     this->vo = Util::randomfr() * 3.0f;
     this->size = (float)(Util::randomfr() * 0.5 + 0.5);
-    this->lifetime = (int32_t)(4.0 / Util::randomfr() * 0.9 + 0.1);
+    this->lifetime = (int32_t)(4.0 / (Util::randomfr() * 0.9 + 0.1));
     this->age = 0;
+
+    // needed, trust
+    this->xo = this->x;
+    this->yo = this->y;
+    this->zo = this->z;
 }
 
 void Particle::tick() {

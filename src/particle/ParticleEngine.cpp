@@ -10,7 +10,6 @@ void ParticleEngine::add(std::shared_ptr<Particle>& p) {
 };
 
 void ParticleEngine::tick() {
-    
     for (int32_t i = 0; i < this->particles.size(); i++) {
         shared_ptr<Particle> p = this->particles.at(i);
         p->tick();

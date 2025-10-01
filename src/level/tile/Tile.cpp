@@ -158,7 +158,6 @@ void Tile::destroy(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, sh
     int32_t SD = 4;
     for (int32_t xx = 0; xx < SD; xx++) {
         for (int32_t yy = 0; yy < SD; yy++) {
-            
             for (int32_t zz = 0; zz < SD; zz++) {
                 float xp = (float)x + ((float)xx + 0.5f) / (float)SD;
                 float yp = (float)y + ((float)yy + 0.5f) / (float)SD;
