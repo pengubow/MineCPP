@@ -4,8 +4,8 @@
 #include <zlib.h>
 #include <iostream>
 #include "level/Level.h"
-#include "level/PerlinNoiseFilter.h"
 #include "level/tile/Tile.h"
+#include "level/LevelGen.h"
 #include "Util.h"
 
 using namespace std;
@@ -16,55 +16,10 @@ Level::Level(int32_t width, int32_t height, int32_t depth)
     lightDepths(width * height) {
     bool mapLoaded = this->load();
     if (!mapLoaded) {
-        this->generateMap();
+        unique_ptr<LevelGen> levelgen = make_unique<LevelGen>(width, height, depth);
+        this->blocks = levelgen->generateMap();
     }
     this->calcLightDepths(0, 0, width, height);
-}
-
-void Level::generateMap() {
-    int32_t width = this->width;
-    int32_t height = this->height;
-    int32_t depth = this->depth;
-    std::vector<int32_t> heightmap1 = PerlinNoiseFilter(0).read(width, height);
-    std::vector<int32_t> heightmap2 = PerlinNoiseFilter(0).read(width, height);
-    std::vector<int32_t> cf = PerlinNoiseFilter(1).read(width, height);
-    std::vector<int32_t> rockMap = PerlinNoiseFilter(1).read(width, height);
-    for (int32_t x = 0; x < width; x++) {
-        for (int32_t y = 0; y < depth; y++) {
-            for (int32_t z = 0; z < height; z++) {
-                int32_t dh;
-                int32_t dh1 = heightmap1[x + z * this->width];
-                int32_t dh2 = heightmap2[x + z * this->width];
-                int32_t cfh = cf[x + z * this->width];
-                if (cfh < 128) {
-                    dh2 = dh1;
-                }
-                if (dh2 > (dh = dh1)) {
-                    dh = dh2;
-                }
-                else {
-                    dh2 = dh1;
-                }
-                dh = dh / 8 + depth / 3;
-                int32_t rh = rockMap[x + z * this->width] / 8 + depth / 3;
-                if (rh > dh - 2) {
-                    rh = dh - 2;
-                }
-                int32_t i = (y * this->height + z) * this->width + x;
-                int32_t id = 0;
-                if (y == dh) {
-                    id = Tile::grass->id;
-                }
-                if (y < dh) {
-                    id = Tile::dirt->id;
-                }
-                if (y <= rh) {
-                    id = Tile::rock->id;
-                }
-                this->blocks[i] = (uint8_t)id;
-            }
-        }
-    }
 }
 
 bool Level::load() {
@@ -171,7 +126,7 @@ vector<shared_ptr<AABB>> Level::getCubes(AABB aABB) {
     for (int32_t x = minX; x < maxX; x++) {
         for (int32_t y = minY; y < maxY; y++) {
             for (int32_t z = minZ; z < maxZ; z++) {
-                std::shared_ptr<AABB> aabb;
+                shared_ptr<AABB> aabb;
                 Tile* tile = Tile::tiles[this->getTile(x, y, z)];
                 if (tile != nullptr && (aabb = tile->getAABB(x, y, z)) != nullptr) {
                     aABBs.push_back(aabb);

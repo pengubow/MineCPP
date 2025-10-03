@@ -6,7 +6,7 @@
 
 class Entity {
 protected:
-    std::shared_ptr<Level> level;
+    shared_ptr<Level> level;
 public:
     float xo;
     float yo;
@@ -27,7 +27,7 @@ protected:
     float bbWidth = 0.6f;
     float bbHeight = 1.8f;
 public:
-    Entity(std::shared_ptr<Level>& level);
+    Entity(shared_ptr<Level>& level);
 
     void remove();
     void resetPos();
@@ -40,4 +40,5 @@ public:
     void move(float xa, float ya, float za);
     void moveRelative(float xa, float za, float speed);
     bool isLit();
+    virtual void render(float a);
 };

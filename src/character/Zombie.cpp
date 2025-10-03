@@ -1,18 +1,19 @@
 #include <GL/gl.h>
 #include <cmath>
 #include "character/Zombie.h"
-#include "Textures.h"
 #include "Timer.h"
 #include "Util.h"
 
 ZombieModel Zombie::zombieModel;
 
-Zombie::Zombie(std::shared_ptr<Level>& level, float x, float y, float z) 
+Zombie::Zombie(shared_ptr<Level>& level, shared_ptr<Textures>& textures, float x, float y, float z) 
     : Entity(level) {
     Zombie::zombieModel = ZombieModel();
+    this->textures = textures;
+    this->rotA = (float)(Util::nextFloat() + 1.0) * 0.01f;
     this->setPos(x, y, z);
-    this->timeOffs = Util::randomfr() * 1239813.0f;
-    this->rot = (Util::randomfr() * M_PI * 2.0);
+    this->timeOffs = Util::nextFloat() * 1239813.0f;
+    this->rot = (Util::nextFloat() * M_PI * 2.0);
     this->speed = 1.0f;
 }
 
@@ -27,10 +28,10 @@ void Zombie::tick() {
     float ya = 0.0f;
     this->rot += this->rotA;
     this->rotA = this->rotA * 0.99;
-    this->rotA = this->rotA + (Util::randomfr() - Util::randomfr()) * Util::randomfr() * Util::randomfr() * 0.08f;
+    this->rotA = this->rotA + (Util::nextFloat() - Util::nextFloat()) * Util::nextFloat() * Util::nextFloat() * 0.08f;
     xa = sin(this->rot);
     ya = cos(this->rot);
-    if (this->onGround && Util::randomfr() < 0.08) {
+    if (this->onGround && Util::nextFloat() < 0.08) {
         this->yd = 0.5f;
     }
     this->moveRelative(xa, ya, this->onGround ? 0.1f : 0.02f);
@@ -47,7 +48,7 @@ void Zombie::tick() {
 
 void Zombie::render(float a) {
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, Textures::loadTexture("char.png", GL_NEAREST));
+    glBindTexture(GL_TEXTURE_2D, textures->loadTexture("char.png", GL_NEAREST));
     glPushMatrix();
     double time = Timer::nanoTime() / 1.0E9 * 10 * this->speed + this->timeOffs;
     float size = 0.058333334f;

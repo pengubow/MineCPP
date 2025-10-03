@@ -6,10 +6,11 @@
 #include <GL/gl.h>
 #include "phys/AABB.h"
 
+using namespace std;
 
 class Frustum {
 public:
-    std::array<std::array<float,4>,6> m_Frustum;
+    array<array<float,4>,6> m_Frustum;
     static const int RIGHT = 0;
     static const int LEFT = 1;
     static const int BOTTOM = 2;
@@ -22,13 +23,13 @@ public:
     static const int D = 3;
 private:
     static Frustum frustum;
-    std::array<float,16> proj;
-    std::array<float,16> modl;
-    std::array<float,16> clip;
+    array<float,16> proj;
+    array<float,16> modl;
+    array<float,16> clip;
 
     Frustum();
 
-    void normalizePlane(std::array<std::array<float,4>,6>& frustumArr, int side);
+    void normalizePlane(array<array<float,4>,6>& frustumArr, int side);
     void calculateFrustum();
 public:
     static Frustum& getFrustum();

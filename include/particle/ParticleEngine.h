@@ -1,17 +1,18 @@
 #include "level/Level.h"
 #include "particle/Particle.h"
+#include "renderer/Textures.h"
 #include "Player.h"
 
 class ParticleEngine {
 protected:
-    std::shared_ptr<Level> level;
+    shared_ptr<Level> level;
 private:
-    std::vector<std::shared_ptr<Particle>> particles;
+    vector<shared_ptr<Particle>> particles;
+    shared_ptr<Textures> textures;
 public:
+    ParticleEngine(shared_ptr<Level>& level, shared_ptr<Textures>& textures);
 
-    ParticleEngine(std::shared_ptr<Level>& level);
-
-    void add(std::shared_ptr<Particle>& p);
+    void add(shared_ptr<Particle>& p);
     void tick();
-    void render(std::shared_ptr<Player>& player, float a, int32_t layer);
+    void render(shared_ptr<Player>& player, float a, int32_t layer);
 };

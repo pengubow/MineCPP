@@ -1,20 +1,18 @@
 #include <cmath>
 #include "level/tile/Bush.h"
-#include <iostream>
+
 Bush::Bush(int32_t id) : Tile(id) {
     this->tex = 15;
 }
 
-void Bush::tick(std::shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {
+void Bush::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {
     int32_t below = level->getTile(x, y - 1, z);
-    const char* hi = level->isLit(x, y, z) == true ? "yes" : "no";
-    std::cout << hi << std::endl;
     if (!level->isLit(x, y, z) || below != Tile::dirt->id && below != Tile::grass->id) {
         level->setTile(x, y, z, 0);
     }
 }
 
-void Bush::render(std::shared_ptr<Tesselator>& t, std::shared_ptr<Level>& level, int32_t layer, int32_t x, int32_t y, int32_t z) {
+void Bush::render(shared_ptr<Tesselator>& t, shared_ptr<Level>& level, int32_t layer, int32_t x, int32_t y, int32_t z) {
     if (level->isLit(x, y, z) ^ layer != 1) {
         return;
     }
@@ -26,8 +24,8 @@ void Bush::render(std::shared_ptr<Tesselator>& t, std::shared_ptr<Level>& level,
     int32_t rots = 2;
     t->color(1.0f, 1.0f, 1.0f);
     for (int32_t r = 0; r < rots; r++) {
-        float xa = (float)(std::sin((double)r * M_PI / (double)rots + 0.7853981633974483) * 0.5);
-        float za = (float)(std::cos((double)r * M_PI / (double)rots + 0.7853981633974483) * 0.5);
+        float xa = (float)(sin((double)r * M_PI / (double)rots + 0.7853981633974483) * 0.5);
+        float za = (float)(cos((double)r * M_PI / (double)rots + 0.7853981633974483) * 0.5);
         float x0 = (float)x + 0.5f - xa;
         float x1 = (float)x + 0.5f + xa;
         float y0 = (float)y + 0.0f;

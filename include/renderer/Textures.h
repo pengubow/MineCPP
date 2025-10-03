@@ -1,3 +1,5 @@
+#pragma once
+
 #include <unordered_map>
 #include <string>
 #include <cstdint>
@@ -8,5 +10,5 @@ class Textures {
 private:
     static unordered_map<string, int32_t>* idMap;
 public:
-    static int32_t loadTexture(string resourceName, int32_t mode);
+    int32_t loadTexture(string resourceName, int32_t mode);
 };

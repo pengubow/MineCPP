@@ -5,12 +5,14 @@
 #include <memory>
 #include <GL/gl.h>
 
+using namespace std;
+
 class Tesselator {
 private:
     static const int32_t MAX_VERTICES = 0x400000;
     static const int32_t MAX_FLOATS = 524288;
-    std::vector<float> buffer;
-    std::vector<float> array;
+    vector<float> buffer;
+    vector<float> array;
     int32_t vertices;
     float u;
     float v;
@@ -22,7 +24,9 @@ private:
     int32_t len = 3;
     int32_t p = 0;
 public:
-    static std::shared_ptr<Tesselator> instance;
+    bool noColor = false;
+
+    static shared_ptr<Tesselator> instance;
 
     Tesselator();
 
@@ -33,4 +37,6 @@ public:
     void color(float r, float g, float b);
     void vertexUV(float x, float y, float z, float u, float v);
     void vertex(float x, float y, float z);
+    void color(int32_t c);
+    void setNoColor();
 };

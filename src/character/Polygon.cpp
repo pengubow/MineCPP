@@ -1,9 +1,9 @@
 #include "character/Polygon.h"
 
-Polygon::Polygon(std::vector<Vertex>& vertices) 
+Polygon::Polygon(vector<Vertex>& vertices) 
     : vertices(vertices), vertexCount(vertices.size()) {}
 
-Polygon::Polygon(std::vector<Vertex>& vertices, int u0, int v0, int u1, int v1) 
+Polygon::Polygon(vector<Vertex>& vertices, int u0, int v0, int u1, int v1) 
     : vertexCount(vertices.size()) {
     this->vertices.push_back(vertices.at(0).remap(u1, v0));
     this->vertices.push_back(vertices.at(1).remap(u0, v0));

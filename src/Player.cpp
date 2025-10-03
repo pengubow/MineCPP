@@ -1,7 +1,7 @@
 #include "Player.h"
 #include "Util.h"
 
-Player::Player(std::shared_ptr<Level>& level) : Entity(level) {
+Player::Player(shared_ptr<Level>& level) : Entity(level) {
     this->heightOffset = 1.62f;
 }
 

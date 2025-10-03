@@ -1,15 +1,15 @@
 #include "Entity.h"
 #include "Util.h"
 
-Entity::Entity(std::shared_ptr<Level>& level) {
+Entity::Entity(shared_ptr<Level>& level) {
     this->level = level;
     this->resetPos();
 }
 
 void Entity::resetPos() {
-    float x = Util::randomfr() * this->level->width;
+    float x = Util::nextFloat() * this->level->width;
     float y = this->level->depth + 10.0f;
-    float z = Util::randomfr() * this->level->height;
+    float z = Util::nextFloat() * this->level->height;
     this->setPos(x, y, z);
 }
 
@@ -53,7 +53,7 @@ void Entity::move(float xa, float ya, float za) {
     float yaOrg = ya;
     float zaOrg = za;
 
-    std::vector<shared_ptr<AABB>> aABBs = this->level->getCubes(this->bb.expand(xa, ya, za)); 
+    vector<shared_ptr<AABB>> aABBs = this->level->getCubes(this->bb.expand(xa, ya, za)); 
 
     
     for (int32_t i = 0; i < aABBs.size(); i++) {
@@ -96,9 +96,9 @@ void Entity::moveRelative(float xa, float za, float speed) {
     if (dist < 0.01f) {
         return;
     }
-    dist = speed / static_cast<float>(std::sqrt(dist));
-    float sinv = static_cast<float>(std::sin(this->yRot * M_PI / 180.0));
-    float cosv = static_cast<float>(std::cos(this->yRot * M_PI / 180.0));
+    dist = speed / static_cast<float>(sqrt(dist));
+    float sinv = static_cast<float>(sin(this->yRot * M_PI / 180.0));
+    float cosv = static_cast<float>(cos(this->yRot * M_PI / 180.0));
     xa *= dist;
     za *= dist;
     this->xd += xa * cosv - za * sinv;
@@ -111,3 +111,5 @@ bool Entity::isLit() {
     int32_t zTile = (int32_t)this->z;
     return this->level->isLit(xTile, yTile, zTile);
 }
+
+void Entity::render(float a) {}

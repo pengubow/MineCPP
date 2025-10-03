@@ -7,6 +7,7 @@
 
 class Player : public Entity {
 public:
-    Player(std::shared_ptr<Level>& level);
-    void tick() override;
+    Player(shared_ptr<Level>& level);
+    
+    void tick();
 };

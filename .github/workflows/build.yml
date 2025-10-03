@@ -20,12 +20,12 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libglu1-mesa-dev libglfw3-dev zlib1g-dev
+          sudo apt-get install -y cmake libglu1-mesa-dev libglfw3-dev zlib1g-dev libboost-dev
 
       - name: Install dependencies (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          brew install glfw mesa-glu zlib
+          brew install glfw mesa-glu zlib boost
 
       - name: Configure CMake
         run: cmake -B build

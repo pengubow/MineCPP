@@ -6,11 +6,12 @@
 #include "level/tile/Tile.h"
 #include "level/DirtyChunkSorter.h"
 #include "Timer.h"
+#include <iostream>
 
-LevelRenderer::LevelRenderer(std::shared_ptr<Level>& level)
+LevelRenderer::LevelRenderer(shared_ptr<Level>& level, shared_ptr<Textures>& textures)
     : level(level) {
+    this->textures = textures;
     level->addListener(this);
-
     xChunks = level->width / CHUNK_SIZE;
     yChunks = level->depth / CHUNK_SIZE;
     zChunks = level->height / CHUNK_SIZE;
@@ -37,8 +38,8 @@ LevelRenderer::LevelRenderer(std::shared_ptr<Level>& level)
     }
 }
 
-std::vector<Chunk*> LevelRenderer::getAllDirtyChunks() {
-    std::vector<Chunk*> dirty;
+vector<Chunk*> LevelRenderer::getAllDirtyChunks() {
+    vector<Chunk*> dirty;
     for (int32_t i = 0; i < this->chunks.size(); i++) {
         Chunk* chunk = this->chunks[i];
         if (chunk->isDirty()) {
@@ -48,9 +49,9 @@ std::vector<Chunk*> LevelRenderer::getAllDirtyChunks() {
     return dirty;
 }
 
-void LevelRenderer::render(std::shared_ptr<Player>& player, int32_t layer) {
+void LevelRenderer::render(shared_ptr<Player>& player, int32_t layer) {
     glEnable(GL_TEXTURE_2D);
-    int32_t id = Textures::loadTexture("terrain.png", GL_NEAREST);
+    int32_t id = textures->loadTexture("terrain.png", GL_NEAREST);
     glBindTexture(GL_TEXTURE_2D, id);
     Frustum& frustum = Frustum::getFrustum();
     for (int32_t i = 0; i < this->chunks.size(); i++) {
@@ -61,20 +62,20 @@ void LevelRenderer::render(std::shared_ptr<Player>& player, int32_t layer) {
     glDisable(GL_TEXTURE_2D);
 }
 
-void LevelRenderer::updateDirtyChunks(std::shared_ptr<Player> player) {
-     std::vector<Chunk*> dirty = this->getAllDirtyChunks();
+void LevelRenderer::updateDirtyChunks(shared_ptr<Player> player) {
+     vector<Chunk*> dirty = this->getAllDirtyChunks();
      if (dirty.empty()) {
         return;
      }
      DirtyChunkSorter sorter(player, Frustum::getFrustum());
-     std::sort(dirty.begin(), dirty.end(), sorter);
+     sort(dirty.begin(), dirty.end(), sorter);
      for (int32_t i = 0; i < 8 && i < dirty.size(); i++) {
         dirty.at(i)->rebuild();
      }
 }
 
-void LevelRenderer::pick(std::shared_ptr<Player>& player, Frustum& frustum) {
-    std::shared_ptr<Tesselator> t = Tesselator::instance;
+void LevelRenderer::pick(shared_ptr<Player>& player, Frustum& frustum) {
+    shared_ptr<Tesselator> t = Tesselator::instance;
     float r = 3.0f;
     AABB box = player->bb.grow(r, r, r);
 
@@ -117,14 +118,55 @@ void LevelRenderer::pick(std::shared_ptr<Player>& player, Frustum& frustum) {
     glPopName();
 }
 
-void LevelRenderer::renderHit(unique_ptr<HitResult>& h) {
-    std::shared_ptr<Tesselator> t = Tesselator::instance;
+void LevelRenderer::renderHit(unique_ptr<HitResult>& h, int32_t mode, int32_t tileType) {
+    // for noColor
+    shared_ptr<Tesselator> t = make_shared<Tesselator>();
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-    glColor4f(1.0f, 1.0f, 1.0f, (float)(((float)std::sin(((double)Timer::nanoTime() / 1000000.0) / 100.0) * 0.2f + 0.4f) * 0.5f));
-    t->init();
-    Tile::rock->renderFaceNoTexture(t, h->x, h->y, h->z, h->face);
-    t->flush();
+    glColor4f(1.0f, 1.0f, 1.0f, (float)(((float)sin(((double)Timer::nanoTime() / 1000000.0) / 100.0) * 0.2f + 0.4f) * 0.5f));
+    if (mode == 0) {
+        t->init();
+        for (int32_t i = 0; i < 6; i++) {
+            Tile::rock->renderFaceNoTexture(t, h->x, h->y, h->z, i);
+        }
+        t->flush();
+    }
+    else {
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        float br = (float)sin(((double)Timer::nanoTime() / 1000000) / 100.0) * 0.2f + 0.8f;
+        float alpha = (float)sin((double)Timer::nanoTime() / 1000000 / 200.0) * 0.2f + 0.5f;
+        glColor4f(br, br, br, alpha);
+        glEnable(GL_TEXTURE_2D);
+        int32_t id = textures->loadTexture("terrain.png", GL_NEAREST);
+        glBindTexture(GL_TEXTURE_2D, id);
+        int32_t x = h->x;
+        int32_t y = h->y;
+        int32_t z = h->z;
+        if (h->face == 0) {
+            --y;
+        }
+        if (h->face == 1) {
+            ++y;
+        }
+        if (h->face == 2) {
+            --z;
+        }
+        if (h->face == 3) {
+            ++z;
+        }
+        if (h->face == 4) {
+            --x;
+        }
+        if (h->face == 5) {
+            ++x;
+        }
+        t->init();
+        t->setNoColor();
+        Tile::tiles[tileType]->render(t, level, 0, x, y, z);
+        Tile::tiles[tileType]->render(t, level, 1, x, y, z);
+        t->flush();
+        glDisable(GL_TEXTURE_2D);
+    }
     glDisable(GL_BLEND);
 }
 

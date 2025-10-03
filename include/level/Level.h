@@ -23,7 +23,6 @@ private:
 public:
     Level(int32_t width, int32_t height, int32_t depth);
 
-    void generateMap();
     bool load();
     void save();
     void calcLightDepths(int32_t minX, int32_t minY, int32_t maxX, int32_t maxY);

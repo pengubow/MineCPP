@@ -3,9 +3,11 @@
 #include <memory>
 #include "character/Vec3.h"
 
+using namespace std;
+
 class Vertex {
 public:
-    std::shared_ptr<Vec3> pos;
+    shared_ptr<Vec3> pos;
     float u;
     float v;
 
@@ -15,5 +17,5 @@ public:
 
     Vertex(Vertex& vertex, float u, float v);
 
-    Vertex(std::shared_ptr<Vec3>& pos, float u, float v);
+    Vertex(shared_ptr<Vec3>& pos, float u, float v);
 };

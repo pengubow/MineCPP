@@ -2,23 +2,23 @@
 #include "particle/Particle.h"
 #include "Util.h"
 
-Particle::Particle(std::shared_ptr<Level>& level, float x, float y, float z, float xa, float ya, float za, int32_t tex) 
+Particle::Particle(shared_ptr<Level>& level, float x, float y, float z, float xa, float ya, float za, int32_t tex) 
     : Entity(level), tex(tex) {
     this->setSize(0.2f, 0.2f);
     this->heightOffset = this->bbHeight / 2.0;
     this->setPos(x, y, z);
-    this->xd = xa + (float)(Util::randomfr() * 2.0 - 1.0) * 0.4f;
-    this->yd = ya + (float)(Util::randomfr() * 2.0 - 1.0) * 0.4f;
-    this->zd = za + (float)(Util::randomfr() * 2.0 - 1.0) * 0.4f;
-    float speed = (float)(Util::randomfr() + Util::randomfr() + 1.0) * 0.15;
-    float dd = (float)std::sqrt(this->xd * this->xd + this->yd * this->yd + this->zd * this->zd);
+    this->xd = xa + (float)(Util::nextFloat() * 2.0 - 1.0) * 0.4f;
+    this->yd = ya + (float)(Util::nextFloat() * 2.0 - 1.0) * 0.4f;
+    this->zd = za + (float)(Util::nextFloat() * 2.0 - 1.0) * 0.4f;
+    float speed = (float)(Util::nextFloat() + Util::nextFloat() + 1.0) * 0.15;
+    float dd = (float)sqrt(this->xd * this->xd + this->yd * this->yd + this->zd * this->zd);
     this->xd = this->xd / dd * speed * 0.4f;
     this->yd = this->yd / dd * speed * 0.4f + 0.1f;
     this->zd = this->zd / dd * speed * 0.4f;
-    this->uo = Util::randomfr() * 3.0f;
-    this->vo = Util::randomfr() * 3.0f;
-    this->size = (float)(Util::randomfr() * 0.5 + 0.5);
-    this->lifetime = (int32_t)(4.0 / (Util::randomfr() * 0.9 + 0.1));
+    this->uo = Util::nextFloat() * 3.0f;
+    this->vo = Util::nextFloat() * 3.0f;
+    this->size = (float)(Util::nextFloat() * 0.5 + 0.5);
+    this->lifetime = (int32_t)(4.0 / (Util::nextFloat() * 0.9 + 0.1));
     this->age = 0;
 
     // needed, trust
@@ -45,7 +45,7 @@ void Particle::tick() {
     }
 }
 
-void Particle::render(std::shared_ptr<Tesselator>& t, float a, float xa, float ya, float za, float xa2, float za2) {
+void Particle::render(shared_ptr<Tesselator>& t, float a, float xa, float ya, float za, float xa2, float za2) {
     float u0 = ((float)(this->tex % 16) + this->uo / 4.0f) / 16.0f;
     float u1 = u0 + 0.015609375f;
     float v0 = ((float)(this->tex / 16) + this->vo / 4.0f) / 16.0f;

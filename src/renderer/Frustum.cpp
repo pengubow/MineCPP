@@ -1,6 +1,6 @@
 #include <GL/glu.h>
 #include <cstring>
-#include "level/Frustum.h"
+#include "renderer/Frustum.h"
 
 Frustum Frustum::frustum = Frustum();
 
@@ -11,8 +11,8 @@ Frustum::Frustum() {
     clip.fill(0.0f);
 }
 
-void Frustum::normalizePlane(std::array<std::array<float,4>,6>& frustumArr, int side) {
-    float magnitude = std::sqrt(
+void Frustum::normalizePlane(array<array<float,4>,6>& frustumArr, int side) {
+    float magnitude = sqrt(
         frustumArr[side][0] * frustumArr[side][0] +
         frustumArr[side][1] * frustumArr[side][1] +
         frustumArr[side][2] * frustumArr[side][2]

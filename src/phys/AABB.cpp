@@ -1,13 +1,12 @@
 #include "phys/AABB.h"
 
-AABB::AABB(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-    this->minX = minX;
-    this->minY = minY;
-    this->minZ = minZ;
-    this->maxX = maxX;
-    this->maxY = maxY;
-    this->maxZ = maxZ;
-}
+AABB::AABB() 
+    : minX(0), minY(0), minZ(0), 
+    maxX(0), maxY(0), maxZ(0) {}
+
+AABB::AABB(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) 
+    : minX(minX), minY(minY), minZ(minZ), 
+    maxX(maxX), maxY(maxY), maxZ(maxZ) {}
 
 AABB AABB::expand(float x, float y, float z) {
     float minX = this->minX;

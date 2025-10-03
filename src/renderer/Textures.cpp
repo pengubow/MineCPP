@@ -2,7 +2,7 @@
 #include <vector>
 #include <GL/glu.h>
 #include <GLFW/glfw3.h>
-#include "Textures.h"
+#include "renderer/Textures.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "Util.h"
@@ -19,7 +19,7 @@ int32_t Textures::loadTexture(string resourceName, int32_t mode) {
         vector<GLuint> ib(1);
         glGenTextures(1, ib.data());
         int32_t id = ib[0];
-        idMap->insert(std::pair<std::string, std::int32_t>(resourceName, id));
+        idMap->insert(pair<string, int32_t>(resourceName, id));
         cout << resourceName + " -> " + to_string(id) << endl;
         glBindTexture(GL_TEXTURE_2D, id);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mode);

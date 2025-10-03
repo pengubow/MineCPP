@@ -1,6 +1,6 @@
 #include "level/DirtyChunkSorter.h"
 
-DirtyChunkSorter::DirtyChunkSorter(std::shared_ptr<Player> player, Frustum& frustum) 
+DirtyChunkSorter::DirtyChunkSorter(shared_ptr<Player> player, Frustum& frustum) 
     : player(player), frustum(frustum) {}
 
 bool DirtyChunkSorter::operator()(Chunk* c0, Chunk* c1) {

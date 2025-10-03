@@ -3,8 +3,8 @@
 
 class Cube {
 private:
-    std::vector<Vertex> vertices;
-    std::vector<Polygon> polygons;
+    vector<Vertex> vertices;
+    vector<Polygon> polygons;
     int32_t xTexOffs;
     int32_t yTexOffs;
 public:

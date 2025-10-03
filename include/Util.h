@@ -5,19 +5,21 @@
 #include <cstdint>
 #include <limits>
 
+using namespace std;
+
 namespace Util {
     static GLFWwindow* win;
-    static std::vector<int32_t> prevKeyState = std::vector<int32_t>(GLFW_KEY_LAST + 1);
-    static std::vector<int32_t> prevMouseKeyState = std::vector<int32_t>(GLFW_MOUSE_BUTTON_8 + 1);
+    static vector<int32_t> prevKeyState = vector<int32_t>(GLFW_KEY_LAST + 1);
+    static vector<int32_t> prevMouseKeyState = vector<int32_t>(GLFW_MOUSE_BUTTON_8 + 1);
 
     GLFWwindow* getGLFWWindow();
-
     bool isKeyDown(int32_t key);
     bool isKeyDownPrev(int32_t key);
     bool isMouseKeyDownPrev(int32_t key);
-    std::mt19937& rng();
+    mt19937& rng();
     void setSeed(uint32_t seed);
-    float randomfr(float min = 0.0f, float max = 1.0f);
+    float nextFloat(float min = 0.0f, float max = 1.0f);
+    double random(double min = 0.0, double max = 1.0);
     int32_t nextInt(int32_t max = INT32_MAX);
     int32_t nextInt(int32_t min, int32_t max);
 }

@@ -1,11 +1,11 @@
-#include "level/PerlinNoiseFilter.h"
+#include "level/NoiseMap.h"
 
-PerlinNoiseFilter::PerlinNoiseFilter(int32_t levels) 
+NoiseMap::NoiseMap(int32_t levels) 
     : levels(levels) {}
 
-std::vector<int32_t> PerlinNoiseFilter::read(int32_t width, int32_t height) {
+vector<int32_t> NoiseMap::read(int32_t width, int32_t height) {
     int32_t x;
-    std::vector<int32_t> tmp = std::vector<int32_t>(width * height);
+    vector<int32_t> tmp = vector<int32_t>(width * height);
     int32_t level = this->levels;
     int32_t step = width >> level;
     int32_t y = 0;
@@ -56,7 +56,7 @@ std::vector<int32_t> PerlinNoiseFilter::read(int32_t width, int32_t height) {
         }
         step /= 2;
     }
-    std::vector<int32_t> result = std::vector<int32_t>(width * height);
+    vector<int32_t> result = vector<int32_t>(width * height);
     y = 0;
     while (y < height) {
         x = 0;

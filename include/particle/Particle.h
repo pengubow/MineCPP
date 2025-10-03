@@ -1,6 +1,6 @@
 #include "Entity.h"
 #include "level/Level.h"
-#include "level/Tesselator.h"
+#include "renderer/Tesselator.h"
 
 class Particle : public Entity {
 private:
@@ -16,9 +16,8 @@ private:
     int32_t lifetime = 0;
     float size;
 public:
+    Particle(shared_ptr<Level>& level, float x, float y, float z, float xa, float ya, float za, int32_t tex);
 
-    Particle(std::shared_ptr<Level>& level, float x, float y, float z, float xa, float ya, float za, int32_t tex);
-
-    void tick() override;
-    void render(std::shared_ptr<Tesselator>& t, float a, float xa, float ya, float za, float xa2, float za2);
+    void tick();
+    void render(shared_ptr<Tesselator>& t, float a, float xa, float ya, float za, float xa2, float za2);
 };

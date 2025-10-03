@@ -34,9 +34,9 @@ bool Util::isMouseKeyDownPrev(int32_t key) {
     return justPressed;
 }
 
-std::mt19937& Util::rng() {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
+mt19937& Util::rng() {
+    static random_device rd;
+    static mt19937 gen(rd());
     return gen;
 }
 
@@ -44,8 +44,13 @@ void Util::setSeed(uint32_t seed) {
     rng().seed(seed);
 }
 
-float Util::randomfr(float min, float max) {
-    std::uniform_real_distribution<float> dist(min, max);
+float Util::nextFloat(float min, float max) {
+    uniform_real_distribution<float> dist(min, max);
+    return dist(rng());
+}
+
+double Util::random(double min, double max) {
+    uniform_real_distribution<double> dist(min, max);
     return dist(rng());
 }
 
@@ -54,6 +59,6 @@ int32_t Util::nextInt(int32_t max) {
 }
 
 int32_t Util::nextInt(int32_t min, int32_t max) {
-    std::uniform_int_distribution<int32_t> dist(min, max - 1);
+    uniform_int_distribution<int32_t> dist(min, max - 1);
     return dist(rng());
 }
