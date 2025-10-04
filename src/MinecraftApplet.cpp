@@ -3,7 +3,7 @@
 #include "Minecraft.h"
 #include "MinecraftApplet.h"
 
-Minecraft* minecraft = new Minecraft(854, 480, false);
+Minecraft* minecraft = new Minecraft(640, 480, false);
 
 void MinecraftApplet::init() {
     minecraft->applet = this;

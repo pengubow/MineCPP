@@ -14,8 +14,8 @@ void Cube::addBox(float minX, float minY, float minZ, int32_t w, int32_t h, int3
     float maxY = minY + h;
     float maxZ = minZ + d;
 
-    Vertex u0 = Vertex(minX, minY, minZ, 0.0f, 0.0f);
-    Vertex u1 = Vertex(maxX, minY, minZ, 0.0f, 8.0f);
+    Vertex minU = Vertex(minX, minY, minZ, 0.0f, 0.0f);
+    Vertex maxU = Vertex(maxX, minY, minZ, 0.0f, 8.0f);
     Vertex u2 = Vertex(maxX, maxY, minZ, 8.0f, 8.0f);
     Vertex u3 = Vertex(minX, maxY, minZ, 8.0f, 0.0f);
     
@@ -24,8 +24,8 @@ void Cube::addBox(float minX, float minY, float minZ, int32_t w, int32_t h, int3
     Vertex l2 = Vertex(maxX, maxY, maxZ, 8.0f, 8.0f);
     Vertex l3 = Vertex(minX, maxY, maxZ, 8.0f, 0.0f);
 
-    this->vertices.push_back(u0);
-    this->vertices.push_back(u1);
+    this->vertices.push_back(minU);
+    this->vertices.push_back(maxU);
     this->vertices.push_back(u2);
     this->vertices.push_back(u3);
     this->vertices.push_back(l0);
@@ -33,11 +33,11 @@ void Cube::addBox(float minX, float minY, float minZ, int32_t w, int32_t h, int3
     this->vertices.push_back(l2);
     this->vertices.push_back(l3);
 
-    auto hi = vector<Vertex>{ l1, u1, u2, l2 };
-    auto hi1 = vector<Vertex>{ u0, l0, l3, u3 };
-    auto hi2 = vector<Vertex>{ l1, l0, u0, u1 };
+    auto hi = vector<Vertex>{ l1, maxU, u2, l2 };
+    auto hi1 = vector<Vertex>{ minU, l0, l3, u3 };
+    auto hi2 = vector<Vertex>{ l1, l0, minU, maxU };
     auto hi3 = vector<Vertex>{ u2, u3, l3, l2 };
-    auto hi4 = vector<Vertex>{ u1, u0, u3, u2 };
+    auto hi4 = vector<Vertex>{ maxU, minU, u3, u2 };
     auto hi5 = vector<Vertex>{ l0, l1, l2, l3 };
     this->polygons.push_back(Polygon(hi, this->xTexOffs + d + w, this->yTexOffs + d, this->xTexOffs + d + w + d, this->yTexOffs + d + h));
     this->polygons.push_back(Polygon(hi1, this->xTexOffs + 0, this->yTexOffs + d, this->xTexOffs + d, this->yTexOffs + d + h));

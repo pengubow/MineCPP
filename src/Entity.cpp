@@ -32,8 +32,8 @@ void Entity::setPos(float x, float y, float z) {
 }
 
 void Entity::turn(float xo, float yo) {
-    this->yRot = static_cast<float>(static_cast<double>(this->yRot) + static_cast<double>(xo) * 0.15);
-    this->xRot = static_cast<float>(static_cast<double>(this->xRot) - static_cast<double>(yo) * 0.15);
+    this->yRot = (float)((double)this->yRot + (double)xo * 0.15);
+    this->xRot = (float)((double)this->xRot - (double)yo * 0.15);
     if (this->xRot < -90.0f) {
         this->xRot = -90.0f;
     }
@@ -96,9 +96,9 @@ void Entity::moveRelative(float xa, float za, float speed) {
     if (dist < 0.01f) {
         return;
     }
-    dist = speed / static_cast<float>(sqrt(dist));
-    float sinv = static_cast<float>(sin(this->yRot * M_PI / 180.0));
-    float cosv = static_cast<float>(cos(this->yRot * M_PI / 180.0));
+    dist = speed / (float)sqrt(dist);
+    float sinv = (float)sin(this->yRot * M_PI / 180.0);
+    float cosv = (float)cos(this->yRot * M_PI / 180.0);
     xa *= dist;
     za *= dist;
     this->xd += xa * cosv - za * sinv;

@@ -3,12 +3,12 @@
 Polygon::Polygon(vector<Vertex>& vertices) 
     : vertices(vertices), vertexCount(vertices.size()) {}
 
-Polygon::Polygon(vector<Vertex>& vertices, int u0, int v0, int u1, int v1) 
+Polygon::Polygon(vector<Vertex>& vertices, int minU, int minV, int maxU, int maxV) 
     : vertexCount(vertices.size()) {
-    this->vertices.push_back(vertices.at(0).remap(u1, v0));
-    this->vertices.push_back(vertices.at(1).remap(u0, v0));
-    this->vertices.push_back(vertices.at(2).remap(u0, v1));
-    this->vertices.push_back(vertices.at(3).remap(u1, v1));
+    this->vertices.push_back(vertices.at(0).remap(maxU, minV));
+    this->vertices.push_back(vertices.at(1).remap(minU, minV));
+    this->vertices.push_back(vertices.at(2).remap(minU, maxV));
+    this->vertices.push_back(vertices.at(3).remap(maxU, maxV));
 }
 
 void Polygon::render() {

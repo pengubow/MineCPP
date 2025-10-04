@@ -46,16 +46,16 @@ void Particle::tick() {
 }
 
 void Particle::render(shared_ptr<Tesselator>& t, float a, float xa, float ya, float za, float xa2, float za2) {
-    float u0 = ((float)(this->tex % 16) + this->uo / 4.0f) / 16.0f;
-    float u1 = u0 + 0.015609375f;
-    float v0 = ((float)(this->tex / 16) + this->vo / 4.0f) / 16.0f;
-    float v1 = v0 + 0.015609375f;
+    float minU = ((float)(this->tex % 16) + this->uo / 4.0f) / 16.0f;
+    float maxU = minU + 0.015609375f;
+    float minV = ((float)(this->tex / 16) + this->vo / 4.0f) / 16.0f;
+    float maxV = minV + 0.015609375f;
     float r = 0.1f * this->size;
     float x = this->xo + (this->x - this->xo) * a;
     float y = this->yo + (this->y - this->yo) * a;
     float z = this->zo + (this->z - this->zo) * a;
-    t->vertexUV(x - xa * r - xa2 * r, y - ya * r, z - za * r - za2 * r, u0, v1);
-    t->vertexUV(x - xa * r + xa2 * r, y + ya * r, z - za * r + za2 * r, u0, v0);
-    t->vertexUV(x + xa * r + xa2 * r, y + ya * r, z + za * r + za2 * r, u1, v0);
-    t->vertexUV(x + xa * r - xa2 * r, y - ya * r, z + za * r - za2 * r, u1, v1);
+    t->vertexUV(x - xa * r - xa2 * r, y - ya * r, z - za * r - za2 * r, minU, maxV);
+    t->vertexUV(x - xa * r + xa2 * r, y + ya * r, z - za * r + za2 * r, minU, minV);
+    t->vertexUV(x + xa * r + xa2 * r, y + ya * r, z + za * r + za2 * r, maxU, minV);
+    t->vertexUV(x + xa * r - xa2 * r, y - ya * r, z + za * r - za2 * r, maxU, maxV);
 }

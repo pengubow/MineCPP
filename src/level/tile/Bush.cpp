@@ -17,29 +17,29 @@ void Bush::render(shared_ptr<Tesselator>& t, shared_ptr<Level>& level, int32_t l
         return;
     }
     int32_t tex = this->getTexture(15);
-    float u0 = (float)(tex % 16) / 16.0f;
-    float u1 = u0 + 0.0624375f;
-    float v0 = (float)(tex / 16) / 16.0f;
-    float v1 = v0 + 0.0624375f;
+    float minU = (float)(tex % 16) / 16.0f;
+    float maxU = minU + 0.0624375f;
+    float minV = (float)(tex / 16) / 16.0f;
+    float maxV = minV + 0.0624375f;
     int32_t rots = 2;
     t->color(1.0f, 1.0f, 1.0f);
     for (int32_t r = 0; r < rots; r++) {
         float xa = (float)(sin((double)r * M_PI / (double)rots + 0.7853981633974483) * 0.5);
         float za = (float)(cos((double)r * M_PI / (double)rots + 0.7853981633974483) * 0.5);
-        float x0 = (float)x + 0.5f - xa;
-        float x1 = (float)x + 0.5f + xa;
-        float y0 = (float)y + 0.0f;
-        float y1 = (float)y + 1.0f;
-        float z0 = (float)z + 0.5f - za;
-        float z1 = (float)z + 0.5f + za;
-        t->vertexUV(x0, y1, z0, u1, v0);
-        t->vertexUV(x1, y1, z1, u0, v0);
-        t->vertexUV(x1, y0, z1, u0, v1);
-        t->vertexUV(x0, y0, z0, u1, v1);
-        t->vertexUV(x1, y1, z1, u0, v0);
-        t->vertexUV(x0, y1, z0, u1, v0);
-        t->vertexUV(x0, y0, z0, u1, v1);
-        t->vertexUV(x1, y0, z1, u0, v1);
+        float minX = (float)x + 0.5f - xa;
+        float maxX = (float)x + 0.5f + xa;
+        float minY = (float)y + 0.0f;
+        float maxY = (float)y + 1.0f;
+        float minZ = (float)z + 0.5f - za;
+        float maxZ = (float)z + 0.5f + za;
+        t->vertexUV(minX, maxY, minZ, maxU, minV);
+        t->vertexUV(maxX, maxY, maxZ, minU, minV);
+        t->vertexUV(maxX, minY, maxZ, minU, maxV);
+        t->vertexUV(minX, minY, minZ, maxU, maxV);
+        t->vertexUV(maxX, maxY, maxZ, minU, minV);
+        t->vertexUV(minX, maxY, minZ, maxU, minV);
+        t->vertexUV(minX, minY, minZ, maxU, maxV);
+        t->vertexUV(maxX, minY, maxZ, minU, maxV);
     }
 }
 

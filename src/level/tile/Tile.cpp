@@ -60,10 +60,10 @@ int32_t Tile::getTexture(int32_t face) {
 
 void Tile::renderFace(shared_ptr<Tesselator>& t, int32_t x, int32_t y, int32_t z, int32_t face) {
     int32_t tex = this->getTexture(face);
-    float u0 = (float)(tex % 16) / 16.0f;
-    float u1 = u0 + 0.0624375f;
-    float v0 = (float)(tex / 16) / 16.0f;
-    float v1 = v0 + 0.0624375f;
+    float minU = (float)(tex % 16) / 16.0f;
+    float maxU = minU + 0.0624375f;
+    float minV = (float)(tex / 16) / 16.0f;
+    float maxV = minV + 0.0624375f;
     float minX = (float)x;
     float maxX = (float)x + 1.0f;
     float minY = (float)y;
@@ -71,40 +71,40 @@ void Tile::renderFace(shared_ptr<Tesselator>& t, int32_t x, int32_t y, int32_t z
     float minZ = (float)z;
     float maxZ = (float)z + 1.0f;
     if (face == 0) {
-        t->vertexUV(minX, minY, maxZ, u0, v1);
-        t->vertexUV(minX, minY, minZ, u0, v0);
-        t->vertexUV(maxX, minY, minZ, u1, v0);
-        t->vertexUV(maxX, minY, maxZ, u1, v1);
+        t->vertexUV(minX, minY, maxZ, minU, maxV);
+        t->vertexUV(minX, minY, minZ, minU, minV);
+        t->vertexUV(maxX, minY, minZ, maxU, minV);
+        t->vertexUV(maxX, minY, maxZ, maxU, maxV);
     }
     if (face == 1) {
-        t->vertexUV(maxX, maxY, maxZ, u1, v1);
-        t->vertexUV(maxX, maxY, minZ, u1, v0);
-        t->vertexUV(minX, maxY, minZ, u0, v0);
-        t->vertexUV(minX, maxY, maxZ, u0, v1);
+        t->vertexUV(maxX, maxY, maxZ, maxU, maxV);
+        t->vertexUV(maxX, maxY, minZ, maxU, minV);
+        t->vertexUV(minX, maxY, minZ, minU, minV);
+        t->vertexUV(minX, maxY, maxZ, minU, maxV);
     }
     if (face == 2) {
-        t->vertexUV(minX, maxY, minZ, u1, v0);
-        t->vertexUV(maxX, maxY, minZ, u0, v0);
-        t->vertexUV(maxX, minY, minZ, u0, v1);
-        t->vertexUV(minX, minY, minZ, u1, v1);
+        t->vertexUV(minX, maxY, minZ, maxU, minV);
+        t->vertexUV(maxX, maxY, minZ, minU, minV);
+        t->vertexUV(maxX, minY, minZ, minU, maxV);
+        t->vertexUV(minX, minY, minZ, maxU, maxV);
     }
     if (face == 3) {
-        t->vertexUV(minX, maxY, maxZ, u0, v0);
-        t->vertexUV(minX, minY, maxZ, u0, v1);
-        t->vertexUV(maxX, minY, maxZ, u1, v1);
-        t->vertexUV(maxX, maxY, maxZ, u1, v0);
+        t->vertexUV(minX, maxY, maxZ, minU, minV);
+        t->vertexUV(minX, minY, maxZ, minU, maxV);
+        t->vertexUV(maxX, minY, maxZ, maxU, maxV);
+        t->vertexUV(maxX, maxY, maxZ, maxU, minV);
     }
     if (face == 4) {
-        t->vertexUV(minX, maxY, maxZ, u1, v0);
-        t->vertexUV(minX, maxY, minZ, u0, v0);
-        t->vertexUV(minX, minY, minZ, u0, v1);
-        t->vertexUV(minX, minY, maxZ, u1, v1);
+        t->vertexUV(minX, maxY, maxZ, maxU, minV);
+        t->vertexUV(minX, maxY, minZ, minU, minV);
+        t->vertexUV(minX, minY, minZ, minU, maxV);
+        t->vertexUV(minX, minY, maxZ, maxU, maxV);
     }
     if (face == 5) {
-        t->vertexUV(maxX, minY, maxZ, u0, v1);
-        t->vertexUV(maxX, minY, minZ, u1, v1);
-        t->vertexUV(maxX, maxY, minZ, u1, v0);
-        t->vertexUV(maxX, maxY, maxZ, u0, v0);
+        t->vertexUV(maxX, minY, maxZ, minU, maxV);
+        t->vertexUV(maxX, minY, minZ, maxU, maxV);
+        t->vertexUV(maxX, maxY, minZ, maxU, minV);
+        t->vertexUV(maxX, maxY, maxZ, minU, minV);
     }
 }
 

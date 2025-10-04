@@ -17,7 +17,7 @@ void Timer::advanceTime() {
     if (passedNs > MAX_NS_PER_UPDATE) {
         passedNs = MAX_NS_PER_UPDATE;
     }
-    this->fps = static_cast<float>(NS_PER_SECOND) / passedNs;
+    this->fps = (float)NS_PER_SECOND / passedNs;
     this->passedTime += passedNs * this->timeScale * this->ticksPerSecond / 1.0E9f;
     this->ticks = this->passedTime;
     if (this->ticks > 100) {

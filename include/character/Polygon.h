@@ -10,7 +10,7 @@ public:
 
     Polygon(vector<Vertex>& vertices);
 
-    Polygon(vector<Vertex>& vertices, int u0, int v0, int u1, int v1);
+    Polygon(vector<Vertex>& vertices, int minU, int minV, int maxU, int maxV);
 
     void render();
 };

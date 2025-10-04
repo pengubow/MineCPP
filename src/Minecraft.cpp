@@ -45,7 +45,7 @@ void Minecraft::init() {
         window = glfwCreateWindow(width, height, windowTitle.c_str(), monitor, nullptr);
     }
     else {
-        window = glfwCreateWindow(width, height, windowTitle.c_str(), nullptr, nullptr);
+        window = glfwCreateWindow(854, 480, windowTitle.c_str(), nullptr, nullptr);
     }
     
     if (!window) {
@@ -57,9 +57,9 @@ void Minecraft::init() {
 
     checkGlError("Pre Startup");
 
-    int32_t w, h;
-    glfwGetFramebufferSize(window, &w, &h);
-    width = w; height = h;
+    //int32_t w, h;
+    //glfwGetFramebufferSize(window, &w, &h);
+    //width = w; height = h;
 
     glShadeModel(GL_SMOOTH);
     glEnable(GL_TEXTURE_2D);
@@ -127,7 +127,8 @@ void Minecraft::grabMouse() {
     if (mouseGrabbed) {
         return;
     }
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    glfwSetCursorPos(window, width / 2, height / 2);
     mouseGrabbed = true;
 }
 
@@ -255,7 +256,7 @@ void Minecraft::moveCameraToPlayer(float a) {
 void Minecraft::setupCamera(float a) {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(70.0, static_cast<double>(width) / static_cast<double>(height), 0.05, 1000.0);
+    gluPerspective(70.0, (double)width / (double)height, 0.05, 1000.0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     this->moveCameraToPlayer(a); 
@@ -274,7 +275,7 @@ void Minecraft::setupPickCamera(float a, int32_t x, int32_t y) {
 
 void Minecraft::pick(float a) {
     selectBuffer.assign(selectBuffer.size(), 0);
-    glSelectBuffer(static_cast<GLsizei>(selectBuffer.size()), selectBuffer.data());
+    glSelectBuffer((GLsizei)(selectBuffer.size()), selectBuffer.data());
     glRenderMode(GL_SELECT);
     this->setupPickCamera(a, width / 2, height / 2);
     levelRenderer->pick(player, Frustum::getFrustum());
@@ -318,17 +319,13 @@ void Minecraft::render(float a) {
     }
     glViewport(0, 0, width, height);
     if (mouseGrabbed) {
-        double xpos;
-        double ypos;
-        glfwGetCursorPos(window, &xpos, &ypos);
-
-        double dx = xpos - lastMouseX;
-        double dy = ypos - lastMouseY;
-
-        lastMouseX = xpos;
-        lastMouseY = ypos;
-
-        player->turn((float)dx, -(float)(dy * yMouseAxis));
+        double xo = 0.0f;
+        double yo = 0.0f;
+        glfwGetCursorPos(window, &xo, &yo);
+        xo = xo - width / 2;
+        yo = yo - height / 2;
+        glfwSetCursorPos(window, width / 2, height / 2);
+        player->turn(xo, -yo * (float)yMouseAxis);
     }
     checkGlError("Set viewport");
     pick(a);
