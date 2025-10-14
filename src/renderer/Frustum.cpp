@@ -4,26 +4,19 @@
 
 Frustum Frustum::frustum = Frustum();
 
+array<array<float,4>,6> Frustum::m_Frustum = {};
+array<float,16> Frustum::proj = {};
+array<float,16> Frustum::modl = {};
+array<float,16> Frustum::clip = {};
+
 Frustum::Frustum() {
-    for (auto &row : m_Frustum) row.fill(0.0f);
+    m_Frustum.fill({0.0f, 0.0f, 0.0f, 0.0f});
     proj.fill(0.0f);
     modl.fill(0.0f);
     clip.fill(0.0f);
 }
 
-void Frustum::normalizePlane(array<array<float,4>,6>& frustumArr, int side) {
-    float magnitude = sqrt(
-        frustumArr[side][0] * frustumArr[side][0] +
-        frustumArr[side][1] * frustumArr[side][1] +
-        frustumArr[side][2] * frustumArr[side][2]
-    );
-    frustumArr[side][0] /= magnitude;
-    frustumArr[side][1] /= magnitude;
-    frustumArr[side][2] /= magnitude;
-    frustumArr[side][3] /= magnitude;
-}
-
-void Frustum::calculateFrustum() {
+Frustum& Frustum::getFrustum() {
     glGetFloatv(GL_PROJECTION_MATRIX, proj.data());
     glGetFloatv(GL_MODELVIEW_MATRIX, modl.data());
 
@@ -82,78 +75,27 @@ void Frustum::calculateFrustum() {
     m_Frustum[5][2] = clip[11] + clip[10];
     m_Frustum[5][3] = clip[15] + clip[14];
     normalizePlane(m_Frustum, 5);
-}
-
-Frustum& Frustum::getFrustum() {
-    frustum.calculateFrustum();
     return frustum;
 }
 
-bool Frustum::pointInFrustum(float x, float y, float z) {
-    
-    for (int32_t i = 0; i < 6; i++) {
-        if (m_Frustum[i][0] * x + m_Frustum[i][1] * y + m_Frustum[i][2] * z + m_Frustum[i][3] <= 0.0f) {
+void Frustum::normalizePlane(array<array<float,4>,6>& frustumArr, int side) {
+    float magnitude = sqrt(frustumArr[side][0] * frustumArr[side][0] + frustumArr[side][1] * frustumArr[side][1] + frustumArr[side][2] * frustumArr[side][2]);
+    frustumArr[side][0] /= magnitude;
+    frustumArr[side][1] /= magnitude;
+    frustumArr[side][2] /= magnitude;
+    frustumArr[side][3] /= magnitude;
+}
+
+bool Frustum::cubeInFrustum(float var1, float var2, float var3, float var4, float var5, float var6) {
+    for (int32_t var7 = 0; var7 < 6; ++var7) {
+        if (m_Frustum[var7][0] * var1 + m_Frustum[var7][1] * var2 + m_Frustum[var7][2] * var3 + m_Frustum[var7][3] <= 0.0F && m_Frustum[var7][0] * var4 + m_Frustum[var7][1] * var2 + m_Frustum[var7][2] * var3 + m_Frustum[var7][3] <= 0.0F && m_Frustum[var7][0] * var1 + m_Frustum[var7][1] * var5 + m_Frustum[var7][2] * var3 + m_Frustum[var7][3] <= 0.0F && m_Frustum[var7][0] * var4 + m_Frustum[var7][1] * var5 + m_Frustum[var7][2] * var3 + m_Frustum[var7][3] <= 0.0F && m_Frustum[var7][0] * var1 + m_Frustum[var7][1] * var2 + m_Frustum[var7][2] * var6 + m_Frustum[var7][3] <= 0.0F && m_Frustum[var7][0] * var4 + m_Frustum[var7][1] * var2 + m_Frustum[var7][2] * var6 + m_Frustum[var7][3] <= 0.0F && m_Frustum[var7][0] * var1 + m_Frustum[var7][1] * var5 + m_Frustum[var7][2] * var6 + m_Frustum[var7][3] <= 0.0F && m_Frustum[var7][0] * var4 + m_Frustum[var7][1] * var5 + m_Frustum[var7][2] * var6 + m_Frustum[var7][3] <= 0.0F) {
             return false;
         }
     }
+
     return true;
 }
 
-bool Frustum::sphereInFrustum(float x, float y, float z, float radius) {
-    for (int32_t i = 0; i < 6; i++) {
-        if (m_Frustum[i][0] * x + m_Frustum[i][1] * y + m_Frustum[i][2] * z + m_Frustum[i][3] <= -radius) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool Frustum::cubeFullyInFrustum(float maxX, float maxY, float maxZ, float x2, float y2, float z2) {
-    for (int32_t i = 0; i < 6; i++) {
-        if (!(m_Frustum[i][0] * maxX + m_Frustum[i][1] * maxY + m_Frustum[i][2] * maxZ + m_Frustum[i][3] > 0.0f)) {
-            return false;
-        }
-        if (!(m_Frustum[i][0] * x2 + m_Frustum[i][1] * maxY + m_Frustum[i][2] * maxZ + m_Frustum[i][3] > 0.0f)) {
-            return false;
-        }
-        if (!(m_Frustum[i][0] * maxX + m_Frustum[i][1] * y2 + m_Frustum[i][2] * maxZ + m_Frustum[i][3] > 0.0f)) {
-            return false;
-        }
-        if (!(m_Frustum[i][0] * x2 + m_Frustum[i][1] * y2 + m_Frustum[i][2] * maxZ + m_Frustum[i][3] > 0.0f)) {
-            return false;
-        }
-        if (!(m_Frustum[i][0] * maxX + m_Frustum[i][1] * maxY + m_Frustum[i][2] * z2 + m_Frustum[i][3] > 0.0f)) {
-            return false;
-        }
-        if (!(m_Frustum[i][0] * x2 + m_Frustum[i][1] * maxY + m_Frustum[i][2] * z2 + m_Frustum[i][3] > 0.0f)) {
-            return false;
-        }
-        if (!(m_Frustum[i][0] * maxX + m_Frustum[i][1] * y2 + m_Frustum[i][2] * z2 + m_Frustum[i][3] > 0.0f)) {
-            return false;
-        }
-        if (!(m_Frustum[i][0] * x2 + m_Frustum[i][1] * y2 + m_Frustum[i][2] * z2 + m_Frustum[i][3] > 0.0f)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool Frustum::cubeInFrustum(float maxX, float maxY, float maxZ, float x2, float y2, float z2) {
-    for (int32_t i = 0; i < 6; i++) {
-        if (!(m_Frustum[i][0] * maxX + m_Frustum[i][1] * maxY + m_Frustum[i][2] * maxZ + m_Frustum[i][3] > 0.0f ||
-              m_Frustum[i][0] * x2 + m_Frustum[i][1] * maxY + m_Frustum[i][2] * maxZ + m_Frustum[i][3] > 0.0f ||
-              m_Frustum[i][0] * maxX + m_Frustum[i][1] * y2 + m_Frustum[i][2] * maxZ + m_Frustum[i][3] > 0.0f ||
-              m_Frustum[i][0] * x2 + m_Frustum[i][1] * y2 + m_Frustum[i][2] * maxZ + m_Frustum[i][3] > 0.0f ||
-              m_Frustum[i][0] * maxX + m_Frustum[i][1] * maxY + m_Frustum[i][2] * z2 + m_Frustum[i][3] > 0.0f ||
-              m_Frustum[i][0] * x2 + m_Frustum[i][1] * maxY + m_Frustum[i][2] * z2 + m_Frustum[i][3] > 0.0f ||
-              m_Frustum[i][0] * maxX + m_Frustum[i][1] * y2 + m_Frustum[i][2] * z2 + m_Frustum[i][3] > 0.0f ||
-              m_Frustum[i][0] * x2 + m_Frustum[i][1] * y2 + m_Frustum[i][2] * z2 + m_Frustum[i][3] > 0.0f)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool Frustum::isVisible(AABB& aabb) {
-    return this->cubeInFrustum(aabb.minX, aabb.minY, aabb.minZ, aabb.maxX, aabb.maxY, aabb.maxZ);
+bool Frustum::isVisible(shared_ptr<AABB>& aabb) {
+    return this->cubeInFrustum(aabb->minX, aabb->minY, aabb->minZ, aabb->maxX, aabb->maxY, aabb->maxZ);
 }

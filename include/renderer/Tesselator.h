@@ -9,7 +9,7 @@ using namespace std;
 
 class Tesselator {
 private:
-    static const int32_t MAX_VERTICES = 0x400000;
+    static const int32_t MAX_VERTICES = 4194304;
     static const int32_t MAX_FLOATS = 524288;
     vector<float> buffer;
     vector<float> array;
@@ -25,16 +25,15 @@ private:
     int32_t p = 0;
 public:
     bool noColor = false;
-
     static shared_ptr<Tesselator> instance;
 
     Tesselator();
 
-    void flush();
+    void end();
     void clear();
-    void init();
-    void tex(float u, float v);
+    void begin();
     void color(float r, float g, float b);
+    void color(int32_t r, int32_t g, int32_t b);
     void vertexUV(float x, float y, float z, float u, float v);
     void vertex(float x, float y, float z);
     void color(int32_t c);

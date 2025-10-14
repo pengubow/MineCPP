@@ -39,10 +39,6 @@ Font::Font(string name, shared_ptr<Textures>& textures) {
 
 void Font::drawShadow(string str, int32_t x, int32_t y, int32_t color) {
     draw(str, x + 1, y + 1, color, true);
-    draw(str, x, y, color);
-}
-
-void Font::draw(string str, int32_t x, int32_t y, int32_t color) {
     draw(str, x, y, color, false);
 }
 
@@ -53,7 +49,7 @@ void Font::draw(string str, int32_t x, int32_t y, int32_t color, bool darken) {
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, fontTexture);
     shared_ptr<Tesselator> t = Tesselator::instance;
-    t->init();
+    t->begin();
     t->color(color);
     int32_t xo = 0;
     for (int32_t i = 0; i < str.length(); i++) {
@@ -81,7 +77,7 @@ void Font::draw(string str, int32_t x, int32_t y, int32_t color, bool darken) {
         t->vertexUV(x + xo, y, 0.0f, (float)ix / 128.0f, (float)iy / 128.0f);
         xo += this->charWidths[str[i]];
     }
-    t->flush();
+    t->end();
     glDisable(GL_TEXTURE_2D);
 }
 

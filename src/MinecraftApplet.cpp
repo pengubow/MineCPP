@@ -2,11 +2,25 @@
 #include <stdint.h>
 #include "Minecraft.h"
 #include "MinecraftApplet.h"
+#include "User.h"
 
-Minecraft* minecraft = new Minecraft(640, 480, false);
+shared_ptr<Minecraft> MinecraftApplet::minecraft;
 
-void MinecraftApplet::init() {
-    minecraft->applet = this;
+void MinecraftApplet::init(int argc, char* argv[]) {
+    MinecraftApplet::minecraft = make_shared<Minecraft>(854, 480, false);
+    minecraft->minecraftUri = "localhost:25565";
+
+    if (argc > 2) {
+        string name = argv[1];
+        string sessionId = argv[2];
+        minecraft->user = make_shared<User>(name, sessionId);
+    }
+
+    if (argc > 4) {
+        minecraft->loadMapUser = argv[3];
+        minecraft->loadMapID = stoi(argv[4]);
+    }
+    
     startGameThread();
 }
 
@@ -32,9 +46,9 @@ void MinecraftApplet::stopGameThread() {
     minecraft->stop();
 }
 
-int main() {
+int main(int argc, char** argv) {
     MinecraftApplet applet;
-    applet.init();
+    applet.init(argc, argv);
     applet.t.join();
     return 0;
 }

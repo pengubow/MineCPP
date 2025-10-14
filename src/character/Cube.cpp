@@ -2,7 +2,8 @@
 
 Cube::Cube(int32_t xTexOffs, int32_t yTexOffs) 
     : xTexOffs(xTexOffs), yTexOffs(yTexOffs),
-    xRot(0.0f), yRot(0.0f), zRot(0.0f) {}
+    xRot(0.0f), yRot(0.0f), zRot(0.0f), 
+    x(0.0f), y(0.0f), z(0.0f) {}
 
 void Cube::setTexOffs(int32_t xTexOffs, int32_t yTexOffs) {
     this->xTexOffs = xTexOffs;
@@ -55,7 +56,15 @@ void Cube::setPos(float x, float y, float z) {
 
 void Cube::render() {
     if (!this->compiled) {
-        this->compile();
+        this->list = glGenLists(1);
+        glNewList(this->list, GL_COMPILE);
+        glBegin(GL_QUADS);
+        for (int32_t i = 0; i < this->polygons.size(); i++) {
+            this->polygons[i].render();
+        }
+        glEnd();
+        glEndList();
+        this->compiled = true;
     }
     float c = 57.29578f;
     glPushMatrix();
@@ -65,16 +74,4 @@ void Cube::render() {
     glRotatef(this->xRot * c, 1.0f, 0.0f, 0.0f);
     glCallList(this->list);
     glPopMatrix();
-}
-
-void Cube::compile() {
-    this->list = glGenLists(1);
-    glNewList(this->list, GL_COMPILE);
-    glBegin(GL_QUADS);
-    for (int32_t i = 0; i < this->polygons.size(); i++) {
-        this->polygons.at(i).render();
-    }
-    glEnd();
-    glEndList();
-    this->compiled = true;
 }

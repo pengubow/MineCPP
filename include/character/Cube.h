@@ -7,10 +7,10 @@ private:
     vector<Polygon> polygons;
     int32_t xTexOffs;
     int32_t yTexOffs;
+    float x;
+    float y;
+    float z;
 public:
-    float x = 0.0f;
-    float y = 0.0f;
-    float z = 0.0f;
     float xRot;
     float yRot;
     float zRot;
@@ -24,5 +24,4 @@ public:
     void addBox(float minX, float minY, float minZ, int32_t w, int32_t h, int32_t d);
     void setPos(float x, float y, float z);
     void render();
-    void compile();
 };

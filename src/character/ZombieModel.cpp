@@ -19,20 +19,3 @@ ZombieModel::ZombieModel() {
     this->leg1.addBox(-2.0f, 0.0f, -2.0f, 4, 12, 4);
     this->leg1.setPos(2.0f, 12.0f, 0.0f);
 }
-
-void ZombieModel::render(double time) {
-    this->head.yRot = sin(time * 0.83) * 1.0f;
-    this->head.xRot = sin(time) * 0.8f;
-    this->arm0.xRot = sin(time * 0.6662 + M_PI) * 2.0f;
-    this->arm0.zRot = (sin(time * 0.2312) + 1.0) * 1.0f;
-    this->arm1.xRot = sin(time * 0.6662) * 2.0f;
-    this->arm1.zRot = (sin(time * 0.2812) - 1.0) * 1.0f;
-    this->leg0.xRot = sin(time * 0.6662) * 1.4f;
-    this->leg1.xRot = sin(time * 0.6662 + M_PI) * 1.4f;
-    this->head.render();
-    this->body.render();
-    this->arm0.render();
-    this->arm1.render();
-    this->leg0.render();
-    this->leg1.render();
-}

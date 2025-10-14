@@ -11,6 +11,4 @@ public:
     Cube leg1;
 
     ZombieModel();
-
-    void render(double time);
 };

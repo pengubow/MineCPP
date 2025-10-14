@@ -3,54 +3,74 @@
 #include <GLFW/glfw3.h>
 #include <atomic>
 #include "level/Level.h"
-#include "level/LevelRenderer.h"
-#include "Player.h"
+#include "renderer/LevelRenderer.h"
+#include "player/Player.h"
 #include "HitResult.h"
 #include "Timer.h"
 #include "character/Zombie.h"
 #include "gui/Font.h"
+#include "User.h"
+#include "level/LevelIO.h"
+#include "level/levelgen/LevelGen.h"
 #include "MinecraftApplet.h"
+#include "gui/Screen.h"
 
-class Minecraft {
-public:
-    string VERSION_STRING = "0.0.11a";
+class Minecraft : public enable_shared_from_this<Minecraft> {
 private:
     bool fullscreen = false;
-    int32_t width;
-    int32_t height;
-    float fogColor0[4];
-    float fogColor1[4];
-    Timer timer = Timer(20.0f);
-    shared_ptr<Level> level;
-    shared_ptr<LevelRenderer> levelRenderer;
-    shared_ptr<Player> player;
-    int32_t paintTexture = 1;
-    shared_ptr<ParticleEngine> particleEngine;
-    vector<shared_ptr<Entity>> entities;
 public:
-    MinecraftApplet* applet;
-    std::atomic<bool> pause = false;
+	int32_t width;
+	int32_t height;
 private:
-    int32_t yMouseAxis = 1;
+	array<float, 4> fogColor0;
+	array<float, 4> fogColor1;
+	Timer timer = Timer(20.0F);
+	shared_ptr<Level> level;
+	shared_ptr<LevelRenderer> levelRenderer;
+	shared_ptr<Player> player;
+	int32_t paintTexture = 1;
+	shared_ptr<ParticleEngine> particleEngine;
 public:
-    shared_ptr<Textures> textures;
+	shared_ptr<User> user;
+	string minecraftUri;
+	atomic<bool> pause = false;
 private:
-    unique_ptr<Font> font;
-    int32_t editMode = 0;
-    std::atomic<bool> running = false;
-    string fpsString = "";
-    bool mouseGrabbed = false;
-    vector<GLuint> selectBuffer = vector<GLuint>(2000);
-    vector<GLint> viewportBuffer = vector<GLint>(16);
-    unique_ptr<HitResult> hitResult;
-    GLFWwindow* window;
-    float lastMouseX, lastMouseY;
-    float mouseDX, mouseDY;
-    vector<float> lb;
+	int32_t yMouseAxis = 1;
+	static shared_ptr<Textures> textures;
+public:
+	shared_ptr<Font> font;
+private:
+	int32_t editMode = 0;
+	shared_ptr<Screen> screen;
+	shared_ptr<LevelIO> levelIo;
+	shared_ptr<LevelGen> levelGen;
+	int32_t ticksRan = 0;
+public:
+	string loadMapUser;
+	int32_t loadMapID = 0;
+private:
+	static vector<int32_t> creativeTiles;
+	float fogColorRed = 0.5F;
+	float fogColorGreen = 0.8F;
+	float fogColorBlue = 1.0F;
+	atomic<bool> running = false;
+	string fpsString = "";
+	bool mouseGrabbed = false;
+	int32_t prevFrameTime = 0;
+	float renderDistance = 0.0F;
+	vector<int32_t> viewportBuffer = vector<int32_t>(16);
+	vector<GLuint> selectBuffer = vector<GLuint>(2000);
+	shared_ptr<HitResult> hitResult;
+	atomic<int32_t> unusedInt1 = 0;
+    atomic<int32_t> unusedInt2 = 0;
+	vector<float> lb = vector<float>(16);
+	string title = "";
+	string text = "";
+    static GLFWwindow* window;
 public:
     Minecraft(int32_t width, int32_t height, bool fullscreen);
 
-    void init();
+    void setScreen(shared_ptr<Screen> screen);
 private:
     void checkGlError(string string);
 public:
@@ -60,20 +80,21 @@ public:
     void grabMouse();
     void releaseMouse();
 private:
-    void handleMouseClick();
+    void clickMouse();
 public:
     void tick();
 private:
-    bool isFree(shared_ptr<AABB>& aabb);
-    void moveCameraToPlayer(float a);
-    void setupCamera(float a);
-    void setupPickCamera(float a, int32_t x, int32_t y);
-    void pick(float a);
+    void orientCamera(float a);
 public:
     void render(float a);
 private:
-    void drawGui(float a);
     void setupFog(int32_t i);
     vector<float>& getBuffer(float a, float b, float c, float d);
-    static void checkError();
+public:
+    void beginLevelLoading(string title);
+    void levelLoadUpdate(string text);
+    void setLoadingProgress(int32_t var1);
+    void generateLevel(int32_t var1);
+private:
+    void setLevel(shared_ptr<Level>& level);
 };

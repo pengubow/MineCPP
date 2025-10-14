@@ -1,11 +1,11 @@
 #include <cmath>
 #include "particle/Particle.h"
-#include "Util.h"
+#include "Util/Util.h"
 
 Particle::Particle(shared_ptr<Level>& level, float x, float y, float z, float xa, float ya, float za, int32_t tex) 
     : Entity(level), tex(tex) {
     this->setSize(0.2f, 0.2f);
-    this->heightOffset = this->bbHeight / 2.0;
+    this->heightOffset = this->bbHeight / 2.0f;
     this->setPos(x, y, z);
     this->xd = xa + (float)(Util::nextFloat() * 2.0 - 1.0) * 0.4f;
     this->yd = ya + (float)(Util::nextFloat() * 2.0 - 1.0) * 0.4f;
@@ -21,10 +21,10 @@ Particle::Particle(shared_ptr<Level>& level, float x, float y, float z, float xa
     this->lifetime = (int32_t)(4.0 / (Util::nextFloat() * 0.9 + 0.1));
     this->age = 0;
 
-    // needed, trust
-    this->xo = this->x;
+    // needed, trust ok maybe not now havent tested yet
+    /*this->xo = this->x;
     this->yo = this->y;
-    this->zo = this->z;
+    this->zo = this->z;*/
 }
 
 void Particle::tick() {
@@ -47,9 +47,9 @@ void Particle::tick() {
 
 void Particle::render(shared_ptr<Tesselator>& t, float a, float xa, float ya, float za, float xa2, float za2) {
     float minU = ((float)(this->tex % 16) + this->uo / 4.0f) / 16.0f;
-    float maxU = minU + 0.015609375f;
+    float maxU = minU + 0.999f / 64.0f;
     float minV = ((float)(this->tex / 16) + this->vo / 4.0f) / 16.0f;
-    float maxV = minV + 0.015609375f;
+    float maxV = minV + 0.999f / 64.0f;
     float r = 0.1f * this->size;
     float x = this->xo + (this->x - this->xo) * a;
     float y = this->yo + (this->y - this->yo) * a;
