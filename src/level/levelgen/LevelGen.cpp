@@ -5,7 +5,7 @@
 LevelGen::LevelGen(shared_ptr<Minecraft> minecraft)
     : minecraft(minecraft) {}
 
-shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t height, int32_t var4) {
+shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t height, int32_t depth) {
     this->minecraft->beginLevelLoading("Generating level");
     this->width = width;
     this->height = height;
