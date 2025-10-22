@@ -7,28 +7,30 @@ LevelRenderer::LevelRenderer(shared_ptr<Textures>& textures)
     : textures(textures), surroundLists(glGenLists(2)) {}
 
 void LevelRenderer::setLevel(shared_ptr<Level>& level) {
-    shared_ptr<LevelRenderer> shared = shared_from_this();
     shared_ptr<Level> thislevel = this->level.lock();
     if (thislevel) {
-        thislevel->removeListener(shared);
+        thislevel->removeListener(this);
     }
 
     this->level = level;
-    level->addListener(shared);
-    compileSurroundingGround();
+    if (level != nullptr) {
+        level->addListener(this);
+        compileSurroundingGround();
+    }
+    
 }
 
 void LevelRenderer::compileSurroundingGround() {
+    shared_ptr<Level> level = this->level.lock();
+    if (!level) {
+        return;
+    }
+
     int32_t var1;
     if (!sortedChunks.empty()) {
         for(var1 = 0; var1 < sortedChunks.size(); ++var1) {
             sortedChunks[var1]->clear();
         }
-    }
-
-    shared_ptr<Level> level = this->level.lock();
-    if (!level) {
-        return;
     }
 
     xChunks = level->width / 16;
@@ -169,9 +171,7 @@ void LevelRenderer::renderEntities(Frustum& frustum, float var2) {
     }
 }
 
-void LevelRenderer::render(shared_ptr<Player> player, int32_t layer) {
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, textures->loadTexture("terrain.png", GL_NEAREST));
+int32_t LevelRenderer::render(shared_ptr<Player>& player, int32_t layer) {
     float var3 = player->x - lX;
     float var4 = player->y - lY;
     float var5 = player->z - lZ;
@@ -190,10 +190,13 @@ void LevelRenderer::render(shared_ptr<Player> player, int32_t layer) {
     }
 
     if (!dummyBuffer.empty()) {
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, textures->loadTexture("terrain.png", GL_NEAREST));
         glCallLists(dummyBuffer.size(), GL_INT, dummyBuffer.data());
+        glDisable(GL_TEXTURE_2D);
     }
 
-    glDisable(GL_TEXTURE_2D);
+    return dummyBuffer.size();
 }
 
 void LevelRenderer::renderClouds(float var1) {
@@ -279,13 +282,8 @@ void LevelRenderer::render(int32_t x, int32_t y, int32_t z) {
     }
 }
 
-void LevelRenderer::renderHit(shared_ptr<Player>& player, shared_ptr<HitResult>& h, int32_t mode, int32_t tileType) {
-    shared_ptr<Level> level = this->level.lock();
-    if (!level) {
-        return;
-    }
-    
-    shared_ptr<Tesselator> t = make_shared<Tesselator>();
+void LevelRenderer::renderHit(shared_ptr<Player>& player, optional<HitResult>& h, int32_t mode, int32_t tileType) {
+    shared_ptr<Tesselator> t = Tesselator::instance;
     glEnable(GL_BLEND);
     glEnable(GL_ALPHA_TEST);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
@@ -335,6 +333,11 @@ void LevelRenderer::renderHit(shared_ptr<Player>& player, shared_ptr<HitResult>&
 
         t->begin();
         t->setNoColor();
+        shared_ptr<Level> level = this->level.lock();
+        if (!level) {
+            return;
+        }
+
         Tile::tiles[tileType]->render(t, level, 0, x, y, z);
         Tile::tiles[tileType]->render(t, level, 1, x, y, z);
         t->end();
@@ -345,7 +348,7 @@ void LevelRenderer::renderHit(shared_ptr<Player>& player, shared_ptr<HitResult>&
     glDisable(GL_ALPHA_TEST);
 }
 
-void LevelRenderer::renderHitOutline(shared_ptr<HitResult>& h, int32_t mode) {
+void LevelRenderer::renderHitOutline(optional<HitResult>& h, int32_t mode) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glColor4f(0.0f, 0.0f, 0.0f, 0.4f);

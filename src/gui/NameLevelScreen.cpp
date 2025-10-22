@@ -1,6 +1,7 @@
 #include <GLFW/glfw3.h>
 #include "gui/NameLevelScreen.h"
 #include "Util/Util.h"
+#include "Minecraft.h"
 
 NameLevelScreen::NameLevelScreen(shared_ptr<Screen> parent, string name, int32_t id) 
     : parent(parent), name(name), id(id) {
@@ -17,17 +18,45 @@ void NameLevelScreen::init() {
     buttons[0]->enabled = Util::trim(name).length() > 1;
 }
 
+void NameLevelScreen::closeScreen() {
+    glfwSetInputMode(Util::getGLFWWindow(), GLFW_STICKY_KEYS, GLFW_FALSE);
+    Screen::closeScreen();
+}
+
+void NameLevelScreen::tick() {
+    counter++;
+}
+
+void NameLevelScreen::buttonClicked(shared_ptr<Button>& button) {
+    if (button->enabled) {
+        shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+        if (!minecraft) {
+            return;
+        }
+        if (button->id == 0 && Util::trim(name).length() > 1) {
+            minecraft->saveLevel(id, Util::trim(name));
+            minecraft->setScreen(nullptr);
+            minecraft->grabMouse();
+        }
+
+        if (button->id == 1) {
+            minecraft->setScreen(parent);
+        }
+    }
+}
+
 void NameLevelScreen::keyPressed(char var1, int32_t key) {
     if (key == GLFW_KEY_BACKSPACE && !name.empty()) {
         name.pop_back();
     }
 
-    const std::string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ,.:-_'*!\"#%/()=+?[]{}<>";
-    if (allowed.find(var1) != std::string::npos) {
+    const string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ,.:-_'*!\"#%/()=+?[]{}<>";
+    if (allowed.find(var1) != string::npos) {
         name += var1;
     }
 
     buttons[0]->enabled = Util::trim(name).length() > 1;
+    Screen::keyPressed(var1, key);
 }
 
 void NameLevelScreen::render(int32_t var1, int32_t var2) {

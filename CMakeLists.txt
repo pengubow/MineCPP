@@ -6,27 +6,39 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
 if(APPLE)
     set(CMAKE_OSX_ARCHITECTURES "arm64")
+endif()
+
+if(WIN32)
+    add_compile_definitions(_USE_MATH_DEFINES NOMINMAX)
 endif()
 
 file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
+if(APPLE)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-shift-op-parentheses -Wno-tautological-constant-out-of-range-compare -Wno-parentheses -Wno-unqualified-std-cast-call)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE GL_SILENCE_DEPRECATION)
+endif()
+
 find_package(glfw3 REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(Boost REQUIRED)
 
 if(APPLE)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(MESA REQUIRED glu)
     target_include_directories(${PROJECT_NAME} PRIVATE ${MESA_INCLUDE_DIRS})
     target_link_directories(${PROJECT_NAME} PRIVATE ${MESA_LIBRARY_DIRS})
-    target_link_libraries(${PROJECT_NAME} PRIVATE glfw ZLIB::ZLIB ${MESA_LIBRARIES} ${Boost_LIBRARIES})
+    target_link_libraries(${PROJECT_NAME} PRIVATE glfw ZLIB::ZLIB ${MESA_LIBRARIES})
+elseif(WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE glfw ZLIB::ZLIB opengl32 glu32)
 else()
-    target_link_libraries(${PROJECT_NAME} PRIVATE glfw ZLIB::ZLIB OpenGL GLU ${Boost_LIBRARIES})
+    target_link_libraries(${PROJECT_NAME} PRIVATE glfw ZLIB::ZLIB OpenGL::OpenGL GLU)
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)

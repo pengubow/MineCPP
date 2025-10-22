@@ -132,25 +132,3 @@ string Util::trim(const string& s) {
 
     return s.substr(start, end - start + 1);
 }
-
-void Util::gzreadExact(gzFile file, void* buf, unsigned int len) {
-    if (len == 0) {
-        return;
-    }
-
-    int r = gzread(file, buf, len);
-    if (r != (int)len) {
-        throw runtime_error("gzread error");
-    }
-}
-
-void Util::gzwriteExact(gzFile file, const void* buf, unsigned int len) {
-    if (len == 0) {
-        return;
-    }
-
-    int w = gzwrite(file, buf, len);
-    if (w != (int)len) {
-        throw runtime_error("gzwrite failed");
-    }
-}

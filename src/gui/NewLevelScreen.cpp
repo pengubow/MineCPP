@@ -13,6 +13,10 @@ void NewLevelScreen::init() {
 }
 
 void NewLevelScreen::buttonClicked(shared_ptr<Button>& var1) {
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (!minecraft) {
+        return;
+    }
     if(var1->id == 3) {
         minecraft->setScreen(parent);
     } else {

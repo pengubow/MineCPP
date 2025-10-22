@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cmath>
 #include <array>
-#include <GL/gl.h>
+#include "GL_compat.h"
 #include "phys/AABB.h"
 
 using namespace std;
@@ -24,5 +24,5 @@ public:
     static Frustum& getFrustum();
 
     bool cubeInFrustum(float minX, float minY, float minZ, float maxX, float maxY, float maxZ);
-    bool isVisible(shared_ptr<AABB>& aabb);
+    bool isVisible(AABB& aabb);
 };

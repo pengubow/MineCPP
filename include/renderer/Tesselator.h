@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
-#include <GL/gl.h>
+#include "GL_compat.h"
 
 using namespace std;
 

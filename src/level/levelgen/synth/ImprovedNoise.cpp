@@ -4,7 +4,6 @@
 
 ImprovedNoise::ImprovedNoise() {
     p = vector<int32_t>(512);
-    cout << "New improvednoise!" << endl;
 
     int32_t i;
     for(i = 0; i < 256; p[i] = i++) {}

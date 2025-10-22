@@ -8,7 +8,6 @@
 class Entity {
 public:
     static const int64_t serialVersionUID = 0;
-protected:
     weak_ptr<Level> level;
 public:
     float xo = 0.0f;
@@ -24,7 +23,7 @@ public:
     float xRot = 0.0f;
     float yRotI = 0.0f;
     float xRotI = 0.0f;
-    shared_ptr<AABB> bb;
+    AABB bb;
     bool onGround = false;
     bool horizontalCollision = false;
     bool removed = false;
@@ -53,4 +52,5 @@ public:
     float getBrightness();
     virtual void render(shared_ptr<Textures>& textures, float a);
     void setLevel(shared_ptr<Level>& level);
+    void moveTo(float x, float y, float z, float xRot, float yRot);
 };

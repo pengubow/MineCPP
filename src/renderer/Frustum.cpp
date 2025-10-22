@@ -1,5 +1,5 @@
-#include <GL/glu.h>
 #include <cstring>
+#include "GL_compat.h"
 #include "renderer/Frustum.h"
 
 Frustum Frustum::frustum = Frustum();
@@ -96,6 +96,6 @@ bool Frustum::cubeInFrustum(float var1, float var2, float var3, float var4, floa
     return true;
 }
 
-bool Frustum::isVisible(shared_ptr<AABB>& aabb) {
-    return this->cubeInFrustum(aabb->minX, aabb->minY, aabb->minZ, aabb->maxX, aabb->maxY, aabb->maxZ);
+bool Frustum::isVisible(AABB& aabb) {
+    return this->cubeInFrustum(aabb.minX, aabb.minY, aabb.minZ, aabb.maxX, aabb.maxY, aabb.maxZ);
 }

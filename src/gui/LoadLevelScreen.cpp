@@ -6,50 +6,61 @@ LoadLevelScreen::LoadLevelScreen(shared_ptr<Screen> parent)
     : parent(parent) {}
 
 void LoadLevelScreen::run() {
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (!minecraft) {
+        return;
+    }
     try {
         status = "Getting level list..";
-
-        std::string url = "http://" + minecraft->minecraftUri;
-
-        std::string path = "/listmaps.jsp?user=" + minecraft->user->name;
-        httplib::Client cli(url, 80);
+        httplib::Client cli(minecraft->minecraftUri);
+        cli.set_connection_timeout(5, 0);
+        cli.set_follow_location(true);
+        
+        string path = "/listmaps.jsp?user=" + minecraft->user->name;
         auto res = cli.Get(path);
-        if (!res || res->body.empty()) {
-            status = "Failed to load levels";
+        
+        if (!res) {
+            status = "Failed to connect";
             finished = true;
             return;
         }
 
-        std::istringstream stream(res->body);
-        std::string line;
-        if (!std::getline(stream, line)) {
+        if (res->status != 200 || res->body.empty()) {
             status = "Failed to load levels";
             finished = true;
             return;
         }
-
-        std::vector<std::string> levels;
+        
+        istringstream stream(res->body);
+        string line;
+        if (!getline(stream, line)) {
+            status = "Failed to load levels";
+            finished = true;
+            return;
+        }
+        
+        vector<string> levels;
         size_t start = 0;
         size_t end;
-        while ((end = line.find(';', start)) != std::string::npos) {
+        while ((end = line.find(';', start)) != string::npos) {
             levels.push_back(line.substr(start, end - start));
             start = end + 1;
         }
         if (start < line.size()) {
             levels.push_back(line.substr(start));
         }
-
+        
         if (levels.size() >= 5) {
             setLevels(levels);
             loaded = true;
             return;
         }
 
-        status = levels.empty() ? "" : levels[0];
+        status = levels[0];
         finished = true;
-
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
+        
+    } catch (const exception& e) {
+        cerr << e.what() << endl;
         status = "Failed to load levels";
         finished = true;
     }
@@ -81,6 +92,10 @@ void LoadLevelScreen::buttonClicked(shared_ptr<Button>& button) {
         }
 
         if (finished || loaded && button->id == 5) {
+            shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+            if (!minecraft) {
+                return;
+            }
             minecraft->setScreen(parent);
         }
 
@@ -88,7 +103,11 @@ void LoadLevelScreen::buttonClicked(shared_ptr<Button>& button) {
 }
 
 void LoadLevelScreen::loadLevel(int32_t var1) {
-    // minecraft->loadLevel(minecraft->user->name, var1);
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (!minecraft) {
+        return;
+    }
+    minecraft->loadLevel(minecraft->user->name, var1);
     minecraft->setScreen(nullptr);
     minecraft->grabMouse();
 }

@@ -1,8 +1,10 @@
 #include <cstdint>
 #include <vector>
+#include <array>
 #include <algorithm>
 #include <zlib.h>
 #include <iostream>
+#include <cmath>
 #include "level/Level.h"
 #include "level/tile/Tile.h"
 #include "renderer/LevelRenderer.h"
@@ -15,8 +17,8 @@ void Level::initTransient() {
         throw runtime_error("The level is corrupt!");
     }
     else {
-        levelListeners = vector<shared_ptr<LevelRenderer>>();
-        heightMap = vector<int32_t>(width * height);
+        levelListeners = vector<LevelRenderer*>();
+        heightMap = vector<int32_t>(width * height, depth);
         this->calcLightDepths(0, 0, width, height);
         tickList = vector<shared_ptr<Coord>>();
     }
@@ -31,7 +33,7 @@ void Level::setData(int32_t width, int32_t depth, int32_t height, vector<uint8_t
     this->height = height;
     this->depth = depth;
     this->blocks = blocks;
-    heightMap = vector<int32_t>(width * height);
+    heightMap = vector<int32_t>(width * height, depth);
     calcLightDepths(0, 0, width, height);
 
     for (int32_t i = 0; i < levelListeners.size(); i++) {
@@ -48,7 +50,7 @@ void Level::findSpawn() {
     int32_t x = 0;
     int32_t z = 0;
     int32_t y = 0;
-    while ((float)z <= getWaterLevel()) {
+    while ((float)y <= getWaterLevel()) {
         var2++;
         x = Util::nextInt(width / 2) + width / 4;
         z = Util::nextInt(height / 2) + height / 4;
@@ -74,13 +76,13 @@ void Level::calcLightDepths(int32_t minX, int32_t minZ, int32_t maxX, int32_t ma
             int32_t y;
             for (y = this->depth - 1; y > 0 && !this->isLightBlocker(x, y, z); y--) {}
 
-            this->heightMap[x + z * this->width] = y;
+            this->heightMap[x + z * this->width] = y + 1;
             if (oldDepth != y) {
                 int32_t yl0 = oldDepth < y ? oldDepth : y;
                 int32_t yl1 = oldDepth > y ? oldDepth : y;
 
                 for (int32_t i = 0; i < this->levelListeners.size(); i++) {
-                    shared_ptr<LevelRenderer> levelrenderer = levelListeners[i];
+                    LevelRenderer* levelrenderer = levelListeners[i];
                     levelrenderer->setDirty(x - 1, yl0 - 1, z - 1, x + 1, oldDepth + 1, z + 1);
                 }
             }
@@ -88,13 +90,13 @@ void Level::calcLightDepths(int32_t minX, int32_t minZ, int32_t maxX, int32_t ma
     }
 }
 
-void Level::addListener(shared_ptr<LevelRenderer>& levelListener) {
+void Level::addListener(LevelRenderer* levelListener) {
     this->levelListeners.push_back(levelListener);
 }
 
 void Level::finalize() {}
 
-void Level::removeListener(shared_ptr<LevelRenderer>& levelListener) {
+void Level::removeListener(LevelRenderer* levelListener) {
     this->levelListeners.erase(
         remove(this->levelListeners.begin(), this->levelListeners.end(), levelListener),
         this->levelListeners.end()
@@ -109,40 +111,40 @@ bool Level::isLightBlocker(int32_t x, int32_t y, int32_t z) {
     return tile->blocksLight();
 }
 
-vector<shared_ptr<AABB>> Level::getCubes(shared_ptr<AABB>& aABB) {
-    vector<shared_ptr<AABB>> aABBs = vector<shared_ptr<AABB>>();
-    int32_t minX = aABB->minX;
-    int32_t maxX = aABB->maxX + 1;
-    int32_t minY = aABB->minY;
-    int32_t maxY = aABB->maxY + 1;
-    int32_t minZ = aABB->minZ;
-    int32_t maxZ = aABB->maxZ + 1;
-    if (aABB->minX < 0) {
+vector<AABB> Level::getCubes(AABB& aABB) {
+    vector<AABB> aABBs = vector<AABB>();
+    int32_t minX = aABB.minX;
+    int32_t maxX = aABB.maxX + 1;
+    int32_t minY = aABB.minY;
+    int32_t maxY = aABB.maxY + 1;
+    int32_t minZ = aABB.minZ;
+    int32_t maxZ = aABB.maxZ + 1;
+    if (aABB.minX < 0) {
         minX--;
     }
-    if (aABB->minY < 0) {
+    if (aABB.minY < 0) {
         minY--;
     }
-    if (aABB->minZ < 0) {
+    if (aABB.minZ < 0) {
         minZ--;
     }
     
     for (int32_t x = minX; x < maxX; x++) {
         for (int32_t y = minY; y < maxY; y++) {
             for (int32_t z = minZ; z < maxZ; z++) {
-                shared_ptr<AABB> aabb;
+                optional<AABB> aabb;
                 if(x >= 0 && y >= 0 && z >= 0 && x < width && y < depth && z < height) {
                     Tile* tile = Tile::tiles[this->getTile(x, y, z)];
                     if(tile != nullptr) {
                         aabb = tile->getAABB(x, y, z);
-                        if(aabb != nullptr) {
-                            aABBs.push_back(aabb);
+                        if(aabb.has_value()) {
+                            aABBs.push_back(aabb.value());
                         }
                     }
                 } else if(x < 0 || y < 0 || z < 0 || x >= width || z >= height) {
                     aabb = Tile::unbreakable->getAABB(x, y, z);
-                    if(aabb != nullptr) {
-                        aABBs.push_back(aabb);
+                    if(aabb.has_value()) {
+                        aABBs.push_back(aabb.value());
                     }
                 }
             }
@@ -175,7 +177,7 @@ bool Level::setTileNoNeighborChange(int32_t x, int32_t y, int32_t z, int32_t typ
             calcLightDepths(x, z, 1, 1);
 
             for(int32_t var4 = 0; var4 < levelListeners.size(); ++var4) {
-                shared_ptr<LevelRenderer> var5 = levelListeners[var4];
+                LevelRenderer* var5 = levelListeners[var4];
                 var5->setDirty(x - 1, y - 1, z - 1, x + 1, y + 1, z + 1);
             }
 
@@ -236,18 +238,19 @@ int32_t Level::getTile(int32_t x, int32_t y, int32_t z) {
     return x >= 0 && y >= 0 && z >= 0 && x < width && y < depth && z < height ? blocks[(y * height + z) * width + x] : 0;
 }
 
-void Level::tick() {
-    tickCount++;
-    
-    int32_t var1;
-    for (var1 = 0; var1 < entities.size(); ++var1) {
+void Level::tickEntities() {
+    for (int32_t var1 = 0; var1 < entities.size(); ++var1) {
         entities[var1]->tick();
         if (entities[var1]->removed) {
             entities.erase(entities.begin() + var1--);
         }
     }
+}
 
-    var1 = 1;
+void Level::tick() {
+    shared_ptr<Level> shared = shared_from_this();
+    tickCount++;
+    int32_t var1 = 1;
 
     int32_t var2;
     for (var2 = 1; 1 << var1 < width; ++var1) {}
@@ -261,16 +264,19 @@ void Level::tick() {
     int32_t var5 = depth - 1;
     int32_t var6;
     int32_t var7;
-    if(tickCount % 5 == 0) {
+    if (tickCount % 5 == 0) {
         var6 = tickList.size();
 
-        for(var7 = 0; var7 < var6; ++var7) {
+        for (var7 = 0; var7 < var6; ++var7) {
             shared_ptr<Coord> coord = tickList[0];
             tickList.erase(tickList.begin());
-            if(isInLevelBounds(coord->x, coord->y, coord->z)) {
+            if (coord > 0) {
+                coord->scheduledTime--;
+                tickList.push_back(coord); 
+            }
+            else if (isInLevelBounds(coord->x, coord->y, coord->z)) {
                 uint8_t var9 = blocks[(coord->y * height + coord->z) * width + coord->x];
-                if(var9 == coord->id && var9 > 0) {
-                    shared_ptr<Level> shared = shared_from_this();
+                if (var9 == coord->id && var9 > 0) {
                     Tile::tiles[var9]->tick(shared, coord->x, coord->y, coord->z);
                 }
             }
@@ -289,7 +295,6 @@ void Level::tick() {
         var12 = var12 >> var1 + var2 & var5;
         uint8_t var11 = blocks[(var12 * height + var10) * width + var13];
         if(Tile::shouldTick[var11]) {
-            shared_ptr<Level> shared = shared_from_this();
             Tile::tiles[var11]->tick(shared, var13, var12, var10);
         }
     }
@@ -307,22 +312,22 @@ float Level::getWaterLevel() {
     return (float)(depth / 2);
 }
 
-bool Level::containsAnyLiquid(shared_ptr<AABB>& aabb) {
-    int32_t minX = (int)aabb->minX;
-    int32_t maxX = (int)aabb->maxX + 1;
-    int32_t minY = (int)aabb->minY;
-    int32_t maxY = (int)aabb->maxY + 1;
-    int32_t minZ = (int)aabb->minZ;
-    int32_t maxZ = (int)aabb->maxZ + 1;
-    if (aabb->minX < 0.0F) {
+bool Level::containsAnyLiquid(AABB& aabb) {
+    int32_t minX = (int32_t)aabb.minX;
+    int32_t maxX = (int32_t)aabb.maxX + 1;
+    int32_t minY = (int32_t)aabb.minY;
+    int32_t maxY = (int32_t)aabb.maxY + 1;
+    int32_t minZ = (int32_t)aabb.minZ;
+    int32_t maxZ = (int32_t)aabb.maxZ + 1;
+    if (aabb.minX < 0.0F) {
         minX--;
     }
 
-    if (aabb->minY < 0.0F) {
+    if (aabb.minY < 0.0F) {
         minY--;
     }
 
-    if (aabb->minZ < 0.0F) {
+    if (aabb.minZ < 0.0F) {
         minZ--;
     }
 
@@ -354,7 +359,7 @@ bool Level::containsAnyLiquid(shared_ptr<AABB>& aabb) {
         for (int32_t y = minY; y < maxY; y++) {
             for (int32_t z = minZ; z < maxZ; z++) {
                 Tile* tile = Tile::tiles[getTile(x, y, z)];
-                if (tile != nullptr && tile->getLiquidType() > 0) {
+                if (tile != nullptr && tile->getLiquidType() != Liquid::none) {
                     return true;
                 }
             }
@@ -364,23 +369,23 @@ bool Level::containsAnyLiquid(shared_ptr<AABB>& aabb) {
     return false;
 }
 
-bool Level::containsLiquid(shared_ptr<AABB>& aabb, int32_t liquidId) {
-    int32_t minX = aabb->minX;
-    int32_t maxX = aabb->maxX + 1;
-    int32_t minY = aabb->minY;
-    int32_t maxY = aabb->maxY + 1;
-    int32_t minZ = aabb->minZ;
-    int32_t maxZ = aabb->maxZ + 1;
+bool Level::containsLiquid(AABB& aabb, Liquid* liquidId) {
+    int32_t minX = aabb.minX;
+    int32_t maxX = aabb.maxX + 1;
+    int32_t minY = aabb.minY;
+    int32_t maxY = aabb.maxY + 1;
+    int32_t minZ = aabb.minZ;
+    int32_t maxZ = aabb.maxZ + 1;
 
-    if (aabb->minX < 0.0f) {
+    if (aabb.minX < 0.0f) {
         minX--;
     }
 
-    if (aabb->minY < 0.0f) {
+    if (aabb.minY < 0.0f) {
         minY--;
     }
 
-    if (aabb->minZ < 0.0f) {
+    if (aabb.minZ < 0.0f) {
         minZ--;
     }
 
@@ -423,12 +428,18 @@ bool Level::containsLiquid(shared_ptr<AABB>& aabb, int32_t liquidId) {
 }
 
 void Level::addToTickNextTick(int32_t x, int32_t y, int32_t z, int32_t id) {
-    tickList.push_back(make_shared<Coord>(x, y, z, id));
+    shared_ptr<Coord> coord = make_shared<Coord>(x, y, z, id);
+    if(id > 0) {
+        int32_t tickDelay = Tile::tiles[id]->getTickDelay();
+        coord->scheduledTime = tickDelay;
+    }
+
+    tickList.push_back(coord);
 }
 
-bool Level::isFree(shared_ptr<AABB>& aabb) {
+bool Level::isFree(AABB& aabb) {
     for (int32_t i = 0; i < entities.size(); i++) {
-        if (entities[i]->bb->intersects(aabb)) {
+        if (entities[i]->bb.intersects(aabb)) {
             return false;
         }
     }
@@ -447,7 +458,7 @@ bool Level::isSolidTile(int32_t x, int32_t y, int32_t z) {
 
 int32_t Level::getHighestTile(int32_t x, int32_t z) {
     int32_t y;
-    for (y = depth; (getTile(x, y - 1, z) == 0 || Tile::tiles[getTile(x, y - 1, z)]->getLiquidType() != 0) && y > 0; y--) {}
+    for (y = depth; (getTile(x, y - 1, z) == 0 || Tile::tiles[getTile(x, y - 1, z)]->getLiquidType() != Liquid::none) && y > 0; y--) {}
 
     return y;
 }
@@ -460,7 +471,7 @@ void Level::setSpawnPos(int32_t x, int32_t y, int32_t z, float rot) {
 }
 
 float Level::getBrightness(int32_t x, int32_t y, int32_t z) {
-    return isLit(x, y, z) ? 1.0f : 0.5f;
+    return isLit(x, y, z) ? 1.0f : 0.6f;
 }
 
 float Level::getCaveness(float x, float y, float z, float var4) {
@@ -525,17 +536,17 @@ float Level::getCaveness(shared_ptr<Entity>& entity) {
     float var9 = 0.0f;
     float var10 = 0.0f;
 
-    for (int32_t var11 = 0; var11 <= 10; ++var11) {
-        float var12 = ((float)var11 / (float)10 - 0.5f) * 2.0f;
+    for (int32_t var11 = 0; var11 <= 200; ++var11) {
+        float var12 = ((float)var11 / (float)200 - 0.5f) * 2.0f;
 
-        for (int32_t var13 = 0; var13 <= 10; ++var13) {
-            float var14 = ((float)var13 / (float)10 - 0.5f) * var8;
+        for (int32_t var13 = 0; var13 <= 200; ++var13) {
+            float var14 = ((float)var13 / (float)200 - 0.5f) * var8;
             float var16 = var4 * var14 + var5;
             var14 = var4 - var5 * var14;
             float var17 = var2 * var12 + var3 * var14;
             var14 = var2 * var14 - var3 * var12;
 
-            for (int var15 = 0; var15 < 20; ++var15) {
+            for (int var15 = 0; var15 < 10; ++var15) {
                 float var18 = var6 + var17 * (float)var15 * 0.8f;
                 float var19 = var7 + var16 * (float)var15 * 0.8f;
                 float var20 = var21 + var14 * (float)var15 * 0.8f;

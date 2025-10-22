@@ -14,6 +14,7 @@
 #include "level/levelgen/LevelGen.h"
 #include "MinecraftApplet.h"
 #include "gui/Screen.h"
+#include "net/ConnectionManager.h"
 
 class Minecraft : public enable_shared_from_this<Minecraft> {
 private:
@@ -24,10 +25,12 @@ public:
 private:
 	array<float, 4> fogColor0;
 	array<float, 4> fogColor1;
-	Timer timer = Timer(20.0F);
+	Timer timer = Timer(20.0f);
+public:
 	shared_ptr<Level> level;
 	shared_ptr<LevelRenderer> levelRenderer;
 	shared_ptr<Player> player;
+private:
 	int32_t paintTexture = 1;
 	shared_ptr<ParticleEngine> particleEngine;
 public:
@@ -49,18 +52,20 @@ public:
 	string loadMapUser;
 	int32_t loadMapID = 0;
 private:
+	ConnectionManager* sendQueue;
 	static vector<int32_t> creativeTiles;
-	float fogColorRed = 0.5F;
-	float fogColorGreen = 0.8F;
-	float fogColorBlue = 1.0F;
+	float fogColorRed = 0.5f;
+	float fogColorGreen = 0.8f;
+	float fogColorBlue = 1.0f;
 	atomic<bool> running = false;
 	string fpsString = "";
 	bool mouseGrabbed = false;
 	int32_t prevFrameTime = 0;
-	float renderDistance = 0.0F;
+	float renderDistance = 0.0f;
 	vector<int32_t> viewportBuffer = vector<int32_t>(16);
 	vector<GLuint> selectBuffer = vector<GLuint>(2000);
-	shared_ptr<HitResult> hitResult;
+	optional<HitResult> hitResult;
+	float fogColorMultiplier = 1.0f;
 	atomic<int32_t> unusedInt1 = 0;
     atomic<int32_t> unusedInt2 = 0;
 	vector<float> lb = vector<float>(16);
@@ -70,6 +75,7 @@ private:
 public:
     Minecraft(int32_t width, int32_t height, bool fullscreen);
 
+	void setServer(string var1, int32_t port);
     void setScreen(shared_ptr<Screen> screen);
 private:
     void checkGlError(string string);
@@ -84,6 +90,7 @@ private:
 public:
     void tick();
 private:
+	bool isMultiplayer();
     void orientCamera(float a);
 public:
     void render(float a);
@@ -95,6 +102,7 @@ public:
     void levelLoadUpdate(string text);
     void setLoadingProgress(int32_t var1);
     void generateLevel(int32_t var1);
-private:
-    void setLevel(shared_ptr<Level>& level);
+	bool saveLevel(int32_t var1, string var2);
+	bool loadLevel(string var1, int32_t var2);
+    void setLevel(shared_ptr<Level> level);
 };

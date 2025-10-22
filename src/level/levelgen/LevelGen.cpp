@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 #include "level/levelgen/LevelGen.h"
 #include "Minecraft.h"
 
@@ -6,12 +7,17 @@ LevelGen::LevelGen(shared_ptr<Minecraft> minecraft)
     : minecraft(minecraft) {}
 
 shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t height, int32_t depth) {
-    this->minecraft->beginLevelLoading("Generating level");
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (!minecraft) {
+        return nullptr;
+    }
+
+    minecraft->beginLevelLoading("Generating level");
     this->width = width;
     this->height = height;
     this->depth = depth;
     this->blocks = vector<uint8_t>(width * height << 6);
-    this->minecraft->levelLoadUpdate("Raising..");
+    minecraft->levelLoadUpdate("Raising..");
     shared_ptr<Distort> var8 = make_shared<Distort>(make_shared<PerlinNoise>(8), make_shared<PerlinNoise>(8));
     shared_ptr<Distort> var9 = make_shared<Distort>(make_shared<PerlinNoise>(8), make_shared<PerlinNoise>(8));
     shared_ptr<PerlinNoise> var10 = make_shared<PerlinNoise>(8);
@@ -40,7 +46,7 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
         }
     }
 
-    this->minecraft->levelLoadUpdate("Eroding..");
+    minecraft->levelLoadUpdate("Eroding..");
     vector<int32_t>& var31 = var11;
     var9 = make_shared<Distort>(make_shared<PerlinNoise>(8), make_shared<PerlinNoise>(8));
     shared_ptr<Distort> var37 = make_shared<Distort>(make_shared<PerlinNoise>(8), make_shared<PerlinNoise>(8));
@@ -63,7 +69,7 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
         }
     }
 
-    this->minecraft->levelLoadUpdate("Soiling..");
+    minecraft->levelLoadUpdate("Soiling..");
     var31 = var11;
     int32_t var34 = this->width;
     int32_t var38 = this->height;
@@ -97,7 +103,7 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
         }
     }
 
-    this->minecraft->levelLoadUpdate("Carving..");
+    minecraft->levelLoadUpdate("Carving..");
     bool var36 = true;
     bool var32 = false;
     var38 = this->width;
@@ -151,7 +157,7 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
     this->carveTunnels(Tile::oreCoal->id, 90, 1, 4);
     this->carveTunnels(Tile::oreIron->id, 70, 2, 4);
     this->carveTunnels(Tile::oreGold->id, 50, 3, 4);
-    this->minecraft->levelLoadUpdate("Watering..");
+    minecraft->levelLoadUpdate("Watering..");
     int64_t var35 = Timer::nanoTime();
     int64_t var40 = 0;
     var13 = Tile::calmWater->id;
@@ -185,11 +191,11 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
     this->setNextPhase(100);
     int64_t var45 = Timer::nanoTime();
     cout << "Flood filled " + to_string(var40) + " tiles in " + to_string((double)(var45 - var35) / 1000000.0) + " ms" << endl;
-    this->minecraft->levelLoadUpdate("Melting..");
+    minecraft->levelLoadUpdate("Melting..");
     this->addLava();
-    this->minecraft->levelLoadUpdate("Growing..");
+    minecraft->levelLoadUpdate("Growing..");
     this->addBeaches(var11);
-    this->minecraft->levelLoadUpdate("Planting..");
+    minecraft->levelLoadUpdate("Planting..");
     this->plantTrees(var11);
     shared_ptr<Level> var28 = make_shared<Level>();
     var28->setData(width, 64, height, this->blocks);
@@ -215,17 +221,18 @@ void LevelGen::addBeaches(vector<int32_t>& var1) {
             int32_t var11 = var1[var7 + var8 * width];
             int32_t var12 = (var11 * height + var8) * this->width + var7;
             int32_t var13 = blocks[((var11 + 1) * height + var8) * this->width + var7] & 255;
+            
+            if ((var13 == Tile::water->id || var13 == Tile::calmWater->id) && var11 <= depth / 2 - 1 && var10) {
+                blocks[var12] = (uint8_t)Tile::gravel->id;
+            }
+            
             if (var13 == 0) {
-                var13 = Tile::grass->id;
-                if (var11 <= depth / 2 - 1 && var10) {
-                    var13 = Tile::gravel->id;
-                }
-
+                int var14 = Tile::grass->id;
                 if (var11 <= depth / 2 - 1 && var9) {
-                    var13 = Tile::sand->id;
+                    var14 = Tile::sand->id;
                 }
 
-                blocks[var12] = (uint8_t)var13;
+                blocks[var12] = (uint8_t)var14;
             }
         }
     }
@@ -250,7 +257,7 @@ void LevelGen::plantTrees(vector<int32_t>& var1) {
                 var9 += Util::nextInt(6) - Util::nextInt(6);
                 if (var8 >= 0 && var9 >= 0 && var8 < this->width && var9 < this->height) {
                     int32_t var11 = var1[var8 + var9 * var2] + 1;
-                    int32_t var12 = Util::nextInt(2) + 4;
+                    int32_t var12 = Util::nextInt(3) + 4;
                     bool var13 = true;
 
                     int32_t var14;
@@ -280,20 +287,21 @@ void LevelGen::plantTrees(vector<int32_t>& var1) {
 
                     if (var13) {
                         var14 = (var11 * this->height + var9) * this->width + var8;
-                        int32_t var21 = this->blocks[((var11 - 1) * this->height + var9) * this->width + var8] & 255;
-                        if (var21 == Tile::grass->id && var11 < this->depth - var12 - 1) {
+                        int32_t var22 = this->blocks[((var11 - 1) * this->height + var9) * this->width + var8] & 255;
+                        if (var22 == Tile::grass->id && var11 < this->depth - var12 - 1) {
                             blocks[var14 - 1 * this->width * this->height] = (uint8_t)Tile::dirt->id;
 
-                            for (var16 = var11 - 2 + var12; var16 <= var11 + var12; ++var16) {
+                            for (var16 = var11 - 3 + var12; var16 <= var11 + var12; ++var16) {
                                 var17 = var16 - (var11 + var12);
+                                var18 = 1 - var17 / 2;
 
-                                for (int32_t var20 = var8 - 1; var20 <= var8 + 1; ++var20) {
-                                    var21 = var20 - var8;
+                                for (int32_t var21 = var8 - var18; var21 <= var8 + var18; ++var21) {
+                                    var22 = var21 - var8;
 
-                                    for (var18 = var9 - 1; var18 <= var9 + 1; ++var18) {
-                                        int32_t var19 = var18 - var9;
-                                        if (var17 != 0 || abs(var21) != 1 || abs(var19) != 1) {
-                                            blocks[(var16 * this->height + var18) * this->width + var20] = (uint8_t)Tile::leaf->id;
+                                    for(int32_t var19 = var9 - var18; var19 <= var9 + var18; ++var19) {
+                                        int32_t var20 = var19 - var9;
+                                        if(abs(var22) != var18 || abs(var20) != var18 || Util::nextInt(2) != 0 && var17 != 0) {
+                                            blocks[(var16 * height + var19) * width + var21] = (uint8_t)Tile::leaf->id;
                                         }
                                     }
                                 }
@@ -363,6 +371,11 @@ void LevelGen::carveTunnels(int32_t var1, int32_t var2, int32_t var3, int32_t va
 }
 
 void LevelGen::setNextPhase(int32_t phase) {
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (!minecraft) {
+        return;
+    }
+
     minecraft->setLoadingProgress(phase);
 }
 
@@ -414,7 +427,7 @@ int64_t LevelGen::floodFillLiquid(int32_t var1, int32_t var2, int32_t var3, int3
         var2 = this->coords[var22];
         if (var22 == 0 && var21.size() > 0) {
             cout << "IT HAPPENED!" << endl;
-            this->coords = std::move(var21.back());
+            this->coords = move(var21.back());
             var21.pop_back();
             var22 = this->coords.size();
         }

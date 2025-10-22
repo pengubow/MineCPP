@@ -1,172 +1,174 @@
 #include <zlib.h>
 #include <cstring>
 #include <functional>
+#ifdef _WIN32
+    #include <winsock2.h>
+#else
+    #include <netinet/in.h>
+#endif
+#include "Util/httplib.h"
 #include "level/LevelIO.h"
 #include "Minecraft.h"
+#include "Util/gzip.h"
 
 using namespace std;
 
 LevelIO::LevelIO(shared_ptr<Minecraft>& minecraft)
     : minecraft(minecraft) {}
 
-shared_ptr<Level> LevelIO::load(gzFile file) {
-    try {
-        int32_t magicLength;
-        Util::gzreadExact(file, &magicLength, sizeof(magicLength));
-        string magic;
-        magic.resize(magicLength);
-        Util::gzreadExact(file, magic.data(), magicLength);
-        if (magic != "MINE") {
-            throw runtime_error("Invalid file format");
-        }
-
-        int32_t ver;
-        Util::gzreadExact(file, &ver, sizeof(ver));
-        if (ver != 2) {
-            throw runtime_error("Invalid file format or invalid version");
-        }
-
-        int32_t width;
-        int32_t height;
-        int32_t depth;
-        
-        Util::gzreadExact(file, &width, sizeof(width));
-        Util::gzreadExact(file, &height, sizeof(height));
-        Util::gzreadExact(file, &depth, sizeof(depth));
-        
-        int32_t blocksLength;
-        Util::gzreadExact(file, &blocksLength, sizeof(blocksLength));
-        vector<uint8_t> blocks(blocksLength);
-        Util::gzreadExact(file, blocks.data(), blocksLength);
-
-        int32_t nameLength;
-        Util::gzreadExact(file, &nameLength, sizeof(nameLength));
-        string name;
-        name.resize(nameLength);
-        Util::gzreadExact(file, name.data(), nameLength);
-
-        int32_t creatorLength;
-        Util::gzreadExact(file, &creatorLength, sizeof(creatorLength));
-        string creator;
-        creator.resize(creatorLength);
-        Util::gzreadExact(file, creator.data(), creatorLength);
-
-        int64_t createTime;
-        int32_t xSpawn;
-        int32_t ySpawn;
-        int32_t zSpawn;
-        float rotSpawn;
-        Util::gzreadExact(file, &createTime, sizeof(createTime));
-        Util::gzreadExact(file, &xSpawn, sizeof(xSpawn));
-        Util::gzreadExact(file, &ySpawn, sizeof(ySpawn));
-        Util::gzreadExact(file, &zSpawn, sizeof(zSpawn));
-        Util::gzreadExact(file, &rotSpawn, sizeof(rotSpawn));
-
-        shared_ptr<Level> level = make_shared<Level>();
-
-        // entities
-        int32_t entitiesLength;
-        vector<shared_ptr<Entity>> entities;
-        Util::gzreadExact(file, &entitiesLength, sizeof(entitiesLength));
-        for (int32_t i = 0; i < entitiesLength; ++i) {
-            // zombie
-            // we acc dont know if the entity is a zombie but in this version no other entities exist so we fine
-            float x;
-            float y;
-            float z;
-            Util::gzreadExact(file, &x, sizeof(x));
-            Util::gzreadExact(file, &y, sizeof(y));
-            Util::gzreadExact(file, &z, sizeof(z));
-            auto e = make_shared<Zombie>(level, x, y, z);
-
-            Util::gzreadExact(file, &e->rot, sizeof(e->rot));
-            Util::gzreadExact(file, &e->timeOffs, sizeof(e->timeOffs));
-            Util::gzreadExact(file, &e->speed, sizeof(e->speed));
-            Util::gzreadExact(file, &e->rotA, sizeof(e->rotA));
-
-            // entity
-            Util::gzreadExact(file, &e->xo, sizeof(e->xo));
-            Util::gzreadExact(file, &e->yo, sizeof(e->yo));
-            Util::gzreadExact(file, &e->zo, sizeof(e->zo));
-            Util::gzreadExact(file, &e->xd, sizeof(e->xd));
-            Util::gzreadExact(file, &e->yd, sizeof(e->yd));
-            Util::gzreadExact(file, &e->zd, sizeof(e->zd));
-            Util::gzreadExact(file, &e->yRot, sizeof(e->yRot));
-            Util::gzreadExact(file, &e->xRot, sizeof(e->xRot));
-            Util::gzreadExact(file, &e->yRotI, sizeof(e->yRotI));
-            Util::gzreadExact(file, &e->xRotI, sizeof(e->xRotI));
-            Util::gzreadExact(file, &e->onGround, sizeof(e->onGround));
-            Util::gzreadExact(file, &e->horizontalCollision, sizeof(e->horizontalCollision));
-            Util::gzreadExact(file, &e->removed, sizeof(e->removed));
-            Util::gzreadExact(file, &e->heightOffset, sizeof(e->heightOffset));
-            Util::gzreadExact(file, &e->bbWidth, sizeof(e->bbWidth));
-            Util::gzreadExact(file, &e->bbHeight, sizeof(e->bbHeight));
-
-            // AABB
-            float minX, minY, minZ, maxX, maxY, maxZ;
-            Util::gzreadExact(file, &minX, sizeof(minX));
-            Util::gzreadExact(file, &minY, sizeof(minY));
-            Util::gzreadExact(file, &minZ, sizeof(minZ));
-            Util::gzreadExact(file, &maxX, sizeof(maxX));
-            Util::gzreadExact(file, &maxY, sizeof(maxY));
-            Util::gzreadExact(file, &maxZ, sizeof(maxZ));
-            e->bb = make_shared<AABB>(minX, minY, minZ, maxX, maxY, maxZ);
-
-            entities.push_back(e);
-        }
-
-        int32_t unprocessed;
-        int32_t tickCount;
-        Util::gzreadExact(file, &unprocessed, sizeof(unprocessed));
-        Util::gzreadExact(file, &tickCount, sizeof(tickCount));
-
-        gzclose(file);
-
-        
-        level->setData(width, depth, height, blocks);
-        level->name = name;
-        level->creator = creator;
-        level->createTime = createTime;
-        level->xSpawn = xSpawn;
-        level->ySpawn = ySpawn;
-        level->zSpawn = zSpawn;
-        level->rotSpawn = rotSpawn;
-        level->entities = entities;
-        level->unprocessed = unprocessed;
-        level->tickCount = tickCount;
-        return level;
-    } catch (const exception& e) {
-        cerr << "Failed to load level.mcpp: " << e.what() << endl;
+// quite a bit of LevelIO is chatgpt'd btw
+shared_ptr<Level> LevelIO::load(const string& minecraftUri, const string& username, int levelId) {
+    shared_ptr<Minecraft> mc = minecraft.lock();
+    
+    if (mc != nullptr) {
+        mc->beginLevelLoading("Loading level");
     }
-    gzclose(file);
-    return nullptr;
+    
+    try {
+        if (mc != nullptr) {
+            mc->levelLoadUpdate("Connecting..");
+        }
+        
+        // Parse host and port
+        string host = minecraftUri;
+        int port = 80;
+        size_t colonPos = host.find(':');
+        if (colonPos != string::npos) {
+            port = stoi(host.substr(colonPos + 1));
+            host = host.substr(0, colonPos);
+        }
+        
+        httplib::Client cli(host, port);
+        cli.set_connection_timeout(10, 0);
+        cli.set_follow_location(true);
+        
+        string path = "/level/load.html?id=" + to_string(levelId) + "&user=" + username;
+
+        if (mc != nullptr) {
+            mc->levelLoadUpdate("Loading..");
+        }
+        
+        auto res = cli.Get(path);
+        
+        if (!res || res->status != 200) {
+            if (mc != nullptr) {
+                mc->levelLoadUpdate("Failed to connect!");
+            }
+            this_thread::sleep_for(chrono::seconds(1));
+            return nullptr;
+        }
+
+        if (res->body.size() < 10) {
+            cerr << "Response too short to be valid level data" << endl;
+            if (mc != nullptr) {
+                mc->levelLoadUpdate("No level data received");
+            }
+            this_thread::sleep_for(chrono::seconds(1));
+            return nullptr;
+        }
+
+        const vector<uint8_t> data(res->body.begin(), res->body.end());
+        size_t pos = 0;
+        
+        auto readUTF = [&]() -> string {
+            if (pos + 2 > data.size()) throw runtime_error("Unexpected end of data");
+            uint16_t len = (data[pos] << 8) | data[pos + 1];
+            pos += 2;
+            if (pos + len > data.size()) throw runtime_error("Unexpected end of data");
+            string str(data.begin() + pos, data.begin() + pos + len);
+            pos += len;
+            return str;
+        };
+        
+        string status = readUTF();
+        
+        if (status != "ok") {
+            string errorMsg = "";
+            try {
+                errorMsg = readUTF();
+            } catch (...) {
+                errorMsg = "Unknown error";
+            }
+            cerr << "Server returned error: " << errorMsg << endl;
+            if (mc != nullptr) {
+                mc->levelLoadUpdate("Failed: " + errorMsg);
+            }
+            this_thread::sleep_for(chrono::seconds(1));
+            return nullptr;
+        }
+        
+        vector<uint8_t> gzData(data.begin() + pos, data.end());
+        
+        if (gzData.size() < 10) {
+            cerr << "Gzip data too small" << endl;
+            if (mc != nullptr) {
+                mc->levelLoadUpdate("Invalid level data");
+            }
+            return nullptr;
+        }
+
+        if (gzData[0] != 0x1f || gzData[1] != 0x8b) {
+            cerr << "Not valid gzip data (magic: " << hex << (int)gzData[0] << " " << (int)gzData[1] << ")" << endl;
+        }
+
+        const char* tempFile = "temp_load.gz";
+        FILE* f = fopen(tempFile, "wb");
+        if (!f) {
+            throw runtime_error("Failed to create temp file");
+        }
+        fwrite(gzData.data(), 1, gzData.size(), f);
+        fclose(f);
+        
+        gzFile gzf = gzopen(tempFile, "rb");
+        if (!gzf) {
+            remove(tempFile);
+            throw runtime_error("Failed to open gzip file");
+        }
+
+        shared_ptr<Level> level = loadDat(gzf);
+        
+        remove(tempFile);
+        
+        if (!level && mc != nullptr) {
+            mc->levelLoadUpdate("Failed to parse level data");
+        }
+        
+        return level;
+        
+    } catch (const exception& e) {
+        cerr << "Load level exception: " << e.what() << endl;
+        if (mc != nullptr) {
+            mc->levelLoadUpdate("Failed!");
+        }
+        this_thread::sleep_for(chrono::seconds(3));
+        return nullptr;
+    }
 }
 
+// this was made by fucking AI
 shared_ptr<Level> LevelIO::loadDat(gzFile file) {
-    if (this->minecraft != nullptr) {
-        this->minecraft->beginLevelLoading("Loading level");
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (minecraft != nullptr) {
+        minecraft->beginLevelLoading("Loading level");
     }
-    if (this->minecraft != nullptr) {
-        this->minecraft->levelLoadUpdate("Reading..");
+    if (minecraft != nullptr) {
+        minecraft->levelLoadUpdate("Reading..");
     }
 
-    // ts was chatgptd
-    // ^^^^^^^^^^^^^^^
     try {
         const size_t CHUNK = 8192;
-        std::vector<uint8_t> buf;
+        vector<uint8_t> buf;
         buf.reserve(1 << 20);
         uint8_t tmp[CHUNK];
         int r;
         while ((r = gzread(file, tmp, CHUNK)) > 0) {
             buf.insert(buf.end(), tmp, tmp + r);
         }
-
         gzclose(file);
 
         size_t pos = 0;
         auto ensure = [&](size_t n) {
-            if (pos + n > buf.size()) throw std::runtime_error("Unexpected end of buffer");
+            if (pos + n > buf.size()) throw runtime_error("Unexpected end of buffer");
         };
         auto readByte = [&]() -> uint8_t { ensure(1); return buf[pos++]; };
         auto readBytes = [&](void* out, size_t n) {
@@ -175,10 +177,16 @@ shared_ptr<Level> LevelIO::loadDat(gzFile file) {
             memcpy(out, buf.data() + pos, n);
             pos += n;
         };
-        auto readInt16BE = [&]() -> int16_t { ensure(2); int16_t v = (int16_t)((buf[pos] << 8) | buf[pos+1]); pos += 2; return v; };
+        auto readInt16BE = [&]() -> int16_t { 
+            ensure(2); 
+            int16_t v = (int16_t)((buf[pos] << 8) | buf[pos+1]); 
+            pos += 2; 
+            return v; 
+        };
         auto readInt32BE = [&]() -> int32_t {
             ensure(4);
-            uint32_t v = (uint32_t(buf[pos]) << 24) | (uint32_t(buf[pos+1]) << 16) | (uint32_t(buf[pos+2]) << 8) | uint32_t(buf[pos+3]);
+            uint32_t v = (uint32_t(buf[pos]) << 24) | (uint32_t(buf[pos+1]) << 16) | 
+                         (uint32_t(buf[pos+2]) << 8) | uint32_t(buf[pos+3]);
             pos += 4;
             return (int32_t)v;
         };
@@ -191,14 +199,18 @@ shared_ptr<Level> LevelIO::loadDat(gzFile file) {
             pos += 8;
             return (int64_t)v;
         };
-        auto readStringBE = [&]() -> std::string {
-            int16_t len = readInt32BE() >> 16;
-            pos -= 4;
-            len = readInt16BE();
-            if (len < 0) throw std::runtime_error("Negative string length");
-            if (len == 0) return std::string();
+        auto readFloatBE = [&]() -> float {
+            int32_t bits = readInt32BE();
+            float result;
+            memcpy(&result, &bits, sizeof(float));
+            return result;
+        };
+        auto readStringBE = [&]() -> string {
+            int16_t len = readInt16BE();
+            if (len < 0) throw runtime_error("Negative string length");
+            if (len == 0) return string();
             ensure((size_t)len);
-            std::string s;
+            string s;
             s.resize((size_t)len);
             memcpy(&s[0], buf.data() + pos, (size_t)len);
             pos += (size_t)len;
@@ -206,195 +218,413 @@ shared_ptr<Level> LevelIO::loadDat(gzFile file) {
         };
 
         auto skip = [&](size_t n) { ensure(n); pos += n; };
-        auto parseError = [&](int expected, int got) {
-            char tmpbuf[128];
-            snprintf(tmpbuf, sizeof(tmpbuf), "Expected %02X, got %02X", expected, got);
-            throw std::runtime_error(tmpbuf);
-        };
 
         const uint8_t TC_NULL = 0x70, TC_REFERENCE = 0x71;
         const uint8_t TC_CLASSDESC = 0x72, TC_OBJECT = 0x73;
         const uint8_t TC_STRING = 0x74, TC_ARRAY = 0x75;
         const uint8_t TC_ENDBLOCKDATA = 0x78;
 
-        std::function<std::vector<std::tuple<char,std::string,std::string>>()> readClassDesc;
-        readClassDesc = [&]() -> std::vector<std::tuple<char,std::string,std::string>> {
-            std::vector<std::tuple<char,std::string,std::string>> fields;
+        function<pair<string, vector<tuple<char,string,string>>>()> readClassDesc;
+        readClassDesc = [&]() -> pair<string, vector<tuple<char,string,string>>> {
+            vector<tuple<char,string,string>> fields;
             uint8_t tc = readByte();
-            if (tc == TC_NULL) return fields;
-            if (tc != TC_CLASSDESC) parseError(TC_CLASSDESC, tc);
+            if (tc == TC_NULL) return {"", fields};
+            if (tc != TC_CLASSDESC) {
+                throw runtime_error("Expected TC_CLASSDESC");
+            }
 
-            std::string className = readStringBE();
-            readInt64BE();
-            readByte();
+            string className = readStringBE();
+            readInt64BE(); // serialVersionUID
+            uint8_t flags = readByte();
+
             int16_t fcount = readInt16BE();
-            if (fcount < 0) throw std::runtime_error("Negative field count");
+            if (fcount < 0) throw runtime_error("Negative field count");
+            
             for (int i = 0; i < fcount; ++i) {
                 char ftype = (char)readByte();
-                std::string fname = readStringBE();
-                std::string class1;
+                string fname = readStringBE();
+                string class1;
                 if (ftype == '[' || ftype == 'L') {
                     uint8_t t = readByte();
                     if (t == TC_STRING) {
                         class1 = readStringBE();
                     } else if (t == TC_REFERENCE) {
-                        readInt32BE();
-                    } else parseError(TC_STRING, t);
+                        int32_t ref = readInt32BE();
+                        class1 = "(reference)";
+                    } else {
+                        throw runtime_error("Expected TC_STRING or TC_REFERENCE");
+                    }
                 }
                 fields.emplace_back(ftype, fname, class1);
             }
+            
             uint8_t end = readByte();
-            if (end != TC_ENDBLOCKDATA) parseError(TC_ENDBLOCKDATA, end);
+            if (end != TC_ENDBLOCKDATA) {
+                throw runtime_error("Expected TC_ENDBLOCKDATA");
+            }
 
-            readClassDesc();
-            return fields;
+            uint8_t superTC = readByte();
+            if (superTC != TC_NULL) {
+                pos--;
+                auto [superClassName, superFields] = readClassDesc();
+                superFields.insert(superFields.end(), fields.begin(), fields.end());
+                return {className, superFields};
+            }
+            return {className, fields};
         };
 
         int32_t magic = readInt32BE();
+        if (magic != 0x271BB788) {
+            throw runtime_error("Invalid .dat magic number");
+        }
+
         uint8_t versionByte = readByte();
-        if (magic != 0x271BB788 || versionByte != 0x2) {
-            throw std::runtime_error("Unexpected constant in .dat file");
+        if (versionByte != 0x02) {
+            throw runtime_error("Invalid .dat version");
         }
-        int16_t ac = readInt16BE();
-        int16_t ver = readInt16BE();
-        if ((uint16_t)ac != 0xACED || ver != 0x0005) {
-            throw std::runtime_error("Unexpected java serialisation constant(s).");
+
+        int16_t streamMagic = readInt16BE();
+        int16_t streamVersion = readInt16BE();
+        if ((uint16_t)streamMagic != 0xACED || streamVersion != 0x0005) {
+            throw runtime_error("Invalid Java serialization header");
         }
+
         uint8_t topcode = readByte();
-        if (topcode != TC_OBJECT) parseError(TC_OBJECT, topcode);
+        if (topcode != TC_OBJECT) {
+            throw runtime_error("Expected TC_OBJECT");
+        }
 
-        auto topFields = readClassDesc();
+        auto [levelClassName, topFields] = readClassDesc();
 
-        auto readArrayForField = [&](const std::string& fname) -> std::vector<uint8_t> {
-            uint8_t t = readByte();
-            if (t == TC_NULL) return std::vector<uint8_t>();
-            if (t != TC_ARRAY) parseError(TC_ARRAY, t);
-            readClassDesc();
-            int32_t len = readInt32BE();
-            if (len < 0) throw std::runtime_error("Negative array length");
-            std::vector<uint8_t> out;
-            if (len > 0) {
-                out.resize((size_t)len);
-                readBytes(out.data(), out.size());
-            }
-            return out;
-        };
-
-        int width = 0, depth = 0, height = 0;
+        int width = 0, height = 0, depth = 0;
         int xSpawn = 0, ySpawn = 0, zSpawn = 0;
-        std::vector<uint8_t> blocks;
+        float rotSpawn = 0.0f;
+        vector<uint8_t> blocks;
+        string name, creator;
+        int64_t createTime = 0;
+        vector<shared_ptr<Entity>> entities;
+        int unprocessed = 0;
+        int tickCount = 0;
+
+        shared_ptr<Level> level = make_shared<Level>();
 
         for (size_t i = 0; i < topFields.size(); ++i) {
-            char ftype = std::get<0>(topFields[i]);
-            std::string fname = std::get<1>(topFields[i]);
+            char ftype = get<0>(topFields[i]);
+            string fname = get<1>(topFields[i]);
 
-            switch (ftype) {
-                case 'B': {
-                    (void)readByte();
-                    break;
+
+            if (fname == "width" || fname == "height" || fname == "depth" ||
+                fname == "xSpawn" || fname == "ySpawn" || fname == "zSpawn" ||
+                fname == "unprocessed" || fname == "tickCount") {
+                int32_t val = readInt32BE();
+                if (fname == "width") width = val;
+                else if (fname == "height") height = val;
+                else if (fname == "depth") depth = val;
+                else if (fname == "xSpawn") xSpawn = val;
+                else if (fname == "ySpawn") ySpawn = val;
+                else if (fname == "zSpawn") zSpawn = val;
+                else if (fname == "unprocessed") unprocessed = val;
+                else if (fname == "tickCount") tickCount = val;
+            }
+            else if (fname == "blocks") {
+                uint8_t tc = readByte();
+                if (tc == TC_NULL) {
+                    throw runtime_error("Blocks array is null");
+                } else if (tc == TC_ARRAY) {
+                    auto [arrayClassName, arrayFields] = readClassDesc();
+                    int32_t len = readInt32BE();
+                    if (len < 0) throw runtime_error("Negative array length");
+                    if (len > 0) {
+                        blocks.resize((size_t)len);
+                        readBytes(blocks.data(), blocks.size());
+                    }
+                } else {
+                    throw runtime_error("Expected TC_ARRAY for blocks");
                 }
-                case 'F': {
-                    int32_t v = readInt32BE();
-                    if (fname == "width") width = v;
-                    else if (fname == "height") height = v;
-                    else if (fname == "depth") depth = v;
-                    break;
+            }
+            else if (fname == "name" || fname == "creator") {
+                uint8_t tc = readByte();
+                if (tc == TC_NULL) {
+                    if (fname == "name") name = "";
+                    else creator = "";
+                } else if (tc == TC_STRING) {
+                    string str = readStringBE();
+                    if (fname == "name") name = str;
+                    else creator = str;
+                } else if (tc == TC_REFERENCE) {
+                    readInt32BE();
+                    if (fname == "name") name = "";
+                    else creator = "";
                 }
-                case 'I': {
-                    int32_t v = readInt32BE();
-                    if (fname == "width") width = v;
-                    else if (fname == "height") height = v;
-                    else if (fname == "depth") depth = v;
-                    else if (fname == "xSpawn") xSpawn = v;
-                    else if (fname == "ySpawn") ySpawn = v;
-                    else if (fname == "zSpawn") zSpawn = v;
-                    break;
+            }
+            else if (fname == "createTime") {
+                createTime = readInt64BE();
+            }
+            else if (fname == "rotSpawn") {
+                rotSpawn = readFloatBE();
+            }
+            else if (fname == "entities") {
+                uint8_t tc = readByte();
+                if (tc == TC_NULL) {
+                    entities.clear();
                 }
-                case 'J': {
-                    (void)readInt64BE();
-                    break;
-                }
-                case 'Z': {
-                    (void)readByte();
-                    break;
-                }
-                case 'L': {
-                    if (fname == "blockMap") {
-                        uint8_t tc = readByte();
-                        if (tc == TC_OBJECT) {
-                            skip(315);
-                            int32_t count = readInt32BE();
-                            if (count < 0) throw std::runtime_error("Negative blockMap count");
-                            for (int j = 0; j < count; ++j) skip(17);
-                            skip(152);
+                else if (tc == TC_OBJECT) {
+                    auto [arrayListClassName, arrayListFields] = readClassDesc();
+                    
+                    int32_t listSize = 0;
+                    
+                    for (size_t i = 0; i < arrayListFields.size(); ++i) {
+                        char ftype = get<0>(arrayListFields[i]);
+                        string fname = get<1>(arrayListFields[i]);
+                        
+                        if (ftype == 'I') {
+                            int32_t val = readInt32BE();
+                            if (fname == "size") {
+                                listSize = val;
+                            }
+                        }
+                        else if (ftype == '[') {
+                            uint8_t arrayTC = readByte();
+                            if (arrayTC == TC_ARRAY) {
+                                auto [elemArrayClassName, elemArrayFields] = readClassDesc();
+                                readInt32BE();
+                            } else if (arrayTC == TC_NULL) {}
+                        }
+                    }
+                    
+                    uint8_t blockTC = readByte();
+                    if (blockTC == 0x77) {
+                        uint8_t blockSize = readByte();
+                        if (blockSize == 4) {
+                            int32_t sizeAgain = readInt32BE();
                         } else {
-                            if (tc == TC_NULL) {}
-                            else if (tc == TC_STRING) { (void)readStringBE(); }
-                            else if (tc == TC_REFERENCE) { (void)readInt32BE(); }
-                            else {
-                                if (tc == TC_CLASSDESC) {
-                                    pos--;
-                                    readClassDesc();
+                            skip(blockSize);
+                        }
+                    } else if (blockTC == 0x7A) {
+                        int32_t blockSize = readInt32BE();
+                        skip(blockSize);
+                    } else {
+                        pos--;
+                    }
+                    
+                    for (int32_t j = 0; j < listSize; j++) {                        
+                        uint8_t objTC = readByte();
+                        if (objTC == TC_NULL) {
+                            continue;
+                        }
+                        
+                        if (objTC != TC_OBJECT) {
+                            break;
+                        }
+                        
+                        auto [entityClassName, allFields] = readClassDesc();
+                        
+                        cout << "    Entity class: " << entityClassName << endl;
+
+                        float x = 0, y = 0, z = 0;
+                        float xd = 0, yd = 0, zd = 0;
+                        float xo = 0, yo = 0, zo = 0;
+                        float yRot = 0, xRot = 0, yRotI = 0, xRotI = 0;
+                        float heightOffset = 0.0f;
+                        float bbWidth = 0.6f, bbHeight = 1.8f;
+                        bool onGround = false, horizontalCollision = false, removed = false;
+                        optional<AABB> bb;
+
+                        float rot = 0, timeOffs = 0, speed = 0, rotA = 0;
+
+                        for (const auto& field : allFields) {
+                            char ftype = get<0>(field);
+                            string fname = get<1>(field);
+                            
+                            switch (ftype) {
+                                case 'F': {
+                                    float val = readFloatBE();
+                                    if (fname == "rot") rot = val;
+                                    else if (fname == "rotA") rotA = val;
+                                    else if (fname == "speed") speed = val;
+                                    else if (fname == "timeOffs") timeOffs = val;
+                                    else if (fname == "bbHeight") bbHeight = val;
+                                    else if (fname == "bbWidth") bbWidth = val;
+                                    else if (fname == "heightOffset") heightOffset = val;
+                                    else if (fname == "x") x = val;
+                                    else if (fname == "xRot") xRot = val;
+                                    else if (fname == "xRotI") xRotI = val;
+                                    else if (fname == "xd") xd = val;
+                                    else if (fname == "xo") xo = val;
+                                    else if (fname == "y") y = val;
+                                    else if (fname == "yRot") yRot = val;
+                                    else if (fname == "yRotI") yRotI = val;
+                                    else if (fname == "yd") yd = val;
+                                    else if (fname == "yo") yo = val;
+                                    else if (fname == "z") z = val;
+                                    else if (fname == "zd") zd = val;
+                                    else if (fname == "zo") zo = val;
+                                    break;
+                                }
+                                case 'Z': {
+                                    bool val = readByte() != 0;
+                                    if (fname == "horizontalCollision") horizontalCollision = val;
+                                    else if (fname == "onGround") onGround = val;
+                                    else if (fname == "removed") removed = val;
+                                    break;
+                                }
+                                case 'L': {
+                                    uint8_t objRefTC = readByte();
+                                    if (fname == "bb") {
+                                        if (objRefTC == TC_OBJECT) {
+                                            auto [aabbClassName, aabbFields] = readClassDesc();
+                                            float x0=0, y0=0, z0=0, x1=0, y1=0, z1=0;
+                                            for (const auto& af : aabbFields) {
+                                                if (get<0>(af) == 'F') {
+                                                    float v = readFloatBE();
+                                                    string n = get<1>(af);
+                                                    if (n == "epsilon") {}
+                                                    else if (n == "x0") x0 = v;
+                                                    else if (n == "y0") y0 = v;
+                                                    else if (n == "z0") z0 = v;
+                                                    else if (n == "x1") x1 = v;
+                                                    else if (n == "y1") y1 = v;
+                                                    else if (n == "z1") z1 = v;
+                                                }
+                                            }
+                                            bb = AABB(x0, y0, z0, x1, y1, z1);
+                                        } else if (objRefTC == TC_REFERENCE) {
+                                            readInt32BE();
+                                            bb = AABB(0, 0, 0, 0, 0, 0);
+                                        } else if (objRefTC == TC_NULL) {
+                                            bb = AABB(0, 0, 0, 0, 0, 0);
+                                        }
+                                    } else if (fname == "level") {
+                                        if (objRefTC == TC_REFERENCE) readInt32BE();
+                                        else if (objRefTC == TC_OBJECT) {
+                                            auto [objClassName, objFields] = readClassDesc();
+                                        }
+                                        else if (objRefTC == TC_NULL) {}
+                                    } else {
+                                        if (objRefTC == TC_STRING) readStringBE();
+                                        else if (objRefTC == TC_REFERENCE) readInt32BE();
+                                        else if (objRefTC == TC_NULL) {}
+                                    }
+                                    break;
+                                }
+                                case 'I': readInt32BE(); break;
+                                case 'J': readInt64BE(); break;
+                                case 'D': readInt64BE(); break;
+                                case 'B': readByte(); break;
+                                case 'S': readInt16BE(); break;
+                                case 'C': readInt16BE(); break;
+                                case '[': {
+                                    uint8_t arrTC = readByte();
+                                    if (arrTC == TC_ARRAY) {
+                                        auto [arrClassName, arrFields] = readClassDesc();
+                                        readInt32BE();
+                                    } else if (arrTC == TC_NULL) {}
+                                    break;
                                 }
                             }
                         }
-                    } else {
+                        
+                        shared_ptr<Entity> entity;
+                        
+                        if (entityClassName == "com.mojang.minecraft.character.Zombie") {
+                            auto zombie = make_shared<Zombie>(level, x, y, z);
+                            zombie->rot = rot;
+                            zombie->timeOffs = timeOffs;
+                            zombie->speed = speed;
+                            zombie->rotA = rotA;
+                            entity = zombie;
+                        }
+                        else {
+                            cerr << "    Unknown entity type: " << entityClassName << endl;
+                            entity = make_shared<Entity>(level);
+                        }
+                        
+                        entity->x = x; entity->y = y; entity->z = z;
+                        entity->xd = xd; entity->yd = yd; entity->zd = zd;
+                        entity->xo = xo; entity->yo = yo; entity->zo = zo;
+                        entity->yRot = yRot; entity->xRot = xRot;
+                        entity->yRotI = yRotI; entity->xRotI = xRotI;
+                        entity->heightOffset = heightOffset;
+                        entity->bbWidth = bbWidth; entity->bbHeight = bbHeight;
+                        entity->onGround = onGround;
+                        entity->horizontalCollision = horizontalCollision;
+                        entity->removed = removed;
+                        entity->bb = bb.has_value() ? bb.value() : AABB(0, 0, 0, 0, 0, 0);
+                        
+                        entities.push_back(entity);
+                    }
+                    
+                    uint8_t endBlock = readByte();
+                    if (endBlock != TC_ENDBLOCKDATA) {
+                        cerr << "  Expected TC_ENDBLOCKDATA after objects, got 0x" 
+                                 << hex << (int)endBlock << dec << endl;
+                    }
+                    
+                    cout << "  Loaded " << entities.size() << " entities" << endl;
+                }
+            }
+            else {
+                switch (ftype) {
+                    case 'B': readByte(); break;
+                    case 'I': readInt32BE(); break;
+                    case 'J': readInt64BE(); break;
+                    case 'F': readFloatBE(); break;
+                    case 'Z': readByte(); break;
+                    case 'L': {
                         uint8_t tc = readByte();
                         if (tc == TC_NULL) {}
-                        else if (tc == TC_STRING) { (void)readStringBE(); }
-                        else if (tc == TC_REFERENCE) { (void)readInt32BE(); }
-                        else if (tc == TC_CLASSDESC) { pos--; readClassDesc(); }
-                        else if (tc == TC_OBJECT) {}
+                        else if (tc == TC_STRING) { readStringBE(); }
+                        else if (tc == TC_REFERENCE) { readInt32BE(); }
+                        break;
                     }
-                    break;
-                }
-                case '[': {
-                    std::vector<uint8_t> arr = readArrayForField(fname);
-                    if (fname == "blocks") {
-                        blocks = std::move(arr);
+                    case '[': {
+                        uint8_t tc = readByte();
+                        if (tc == TC_ARRAY) {
+                            auto [arrClassName, arrFields] = readClassDesc();
+                            int32_t len = readInt32BE();
+                            skip(len);
+                        }
+                        break;
                     }
-                    break;
                 }
-                default:
-                    break;
             }
         }
 
-        auto level = std::make_shared<Level>();
-
         const size_t TILE_ARRAY_SIZE = 256;
-
         for (size_t i = 0; i < blocks.size(); ++i) {
-            uint8_t id = blocks[i];
-            bool invalid = false;
-
-            if (id >= TILE_ARRAY_SIZE) invalid = true;
-            else {
-                if (Tile::tiles[id] == nullptr) invalid = true;
-            }
-
-            if (invalid) {
+            if (blocks[i] >= TILE_ARRAY_SIZE || Tile::tiles[blocks[i]] == nullptr) {
                 blocks[i] = 0;
             }
         }
 
         level->setData(width, depth, height, blocks);
-        level->name = "--";
-        level->creator = "unknown";
-        level->createTime = 0;
-
+        level->name = name.empty() ? "--" : name;
+        level->creator = creator.empty() ? "unknown" : creator;
+        level->createTime = createTime;
         level->xSpawn = xSpawn;
         level->ySpawn = ySpawn;
         level->zSpawn = zSpawn;
+        level->rotSpawn = rotSpawn;
+        level->entities = entities;
+        level->unprocessed = unprocessed;
+        level->tickCount = tickCount;
 
         return level;
-    } catch (const std::exception &ex) {
-        std::cerr << "Failed to load level.dat: " << ex.what() << std::endl;
+    } catch (const exception &ex) {
+        cerr << "Failed to load level.dat: " << ex.what() << endl;
         return nullptr;
     }
 }
 
 shared_ptr<Level> LevelIO::loadLegacy(gzFile file) {
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (minecraft != nullptr) {
+        minecraft->beginLevelLoading("Loading level");
+    }
+    if (minecraft != nullptr) {
+        minecraft->levelLoadUpdate("Reading...");
+    }
+
     try {
         vector<uint8_t> buf(256 * 64 * 256);
         size_t offset = 0;
@@ -402,7 +632,7 @@ shared_ptr<Level> LevelIO::loadLegacy(gzFile file) {
         uint8_t tmp[chunkSize];
         int bytes;
 
-        while ((bytes = gzwrite(file, tmp, chunkSize)) > 0) {
+        while ((bytes = gzread(file, tmp, chunkSize)) > 0) {
             memcpy(buf.data() + offset, tmp, bytes);
             offset += bytes;
         }
@@ -420,100 +650,395 @@ shared_ptr<Level> LevelIO::loadLegacy(gzFile file) {
     }
 }
 
+bool LevelIO::save(shared_ptr<Level>& level, string minecraftUri, string username, string sessionId, string levelName, int32_t levelId) {
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    
+    if (minecraft != nullptr) {
+        minecraft->beginLevelLoading("Saving level");
+        minecraft->levelLoadUpdate("Not implemented");
+    }
+    this_thread::sleep_for(chrono::milliseconds(3000));
+    return false;
+}
+
+shared_ptr<Level> LevelIO::load(gzFile file) {
+    try {
+        string magic = gzip::gzreadString(file);
+        if (magic != "MINE") {
+            throw runtime_error("Invalid file format");
+        }
+
+        int32_t ver;
+        gzip::gzreadExact(file, &ver, sizeof(ver));
+        if (ver != 2) {
+            throw runtime_error("Unsupported version: " + to_string(ver));
+        }
+
+        int32_t width = 0, height = 0, depth = 0;
+        vector<uint8_t> blocks;
+        string name, creator;
+        int64_t createTime = 0;
+        int32_t xSpawn = 0, ySpawn = 0, zSpawn = 0;
+        float rotSpawn = 0.0f;
+        int32_t unprocessed = 0, tickCount = 0;
+        vector<shared_ptr<Entity>> entities;
+        
+        shared_ptr<Level> level = make_shared<Level>();
+
+        while (true) {
+            FileFieldHeader header = gzip::gzreadFieldHeader(file);
+            
+            if (header.type == FileFieldType::END) {
+                break;
+            }
+            
+            if (header.name == "levelwidth") {
+                width = gzip::gzreadInt32Value(file);
+            }
+            else if (header.name == "levelheight") {
+                height = gzip::gzreadInt32Value(file);
+            }
+            else if (header.name == "leveldepth") {
+                depth = gzip::gzreadInt32Value(file);
+            }
+            else if (header.name == "levelblocks") {
+                blocks = gzip::gzreadByteArrayValue(file);
+            }
+            else if (header.name == "levelname") {
+                name = gzip::gzreadStringValue(file);
+            }
+            else if (header.name == "levelcreator") {
+                creator = gzip::gzreadStringValue(file);
+            }
+            else if (header.name == "levelcreateTime") {
+                createTime = gzip::gzreadInt64Value(file);
+            }
+            else if (header.name == "levelxSpawn") {
+                xSpawn = gzip::gzreadInt32Value(file);
+            }
+            else if (header.name == "levelySpawn") {
+                ySpawn = gzip::gzreadInt32Value(file);
+            }
+            else if (header.name == "levelzSpawn") {
+                zSpawn = gzip::gzreadInt32Value(file);
+            }
+            else if (header.name == "levelrotSpawn") {
+                rotSpawn = gzip::gzreadFloatValue(file);
+            }
+            else if (header.name == "levelunprocessed") {
+                unprocessed = gzip::gzreadInt32Value(file);
+            }
+            else if (header.name == "leveltickCount") {
+                tickCount = gzip::gzreadInt32Value(file);
+            }
+            else if (header.name == "levelentities") {
+                int32_t entityCount = gzip::gzreadInt32Value(file);
+                
+                for (int32_t i = 0; i < entityCount; ++i) {
+                    shared_ptr<Entity> entity = nullptr;
+
+                    while (true) {
+                        FileFieldHeader eHeader = gzip::gzreadFieldHeader(file);
+                        
+                        if (eHeader.type == FileFieldType::END) {
+                            break;
+                        }
+
+                        if (eHeader.name == "entityType") {
+                            string entityType = gzip::gzreadStringValue(file);
+                            if (entityType == "Zombie") {
+                                entity = make_shared<Zombie>(level, 0, 0, 0);
+                            }
+                        }
+                        else if (!entity) {
+                            gzip::gzskipFieldValue(file, eHeader.type);
+                        }
+                        else {
+                            shared_ptr<Zombie> zombie = dynamic_pointer_cast<Zombie>(entity);
+                            if (zombie && eHeader.name == "rot") {
+                                zombie->rot = gzip::gzreadFloatValue(file);
+                            }
+                            else if (zombie && eHeader.name == "speed") {
+                                zombie->speed = gzip::gzreadFloatValue(file);
+                            }
+                            else if (zombie && eHeader.name == "timeOffs") {
+                                zombie->timeOffs = gzip::gzreadFloatValue(file);
+                            }
+                            else if (zombie && eHeader.name == "rotA") {
+                                zombie->rotA = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "x") {
+                                entity->x = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "y") {
+                                entity->y = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "z") {
+                                entity->z = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "xo") {
+                                entity->xo = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "yo") {
+                                entity->yo = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "zo") {
+                                entity->zo = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "xd") {
+                                entity->xd = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "yd") {
+                                entity->yd = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "zd") {
+                                entity->zd = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "yRot") {
+                                entity->yRot = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "xRot") {
+                                entity->xRot = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "yRotI") {
+                                entity->yRotI = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "xRotI") {
+                                entity->xRotI = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "onGround") {
+                                entity->onGround = gzip::gzreadBoolValue(file);
+                            }
+                            else if (eHeader.name == "horizontalCollision") {
+                                entity->horizontalCollision = gzip::gzreadBoolValue(file);
+                            }
+                            else if (eHeader.name == "removed") {
+                                entity->removed = gzip::gzreadBoolValue(file);
+                            }
+                            else if (eHeader.name == "heightOffset") {
+                                entity->heightOffset = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "bbWidth") {
+                                entity->bbWidth = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "bbHeight") {
+                                entity->bbHeight = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "bbminX") {
+                                entity->bb.minX = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "bbminY") {
+                                entity->bb.minY = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "bbminZ") {
+                                entity->bb.minZ = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "bbmaxX") {
+                                entity->bb.maxX = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "bbmaxY") {
+                                entity->bb.maxY = gzip::gzreadFloatValue(file);
+                            }
+                            else if (eHeader.name == "bbmaxZ") {
+                                entity->bb.maxZ = gzip::gzreadFloatValue(file);
+                            }
+                            else {
+                                gzip::gzskipFieldValue(file, eHeader.type);
+                            }
+                        }
+                    }
+                    
+                    if (entity) {
+                        entities.push_back(entity);
+                    }
+                }
+            }
+            else {
+                cerr << "Unknown field: " << header.name << " (type: " << (int)header.type << ")" << endl;
+                gzip::gzskipFieldValue(file, header.type);
+            }
+        }
+
+        gzclose(file);
+
+        level->setData(width, depth, height, blocks);
+        level->name = name.empty() ? "--" : name;
+        level->creator = creator.empty() ? "unknown" : creator;
+        level->createTime = createTime;
+        level->xSpawn = xSpawn;
+        level->ySpawn = ySpawn;
+        level->zSpawn = zSpawn;
+        level->rotSpawn = rotSpawn;
+        level->unprocessed = unprocessed;
+        level->tickCount = tickCount;
+        level->entities = entities;
+        return level;
+    } catch (const exception& e) {
+        cerr << "Failed to load level: " << e.what() << endl;
+        gzclose(file);
+        return nullptr;
+    }
+}
+
 void LevelIO::save(shared_ptr<Level>& level, gzFile file) {
     try {
         string magic = "MINE";
-        int32_t length = magic.size();
-        Util::gzwriteExact(file, &length, sizeof(length));
-        Util::gzwriteExact(file, magic.data(), length);
+        
+        gzip::gzwriteString(file, magic);
 
         int32_t ver = 2;
-        Util::gzwriteExact(file, &ver, sizeof(ver));
+        gzip::gzwriteExact(file, &ver, sizeof(ver));
 
-        Util::gzwriteExact(file, &level->width, sizeof(level->width));
-        Util::gzwriteExact(file, &level->height, sizeof(level->height));
-        Util::gzwriteExact(file, &level->depth, sizeof(level->depth));
+        gzip::gzwriteFieldInt32(file, "levelwidth", level->width);
+        gzip::gzwriteFieldInt32(file, "levelheight", level->height);
+        gzip::gzwriteFieldInt32(file, "leveldepth", level->depth);
 
-        length = level->blocks.size();
-        Util::gzwriteExact(file, &length, sizeof(length));
-        Util::gzwriteExact(file, level->blocks.data(), length);
-        
+        gzip::gzwriteFieldByteArray(file, "levelblocks", level->blocks);
+        gzip::gzwriteFieldString(file, "levelname", level->name);
+        gzip::gzwriteFieldString(file, "levelcreator", level->creator);
+        gzip::gzwriteFieldInt64(file, "levelcreateTime", level->createTime);
 
-        length = level->name.size();
-        Util::gzwriteExact(file, &length, sizeof(length));
-        Util::gzwriteExact(file, level->name.data(), length);
+        gzip::gzwriteFieldInt32(file, "levelxSpawn", level->xSpawn);
+        gzip::gzwriteFieldInt32(file, "levelySpawn", level->ySpawn);
+        gzip::gzwriteFieldInt32(file, "levelzSpawn", level->zSpawn);
+        gzip::gzwriteFieldFloat(file, "levelrotSpawn", level->rotSpawn);
 
-        length = level->creator.size();
-        Util::gzwriteExact(file, &length, sizeof(length));
-        Util::gzwriteExact(file, level->creator.data(), length);
-        
-        Util::gzwriteExact(file, &level->createTime, sizeof(level->createTime));
-        Util::gzwriteExact(file, &level->xSpawn, sizeof(level->xSpawn));
-        Util::gzwriteExact(file, &level->ySpawn, sizeof(level->ySpawn));
-        Util::gzwriteExact(file, &level->zSpawn, sizeof(level->zSpawn));
-        Util::gzwriteExact(file, &level->rotSpawn, sizeof(level->rotSpawn));
+        gzip::gzwriteFieldInt32(file, "levelunprocessed", level->unprocessed);
+        gzip::gzwriteFieldInt32(file, "leveltickCount", level->tickCount);
 
         // entities
-        length = level->entities.size();
-        Util::gzwriteExact(file, &length, sizeof(length));
+        gzip::gzwriteFieldInt32(file, "levelentities", level->entities.size());
+
         for (auto& e : level->entities) {
-            // zombie
             shared_ptr<Zombie> zombie = dynamic_pointer_cast<Zombie>(e);
             if (zombie) {
-                float x;
-                float y;
-                float z;
-                Util::gzwriteExact(file, &zombie->x, sizeof(zombie->x));
-                Util::gzwriteExact(file, &zombie->y, sizeof(zombie->y));
-                Util::gzwriteExact(file, &zombie->z, sizeof(zombie->z));
-
-                float rot;
-                float timeOffs;
-                float speed;
-                float rotA;
-                Util::gzwriteExact(file, &zombie->rot, sizeof(zombie->rot));
-                Util::gzwriteExact(file, &zombie->timeOffs, sizeof(zombie->timeOffs));
-                Util::gzwriteExact(file, &zombie->speed, sizeof(zombie->speed));
-                Util::gzwriteExact(file, &zombie->rotA, sizeof(zombie->rotA));
+                gzip::gzwriteFieldString(file, "entityType", "Zombie");
+                gzip::gzwriteFieldFloat(file, "rot", zombie->rot);
+                gzip::gzwriteFieldFloat(file, "speed", zombie->speed);
+                gzip::gzwriteFieldFloat(file, "timeOffs", zombie->timeOffs);
+                gzip::gzwriteFieldFloat(file, "rotA", zombie->rotA);
             }
             else {
-                Util::gzwriteExact(file, &e->x, sizeof(e->x));
-                Util::gzwriteExact(file, &e->y, sizeof(e->y));
-                Util::gzwriteExact(file, &e->z, sizeof(e->z));
+                continue;
             }
-            // entity
-            Util::gzwriteExact(file, &e->xo, sizeof(e->xo));
-            Util::gzwriteExact(file, &e->yo, sizeof(e->yo));
-            Util::gzwriteExact(file, &e->zo, sizeof(e->zo));
-            Util::gzwriteExact(file, &e->xd, sizeof(e->xd));
-            Util::gzwriteExact(file, &e->yd, sizeof(e->yd));
-            Util::gzwriteExact(file, &e->zd, sizeof(e->zd));
-            Util::gzwriteExact(file, &e->yRot, sizeof(e->yRot));
-            Util::gzwriteExact(file, &e->xRot, sizeof(e->xRot));
-            Util::gzwriteExact(file, &e->yRotI, sizeof(e->yRotI));
-            Util::gzwriteExact(file, &e->xRotI, sizeof(e->xRotI));
-            Util::gzwriteExact(file, &e->onGround, sizeof(e->onGround));
-            Util::gzwriteExact(file, &e->horizontalCollision, sizeof(e->horizontalCollision));
-            Util::gzwriteExact(file, &e->removed, sizeof(e->removed));
-            Util::gzwriteExact(file, &e->heightOffset, sizeof(e->heightOffset));
-            Util::gzwriteExact(file, &e->bbWidth, sizeof(e->bbWidth));
-            Util::gzwriteExact(file, &e->bbHeight, sizeof(e->bbHeight));
+
+            gzip::gzwriteFieldFloat(file, "x", e->x);
+            gzip::gzwriteFieldFloat(file, "y", e->y);
+            gzip::gzwriteFieldFloat(file, "z", e->z);
+            gzip::gzwriteFieldFloat(file, "xo", e->xo);
+            gzip::gzwriteFieldFloat(file, "yo", e->yo);
+            gzip::gzwriteFieldFloat(file, "zo", e->zo);
+            gzip::gzwriteFieldFloat(file, "xd", e->xd);
+            gzip::gzwriteFieldFloat(file, "yd", e->yd);
+            gzip::gzwriteFieldFloat(file, "zd", e->zd);
+            gzip::gzwriteFieldFloat(file, "yRot", e->yRot);
+            gzip::gzwriteFieldFloat(file, "xRot", e->xRot);
+            gzip::gzwriteFieldFloat(file, "yRotI", e->yRotI);
+            gzip::gzwriteFieldFloat(file, "xRotI", e->xRotI);
+
+            gzip::gzwriteFieldBool(file, "onGround", e->onGround);
+            gzip::gzwriteFieldBool(file, "horizontalCollision", e->horizontalCollision);
+            gzip::gzwriteFieldBool(file, "removed", e->removed);
+
+            gzip::gzwriteFieldFloat(file, "heightOffset", e->heightOffset);
+            gzip::gzwriteFieldFloat(file, "bbWidth", e->bbWidth);
+            gzip::gzwriteFieldFloat(file, "bbHeight", e->bbHeight);
 
             // AABB
-            Util::gzwriteExact(file, &e->bb->minX, sizeof(float));
-            Util::gzwriteExact(file, &e->bb->minY, sizeof(float));
-            Util::gzwriteExact(file, &e->bb->minZ, sizeof(float));
-            Util::gzwriteExact(file, &e->bb->maxX, sizeof(float));
-            Util::gzwriteExact(file, &e->bb->maxY, sizeof(float));
-            Util::gzwriteExact(file, &e->bb->maxZ, sizeof(float));
+            gzip::gzwriteFieldFloat(file, "bbminX", e->bb.minX);
+            gzip::gzwriteFieldFloat(file, "bbminY", e->bb.minY);
+            gzip::gzwriteFieldFloat(file, "bbminZ", e->bb.minZ);
+            gzip::gzwriteFieldFloat(file, "bbmaxX", e->bb.maxX);
+            gzip::gzwriteFieldFloat(file, "bbmaxY", e->bb.maxY);
+            gzip::gzwriteFieldFloat(file, "bbmaxZ", e->bb.maxZ);
+
+            gzip::gzwriteFieldEnd(file);
         }
-
-        Util::gzwriteExact(file, &level->unprocessed, sizeof(level->unprocessed));
-        Util::gzwriteExact(file, &level->tickCount, sizeof(level->tickCount));
-
+        gzip::gzwriteFieldEnd(file);
     } catch (const exception& e) {
         cerr << "Failed to save level: " << e.what() << endl;
     }
     gzclose(file);
+}
+
+vector<uint8_t> LevelIO::loadBlocks(gzFile file) {
+    vector<uint8_t> blocks;
+
+    unsigned char lenBuf[4];
+    gzip::gzreadExact(file, lenBuf, sizeof(lenBuf));
+
+    uint32_t length = ((uint32_t)lenBuf[0] << 24) |
+                      ((uint32_t)lenBuf[1] << 16) |
+                      ((uint32_t)lenBuf[2] <<  8) |
+                      ((uint32_t)lenBuf[3] <<  0);
+
+    blocks.resize(length);
+
+    uint32_t offset = 0;
+    while (offset < length) {
+        int toRead = (int)min<uint32_t>(length - offset, 65536);
+        int got = gzread(file, blocks.data() + offset, toRead);
+        if (got <= 0) {
+            int errnum = 0;
+            const char* err = gzerror(file, &errnum);
+            cerr << "loadBlocks: gzread failed at offset " << offset << " (got " << got << "): "
+                 << (err ? err : "unknown") << endl;
+            gzclose(file);
+            blocks.clear();
+            return blocks;
+        }
+        offset += (uint32_t)got;
+    }
+
+    gzclose(file);
+    return blocks;
+}
+
+vector<uint8_t> LevelIO::loadBlocks(vector<uint8_t>& in) {
+    const char* tempFilename = "temp_blocks.gz";
+    FILE* tempFile = fopen(tempFilename, "wb");
+    if (!tempFile) {
+        throw runtime_error("Failed to create temporary file");
+    }
     
+    fwrite(in.data(), 1, in.size(), tempFile);
+    fclose(tempFile);
+    
+    gzFile file = gzopen(tempFilename, "rb");
+    if (!file) {
+        remove(tempFilename);
+        throw runtime_error("Failed to open temporary gzip file");
+    }
+    
+    unsigned char lenBuf[4];
+    if (gzread(file, lenBuf, sizeof(lenBuf)) != sizeof(lenBuf)) {
+        gzclose(file);
+        remove(tempFilename);
+        throw runtime_error("Failed to read length header");
+    }
+    
+    uint32_t length = ((uint32_t)lenBuf[0] << 24) |
+                      ((uint32_t)lenBuf[1] << 16) |
+                      ((uint32_t)lenBuf[2] << 8) |
+                      ((uint32_t)lenBuf[3] << 0);
+    
+    vector<uint8_t> blocks;
+    blocks.resize(length);
+    
+    uint32_t offset = 0;
+    while (offset < length) {
+        int toRead = (int)min<uint32_t>(length - offset, 65536);
+        int got = gzread(file, blocks.data() + offset, toRead);
+        if (got <= 0) {
+            gzclose(file);
+            remove(tempFilename);
+            throw runtime_error("gzread failed during block reading");
+        }
+        offset += (uint32_t)got;
+    }
+    
+    gzclose(file);
+    remove(tempFilename);
+    
+    return blocks;
 }

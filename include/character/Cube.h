@@ -1,10 +1,12 @@
-#include <GL/gl.h>
-#include "character/Polygon.h"
+#pragma once
+
+#include "GL_compat.h"
+#include "character/Quad.h"
 
 class Cube {
 private:
     vector<Vertex> vertices;
-    vector<Polygon> polygons;
+    vector<Quad> polygons;
     int32_t xTexOffs;
     int32_t yTexOffs;
     float x;

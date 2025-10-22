@@ -27,8 +27,12 @@ void Screen::render(int32_t var1, int32_t var2) {
 
 }
 
-void Screen::keyPressed(int32_t key) {
+void Screen::keyPressed(char var1, int32_t key) {
     if (key == GLFW_KEY_ESCAPE) {
+        shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+        if (!minecraft) {
+            return;
+        }
         minecraft->setScreen(nullptr);
         minecraft->grabMouse();
     }
@@ -86,18 +90,72 @@ void Screen::fillGradient(int32_t var0, int32_t var1, int32_t var2, int32_t var3
 }
 
 void Screen::drawCenteredString(string var1, int32_t var2, int32_t var3, int32_t var4) {
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (!minecraft) {
+        return;
+    }
     shared_ptr<Font> font = minecraft->font;
     font->drawShadow(var1, var2 - font->width(var1) / 2, var3, var4);
 }
 
 void Screen::drawString(string var1, int32_t var2, int32_t var3, int32_t var4) {
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (!minecraft) {
+        return;
+    }
     shared_ptr<Font> font = minecraft->font;
     font->drawShadow(var1, var2, var3, var4);
 }
 
+char getCharFromKey(int key, bool shift) {
+    if (key >= GLFW_KEY_A && key <= GLFW_KEY_Z) {
+        char base = 'a' + (key - GLFW_KEY_A);
+        return shift ? toupper(base) : base;
+    }
+
+    if (!shift) {
+        if (key >= GLFW_KEY_0 && key <= GLFW_KEY_9) {
+            return '0' + (key - GLFW_KEY_0);
+        }
+    } else {
+        switch (key) {
+            case GLFW_KEY_0: return ')';
+            case GLFW_KEY_1: return '!';
+            case GLFW_KEY_2: return '@';
+            case GLFW_KEY_3: return '#';
+            case GLFW_KEY_4: return '$';
+            case GLFW_KEY_5: return '%';
+            case GLFW_KEY_6: return '^';
+            case GLFW_KEY_7: return '&';
+            case GLFW_KEY_8: return '*';
+            case GLFW_KEY_9: return '(';
+        }
+    }
+
+    switch (key) {
+        case GLFW_KEY_SPACE: return ' ';
+        case GLFW_KEY_COMMA: return shift ? '<' : ',';
+        case GLFW_KEY_PERIOD: return shift ? '>' : '.';
+        case GLFW_KEY_SLASH: return shift ? '?' : '/';
+        case GLFW_KEY_SEMICOLON: return shift ? ':' : ';';
+        case GLFW_KEY_APOSTROPHE: return shift ? '"' : '\'';
+        case GLFW_KEY_LEFT_BRACKET: return shift ? '{' : '[';
+        case GLFW_KEY_RIGHT_BRACKET: return shift ? '}' : ']';
+        case GLFW_KEY_BACKSLASH: return shift ? '|' : '\\';
+        case GLFW_KEY_MINUS: return shift ? '_' : '-';
+        case GLFW_KEY_EQUAL: return shift ? '+' : '=';
+        case GLFW_KEY_GRAVE_ACCENT: return shift ? '~' : '`';
+    }
+    
+    return 0;
+}
+
 void Screen::updateEvents() {
     GLFWwindow* window = Util::getGLFWWindow();
-
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (!minecraft) {
+        return;
+    }
     vector<shared_ptr<Button>> buttonsSnapshot = this->buttons;
 
     while (true) {
@@ -106,8 +164,8 @@ void Screen::updateEvents() {
             double mouseY;
             glfwGetCursorPos(window, &mouseX, &mouseY);
 
-            int32_t var1 = (int32_t)(mouseX * this->width / this->minecraft->width);
-            int32_t var2 = (int32_t)(mouseY * this->height / this->minecraft->height);
+            int32_t var1 = (int32_t)(mouseX * this->width / minecraft->width);
+            int32_t var2 = (int32_t)(mouseY * this->height / minecraft->height);
 
             int32_t var4 = 0;
             int32_t var3 = var2;
@@ -137,7 +195,7 @@ void Screen::updateEvents() {
 
         for (int32_t key = 0; key <= GLFW_KEY_LAST; ++key) {
             while (Util::isKeyDownPrev(key)) {
-                keyPressed(key);
+                keyPressed(getCharFromKey(key, Util::isKeyDown(GLFW_MOD_SHIFT)), key);
             }
         }
 

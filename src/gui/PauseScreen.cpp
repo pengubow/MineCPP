@@ -10,6 +10,12 @@ void PauseScreen::init() {
     buttons.push_back(make_shared<Button>(1, width / 2 - 100, height / 3 + 32, 200, 20, "Save level.."));
     buttons.push_back(make_shared<Button>(2, width / 2 - 100, height / 3 + 64, 200, 20, "Load level.."));
     buttons.push_back(make_shared<Button>(3, width / 2 - 100, height / 3 + 96, 200, 20, "Back to game"));
+    
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (!minecraft) {
+        return;
+    }
+
     if (minecraft->user == nullptr) {
         buttons[1]->enabled = false;
         buttons[2]->enabled = false;
@@ -18,6 +24,11 @@ void PauseScreen::init() {
 }
 
 void PauseScreen::buttonClicked(shared_ptr<Button>& button) {
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (!minecraft) {
+        return;
+    }
+    
     if(button->id == 0) {
         minecraft->setScreen(make_shared<NewLevelScreen>(shared_from_this()));
     }

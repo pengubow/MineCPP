@@ -6,7 +6,7 @@
 #include <limits>
 #include <stdexcept>
 #include <thread>
-#include <zlib.h>
+#include <chrono>
 
 using namespace std;
 
@@ -36,7 +36,4 @@ namespace Util {
     double random(double max);
     double random(double min, double max);
     string trim(const string& s);
-
-    void gzreadExact(gzFile file, void* buf, unsigned int len);
-    void gzwriteExact(gzFile file, const void* buf, unsigned int len);
 }

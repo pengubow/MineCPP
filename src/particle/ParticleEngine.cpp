@@ -1,11 +1,12 @@
-#include <GL/glu.h>
+#include <iostream>
 #include <cmath>
+#include "GL_compat.h"
 #include "particle/ParticleEngine.h"
 #include "renderer/Textures.h"
-#include <iostream>
+
 ParticleEngine::ParticleEngine(shared_ptr<Level>& level, shared_ptr<Textures>& textures) : textures(textures) {};
 
-void ParticleEngine::render(shared_ptr<Player>& player, float a) {
+void ParticleEngine::render(Player* player, float a) {
     if (!this->particles.empty()) {
         glEnable(GL_TEXTURE_2D);
         int32_t id = textures->loadTexture("terrain.png", GL_NEAREST);

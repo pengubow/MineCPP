@@ -1,4 +1,4 @@
-#include <GL/gl.h>
+#include "GL_compat.h"
 #include "renderer/Tesselator.h"
 
 shared_ptr<Tesselator> Tesselator::instance = make_shared<Tesselator>();
@@ -50,6 +50,7 @@ void Tesselator::clear() {
     p = 0;
     buffer.clear();
     len = 3;
+    noColor = false;
 }
 
 void Tesselator::begin() {

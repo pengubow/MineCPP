@@ -12,5 +12,5 @@ public:
     
     HitResult(int32_t var1, int32_t x, int32_t y, int32_t z, int32_t face);
 
-    float distanceTo(shared_ptr<Player>& player, int32_t editMode);
+    float distanceTo(Player* player, int32_t editMode);
 };

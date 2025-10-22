@@ -40,12 +40,12 @@ void Cube::addBox(float minX, float minY, float minZ, int32_t w, int32_t h, int3
     auto hi3 = vector<Vertex>{ u2, u3, l3, l2 };
     auto hi4 = vector<Vertex>{ maxU, minU, u3, u2 };
     auto hi5 = vector<Vertex>{ l0, l1, l2, l3 };
-    this->polygons.push_back(Polygon(hi, this->xTexOffs + d + w, this->yTexOffs + d, this->xTexOffs + d + w + d, this->yTexOffs + d + h));
-    this->polygons.push_back(Polygon(hi1, this->xTexOffs + 0, this->yTexOffs + d, this->xTexOffs + d, this->yTexOffs + d + h));
-    this->polygons.push_back(Polygon(hi2, this->xTexOffs + d, this->yTexOffs + 0, this->xTexOffs + d + w, this->yTexOffs + d));
-    this->polygons.push_back(Polygon(hi3, this->xTexOffs + d + w, this->yTexOffs + 0, this->xTexOffs + d + w + w, this->yTexOffs + d));
-    this->polygons.push_back(Polygon(hi4, this->xTexOffs + d, this->yTexOffs + d, this->xTexOffs + d + w, this->yTexOffs + d + h));
-    this->polygons.push_back(Polygon(hi5, this->xTexOffs + d + w + d, this->yTexOffs + d, this->xTexOffs + d + w + d + w, this->yTexOffs + d + h));
+    this->polygons.push_back(Quad(hi, this->xTexOffs + d + w, this->yTexOffs + d, this->xTexOffs + d + w + d, this->yTexOffs + d + h));
+    this->polygons.push_back(Quad(hi1, this->xTexOffs + 0, this->yTexOffs + d, this->xTexOffs + d, this->yTexOffs + d + h));
+    this->polygons.push_back(Quad(hi2, this->xTexOffs + d, this->yTexOffs + 0, this->xTexOffs + d + w, this->yTexOffs + d));
+    this->polygons.push_back(Quad(hi3, this->xTexOffs + d + w, this->yTexOffs + 0, this->xTexOffs + d + w + w, this->yTexOffs + d));
+    this->polygons.push_back(Quad(hi4, this->xTexOffs + d, this->yTexOffs + d, this->xTexOffs + d + w, this->yTexOffs + d + h));
+    this->polygons.push_back(Quad(hi5, this->xTexOffs + d + w + d, this->yTexOffs + d, this->xTexOffs + d + w + d + w, this->yTexOffs + d + h));
 }
 
 void Cube::setPos(float x, float y, float z) {
@@ -60,7 +60,11 @@ void Cube::render() {
         glNewList(this->list, GL_COMPILE);
         glBegin(GL_QUADS);
         for (int32_t i = 0; i < this->polygons.size(); i++) {
-            this->polygons[i].render();
+            for (int32_t i2 = 3; i2 >= 0; --i2) {
+                Vertex v = this->polygons[i].vertices[i2];
+                glTexCoord2f(v.u / 64.0f, v.v / 32.0f);
+                glVertex3f(v.pos->x, v.pos->y, v.pos->z);
+            }
         }
         glEnd();
         glEndList();

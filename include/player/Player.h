@@ -8,7 +8,6 @@
 
 class Player : public Entity {
 private:
-    shared_ptr<Entity> entity;
     shared_ptr<MovementInputFromOptions> input;
 public:
     Player(shared_ptr<Level>& level, shared_ptr<MovementInputFromOptions>& input);

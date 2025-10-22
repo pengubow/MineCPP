@@ -15,12 +15,12 @@ public:
     LoadLevelScreen(shared_ptr<Screen> parent);
     void run();
 protected:
-    void setLevels(vector<string>& var1);
+    virtual void setLevels(vector<string>& var1);
 public:
     void init() override;
 protected:
     void buttonClicked(shared_ptr<Button>& button) override;
-    void loadLevel(int32_t var1);
+    virtual void loadLevel(int32_t var1);
 public:
     void render(int32_t var1, int32_t var2) override;
 };

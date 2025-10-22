@@ -7,7 +7,7 @@ HitResult::HitResult(int32_t var1, int32_t x, int32_t y, int32_t z, int32_t face
     this->face = face;
 }
 
-float HitResult::distanceTo(shared_ptr<Player>& player, int32_t editMode) {
+float HitResult::distanceTo(Player* player, int32_t editMode) {
     int32_t x = this->x;
     int32_t y = this->y;
     int32_t z = this->z;

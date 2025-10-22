@@ -1,10 +1,10 @@
 #include "level/tile/LiquidTile.h"
-#include <iostream>
-LiquidTile::LiquidTile(int32_t id, int32_t type) 
+
+LiquidTile::LiquidTile(int32_t id, Liquid* type) 
     : Tile(id) {
-    liquidType = type;
+    liquid = type;
     this->tex = 14;
-    if (type == 2) {
+    if (type == Liquid::lava) {
         this->tex = 30;
     }
 
@@ -13,6 +13,9 @@ LiquidTile::LiquidTile(int32_t id, int32_t type)
     float var3 = 0.1f;
     setShape(0.0f, 0.0f - var3, 0.0f, 1.0f, 1.0f - var3, 1.0f);
     setTicking(true);
+    if (type == Liquid::lava) {
+        setTickSpeed(16);
+    }
 }
 
 void LiquidTile::onBlockAdded(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {
@@ -34,10 +37,10 @@ void LiquidTile::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z)
         if(var6) {
             var9 = true;
         }
-    } while (var6 && liquidType != 2);
+    } while (var6 && liquid != Liquid::lava);
 
     y++;
-    if (liquidType == 1 || !var9) {
+    if (liquid == Liquid::water || !var9) {
         var9 |= checkWater(level, x - 1, y, z);
         var9 |= checkWater(level, x + 1, y, z);
         var9 |= checkWater(level, x, y, z - 1);
@@ -64,14 +67,18 @@ bool LiquidTile::checkWater(shared_ptr<Level>& level, int32_t x, int32_t y, int3
     return false;
 }
 
+float LiquidTile::getBrightness(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {
+    return liquid == Liquid::lava ? 100.0f : level->getBrightness(x, y, z);
+}
+
 bool LiquidTile::shouldRenderFace(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, int32_t layer, int32_t var6) {
     if (x >= 0 && y >= 0 && z >= 0 && x < level->width && z < level->height) {
-        if (layer != 1 && liquidType == 1) {
+        if (layer != 1 && liquid == Liquid::water) {
             return false;
         }
         else {
             int32_t tile = level->getTile(x, y, z);
-            return tile != tileId && tile != calmTileId ? Tile::shouldRenderFace(level, x, y, z, -1, var6) : false;
+            return tile != tileId && tile != calmTileId ? (var6 != 1 || level->getTile(x - 1, y, z) != 0 && level->getTile(x + 1, y, z) != 0 && level->getTile(x, y, z - 1) != 0 && level->getTile(x, y, z + 1) != 0 ? Tile::shouldRenderFace(level, x, y, z, -1, var6) : true) : false;
         }
     }
     else {
@@ -88,8 +95,8 @@ bool LiquidTile::mayPick() {
     return false;
 }
 
-shared_ptr<AABB> LiquidTile::getAABB(int32_t x, int32_t y, int32_t z) {
-    return nullptr;
+optional<AABB> LiquidTile::getAABB(int32_t x, int32_t y, int32_t z) {
+    return nullopt;
 }
 
 bool LiquidTile::blocksLight() {
@@ -100,18 +107,22 @@ bool LiquidTile::isSolid() {
     return false;
 }
 
-int32_t LiquidTile::getLiquidType() {
-    return liquidType;
+Liquid* LiquidTile::getLiquidType() {
+    return liquid;
 }
 
 void LiquidTile::neighborChanged(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, int32_t type) {
-    if (liquidType == 1 && (type == Tile::lava->id || type == Tile::calmLava->id)) {
-        level->setTileNoUpdate(x, y, z, Tile::rock->id);
-    }
-
-    if (liquidType == 2 && (type == Tile::water->id || type == Tile::calmWater->id)) {
-        level->setTileNoUpdate(x, y, z, Tile::rock->id);
+    if (type != 0) {
+        Liquid* liquidType = Tile::tiles[type]->getLiquidType();
+        if(liquid == Liquid::water && liquidType == Liquid::lava || liquidType == Liquid::water && liquid == Liquid::lava) {
+            level->setTile(x, y, z, Tile::rock->id);
+            return;
+        }
     }
 
     level->addToTickNextTick(x, y, z, type);
+}
+
+int32_t LiquidTile::getTickDelay() {
+    return liquid == Liquid::lava ? 5 : 0;
 }

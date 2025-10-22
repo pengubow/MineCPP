@@ -7,7 +7,7 @@ class DistanceSorter {
 private:
     shared_ptr<Player> player;
 public:
-    DistanceSorter(shared_ptr<Player> player);
+    DistanceSorter(shared_ptr<Player>& player);
 
     bool operator()(shared_ptr<Chunk>& c0, shared_ptr<Chunk>& c1);
 };

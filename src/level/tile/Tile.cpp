@@ -11,6 +11,7 @@
 
 vector<Tile*> Tile::tiles = vector<Tile*>(256);
 vector<bool> Tile::shouldTick = vector<bool>(256);
+vector<int32_t> Tile::tickSpeed = vector<int32_t>(256);
 Tile* Tile::rock = new Tile(1, 1);
 Tile* Tile::grass = new GrassTile(2);
 Tile* Tile::dirt = new DirtTile(3, 2);
@@ -18,10 +19,10 @@ Tile* Tile::stoneBrick = new Tile(4, 16);
 Tile* Tile::wood = new Tile(5, 4);
 Tile* Tile::bush = new Bush(6);
 Tile* Tile::unbreakable = new Tile(7, 17);
-Tile* Tile::water = new LiquidTile(8, 1);
-Tile* Tile::calmWater = new CalmLiquidTile(9, 1);
-Tile* Tile::lava = new LiquidTile(10, 2);
-Tile* Tile::calmLava = new CalmLiquidTile(11, 2);
+Tile* Tile::water = new LiquidTile(8, Liquid::water);
+Tile* Tile::calmWater = new CalmLiquidTile(9, Liquid::water);
+Tile* Tile::lava = new LiquidTile(10, Liquid::lava);
+Tile* Tile::calmLava = new CalmLiquidTile(11, Liquid::lava);
 Tile* Tile::sand = new FallingTile(12, 18);
 Tile* Tile::gravel = new FallingTile(13, 19);
 Tile* Tile::oreGold = new Tile(14, 32);
@@ -35,9 +36,8 @@ Tile::Tile(int32_t id) : id(id) {
     setShape(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
 }
 
-Tile::Tile(int32_t id, int32_t tex) : id(id), tex(tex) {
-    tiles[id] = this;
-    setShape(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+void Tile::setTickSpeed(int32_t tickSpeed) {
+    this->tickSpeed[id] = tickSpeed;
 }
 
 void Tile::setTicking(bool shouldTick) {
@@ -53,48 +53,59 @@ void Tile::setShape(float minX, float minY, float minZ, float maxX, float maxY, 
     this->maxZ = maxZ;
 }
 
+Tile::Tile(int32_t id, int32_t tex) : id(id), tex(tex) {
+    tiles[id] = this;
+    setShape(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+}
+
 bool Tile::render(shared_ptr<Tesselator>& t, shared_ptr<Level>& level, int32_t layer, int32_t x, int32_t y, int32_t z) {
     bool returnValue = false;
+    float var8 = 0.0f;
     float c1;
     float c2 = 0.8f;
     float c3 = 0.6f;
     if (this->shouldRenderFace(level, x, y - 1, z, layer, 0)) {
-        c1 = level->getBrightness(x, y - 1, z);
-        t->color(c1, c1, c1);
+        var8 = 0.5f;
+        c1 = getBrightness(level, x, y - 1, z);
+        t->color(var8 * c1, var8 * c1, var8 * c1);
         this->renderFace(t, x, y, z, 0);
         returnValue = true;
     }
     if (this->shouldRenderFace(level, x, y + 1, z, layer, 1)) {
-        c1 = level->getBrightness(x, y + 1, z);
+        c1 = getBrightness(level, x, y + 1, z);
         t->color(c1, c1, c1);
         this->renderFace(t, x, y, z, 1);
         returnValue = true;
     }
     if (this->shouldRenderFace(level, x, y, z - 1, layer, 2)) {
-        c1 = level->getBrightness(x, y, z - 1);
+        c1 = getBrightness(level, x, y, z - 1);
         t->color(c1 * c2, c1 * c2, c1 * c2);
         this->renderFace(t, x, y, z, 2);
         returnValue = true;
     }
     if (this->shouldRenderFace(level, x, y, z + 1, layer, 3)) {
-        c1 = level->getBrightness(x, y, z + 1);
+        c1 = getBrightness(level, x, y, z + 1);
         t->color(c1 * c2, c1 * c2, c1 * c2);
         this->renderFace(t, x, y, z, 3);
         returnValue = true;
     }
     if (this->shouldRenderFace(level, x - 1, y, z, layer, 4)) {
-        c1 = level->getBrightness(x - 1, y, z);
+        c1 = getBrightness(level, x - 1, y, z);
         t->color(c1 * c3, c1 * c3, c1 * c3);
         this->renderFace(t, x, y, z, 4);
         returnValue = true;
     }
     if (this->shouldRenderFace(level, x + 1, y, z, layer, 5)) {
-        c1 = level->getBrightness(x + 1, y, z);
+        c1 = getBrightness(level, x + 1, y, z);
         t->color(c1 * c3, c1 * c3, c1 * c3);
         this->renderFace(t, x, y, z, 5);
         returnValue = true;
     }
     return returnValue;
+}
+
+float Tile::getBrightness(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {
+    return level->getBrightness(x, y, z);
 }
 
 bool Tile::cullFace(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, int32_t face) {
@@ -291,12 +302,12 @@ void Tile::renderFaceNoTexture(shared_ptr<Player>& player, shared_ptr<Tesselator
 
 }
 
-shared_ptr<AABB> Tile::getTileAABB(int32_t x, int32_t y, int32_t z) {
-    return make_shared<AABB>(x, y, z, x + 1, y + 1, z + 1);
+optional<AABB> Tile::getTileAABB(int32_t x, int32_t y, int32_t z) {
+    return AABB(x, y, z, x + 1, y + 1, z + 1);
 }
 
-shared_ptr<AABB> Tile::getAABB(int32_t x, int32_t y, int32_t z) {
-    return make_shared<AABB>(x, y, z, x + 1, y + 1, z + 1);
+optional<AABB> Tile::getAABB(int32_t x, int32_t y, int32_t z) {
+    return AABB(x, y, z, x + 1, y + 1, z + 1);
 }
 
 bool Tile::blocksLight() {
@@ -321,17 +332,21 @@ void Tile::destroy(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, sh
                 float xp = (float)x + ((float)xx + 0.5f) / (float)SD;
                 float yp = (float)y + ((float)yy + 0.5f) / (float)SD;
                 float zp = (float)z + ((float)zz + 0.5f) / (float)SD;
-                shared_ptr<Particle> particle = make_shared<Particle>(level, xp, yp, zp, xp - (float)x - 0.5f, yp - (float)y - 0.5f, zp - (float)z - 0.5f, this->tex);
+                shared_ptr<Particle> particle = make_shared<Particle>(level, xp, yp, zp, xp - (float)x - 0.5f, yp - (float)y - 0.5f, zp - (float)z - 0.5f, this);
                 particleEngine->particles.push_back(particle);
             }
         }
     }
 }
 
-int32_t Tile::getLiquidType() {
-    return 0;
+Liquid* Tile::getLiquidType() {
+    return Liquid::none;
 }
 
 void Tile::neighborChanged(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, int32_t type) {}
 
 void Tile::onBlockAdded(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {}
+
+int32_t Tile::getTickDelay() {
+    return 0;
+}

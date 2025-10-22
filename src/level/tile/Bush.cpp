@@ -48,8 +48,8 @@ bool Bush::render(shared_ptr<Tesselator>& t, shared_ptr<Level>& level, int32_t l
     }
 }
 
-shared_ptr<AABB> Bush::getAABB(int32_t x, int32_t y, int32_t z) {
-    return nullptr;
+optional<AABB> Bush::getAABB(int32_t x, int32_t y, int32_t z) {
+    return nullopt;
 }
 
 bool Bush::blocksLight() {

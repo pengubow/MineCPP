@@ -1,5 +1,5 @@
 #include <iostream>
-#include <GL/gl.h>
+#include "GL_compat.h"
 #include "gui/Font.h"
 #include "stb_image.h"
 #include "renderer/Tesselator.h"

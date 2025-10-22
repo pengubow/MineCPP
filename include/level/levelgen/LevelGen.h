@@ -8,7 +8,7 @@ class Minecraft;
 
 class LevelGen : public enable_shared_from_this<LevelGen> {
 private:
-	shared_ptr<Minecraft> minecraft;
+	weak_ptr<Minecraft> minecraft;
 	int32_t width;
 	int32_t height;
 	int32_t depth;

@@ -38,7 +38,6 @@ void MovementInputFromOptions::releaseAllKeys() {
 void MovementInputFromOptions::updatePlayerMoveState() {
     moveStrafe = 0.0f;
     moveForward = 0.0f;
-    // idk ts doesnt work even tho everything should be correct (and jump works... idk whats happening)
     if (keys[0]) {
         moveForward--;
     }
@@ -56,21 +55,4 @@ void MovementInputFromOptions::updatePlayerMoveState() {
     }
 
     jumpHeld = keys[4];
-    /* if (Util::isKeyDown(GLFW_KEY_W) || Util::isKeyDown(GLFW_KEY_UP)) {
-        moveForward--;
-    }
-
-    if (Util::isKeyDown(GLFW_KEY_S) || Util::isKeyDown(GLFW_KEY_DOWN)) {
-        moveForward++;
-    }
-
-    if (Util::isKeyDown(GLFW_KEY_A) || Util::isKeyDown(GLFW_KEY_LEFT)) {
-        moveStrafe--;
-    }
-
-    if (Util::isKeyDown(GLFW_KEY_D) || Util::isKeyDown(GLFW_KEY_RIGHT)) {
-        moveStrafe++;
-    }
-
-    jumpHeld = Util::isKeyDown(GLFW_KEY_SPACE); */ 
 }

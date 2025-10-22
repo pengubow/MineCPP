@@ -1,5 +1,5 @@
-#include <GL/gl.h>
 #include <iostream>
+#include "GL_compat.h"
 #include "player/Player.h"
 #include "renderer/Chunk.h"
 #include "Timer.h"
@@ -36,13 +36,11 @@ void Chunk::clear() {
 }
 
 void Chunk::rebuild() {
-    ++updates;
-
     shared_ptr<Level> level = this->level.lock();
     if (!level) {
         return;
     }
-
+    ++updates;
     for (int32_t layer = 0; layer < 2; layer++) {
         int32_t x = this->minX;
         int32_t var5 = this->minY;

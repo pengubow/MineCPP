@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - name: Checkout code
@@ -20,23 +20,67 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libglu1-mesa-dev libglfw3-dev zlib1g-dev libboost-dev
+          sudo apt-get install -y cmake libglu1-mesa-dev libglfw3-dev zlib1g-dev
 
       - name: Install dependencies (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          brew install glfw mesa-glu zlib boost
+          brew install glfw mesa-glu zlib
 
-      - name: Configure CMake
+      - name: Setup vcpkg (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          git clone https://github.com/Microsoft/vcpkg.git
+          cd vcpkg
+          .\bootstrap-vcpkg.bat
+          .\vcpkg install glfw3:x64-windows zlib:x64-windows opengl:x64-windows
+        shell: pwsh
+
+      - name: Configure CMake (Linux/macOS)
+        if: matrix.os != 'windows-latest'
         run: cmake -B build
 
-      - name: Build
-        run: cd build && make
+      - name: Configure CMake (Windows)
+        if: matrix.os == 'windows-latest'
+        run: cmake -B build -DCMAKE_TOOLCHAIN_FILE="vcpkg/scripts/buildsystems/vcpkg.cmake"
+        shell: pwsh
 
-      - name: Upload Artifacts
+      - name: Build (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: cd build && make -j$(nproc)
+
+      - name: Build (macOS)
+        if: matrix.os == 'macos-latest'
+        run: cd build && make -j$(sysctl -n hw.ncpu)
+
+      - name: Build (Windows)
+        if: matrix.os == 'windows-latest'
+        run: cmake --build build --config RelWithDebInfo --parallel
+        shell: pwsh
+
+      - name: Upload Artifacts (Linux/macOS)
+        if: matrix.os != 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
           name: MineCPP-${{ matrix.os }}
           path: |
             build/MineCPP
+            build/*.gif
+            build/*.png
+
+      - name: Move files from build/RelWithDebInfo to build/
+        if: matrix.os == 'windows-latest'
+        run: for %%f in ("build\RelWithDebInfo\*") do move "%%f" build\
+        shell: cmd
+
+      - name: Upload Artifacts (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MineCPP-${{ matrix.os }}
+          path: |
+            build/MineCPP.exe
+            build/MineCPP.pdb
+            build/*.dll
+            build/*.gif            
             build/*.png

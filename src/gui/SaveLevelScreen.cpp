@@ -15,5 +15,10 @@ void SaveLevelScreen::setLevels(vector<string>& var1) {
 }
 
 void SaveLevelScreen::loadLevel(int32_t var1) {
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (!minecraft) {
+        return;
+    }
+    
     minecraft->setScreen(make_shared<NameLevelScreen>(shared_from_this(), buttons[var1]->msg, var1));
 }

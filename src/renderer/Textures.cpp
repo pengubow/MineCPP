@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
-#include <GL/glu.h>
 #include <GLFW/glfw3.h>
+#include "GL_compat.h"
 #include "renderer/Textures.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"

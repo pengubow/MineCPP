@@ -4,6 +4,6 @@ class SaveLevelScreen : public LoadLevelScreen, public enable_shared_from_this<L
 public:
     SaveLevelScreen(shared_ptr<Screen> parent);
 protected:
-    void setLevels(vector<string>& var1);
-    void loadLevel(int32_t var1);
+    void setLevels(vector<string>& var1) override;
+    void loadLevel(int32_t var1) override;
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GL/gl.h>
+#include "GL_compat.h"
 #include "phys/AABB.h"
 #include "level/Level.h"
 #include "renderer/Tesselator.h"

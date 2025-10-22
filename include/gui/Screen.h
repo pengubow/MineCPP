@@ -7,14 +7,14 @@ class Minecraft;
 
 class Screen {
 protected:
-	shared_ptr<Minecraft> minecraft;
+	weak_ptr<Minecraft> minecraft;
 	int32_t width;
 	int32_t height;
 public:
     vector<shared_ptr<Button>> buttons;
 	virtual void render(int32_t var1, int32_t var2);
 protected:
-    virtual void keyPressed(int32_t key);
+    virtual void keyPressed(char var1, int32_t key);
     virtual void buttonClicked(shared_ptr<Button>& var1);
 public:
 	virtual void init(shared_ptr<Minecraft>& minecraft, int32_t width, int32_t height);
