@@ -21,9 +21,9 @@ public:
 	virtual void init();
 protected:
 	static void fill(int32_t var0, int32_t var1, int32_t var2, int32_t var3, int32_t var4);
-	static void fillGradient(int32_t var0, int32_t var1, int32_t var2, int32_t var3, int32_t var4, int32_t var5);
+	static void fillGradient(int32_t var0, int32_t var1, int32_t x, int32_t y, int32_t var4, int32_t var5);
 public:
-	void drawCenteredString(string var1, int32_t var2, int32_t var3, int32_t var4);
+	void drawCenteredString(string msg, int32_t x, int32_t y, int32_t var4);
 	void drawString(string var1, int32_t var2, int32_t var3, int32_t var4);
 	void updateEvents();
 	virtual void tick();

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include "level/Level.h"
+#include "net/PlayerMove.h"
 #include "phys/AABB.h"
 #include "renderer/Textures.h"
 
@@ -21,8 +22,8 @@ public:
     float zd = 0.0f;
     float yRot = 0.0f;
     float xRot = 0.0f;
-    float yRotI = 0.0f;
-    float xRotI = 0.0f;
+    float yRotO = 0.0f;
+    float xRotO = 0.0f;
     AABB bb;
     bool onGround = false;
     bool horizontalCollision = false;
@@ -38,6 +39,10 @@ public:
     void remove();
 protected:
     void setSize(float w, float h);
+public:
+    void setPos(PlayerMove playerMove);
+protected:
+    void setRot(float yRot, float xRot);
     void setPos(float x, float y, float z);
 public:
     void turn(float xo, float yo);

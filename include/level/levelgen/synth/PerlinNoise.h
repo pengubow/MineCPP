@@ -4,7 +4,6 @@
 #include "level/levelgen/synth/ImprovedNoise.h"
 
 class PerlinNoise : public Synth {
-private:
     vector<shared_ptr<ImprovedNoise>> noiseLevels = vector<shared_ptr<ImprovedNoise>>(8);
     int32_t levels = 8;
 public:

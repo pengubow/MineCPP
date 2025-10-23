@@ -33,7 +33,11 @@ void MinecraftApplet::init(int argc, char* argv[]) {
         minecraft->loadMapUser = args["mapUser"];
         minecraft->loadMapID = stoi(args["mapId"]);
     }
-    
+
+    if (args.count("server") && args.count("port")) {
+        minecraft->setServer(args["server"], stoi(args["port"]));
+    }
+
     minecraft->minecraftUri = "www.betacraft.uk"; // for loading worlds
     startGameThread();
 }
@@ -61,6 +65,22 @@ void MinecraftApplet::stopGameThread() {
 }
 
 int main(int argc, char** argv) {
+    if (argc > 1) {
+        string help = argv[1];
+        if (help == "-h" || help == "--help") {
+            cout << "MineCPP" << endl;
+            cout << "Options:" << endl;
+            cout << "  --username <name>      Set player username" << endl;
+            cout << "  --sessionId <id>       Set session ID" << endl;
+            cout << "  --mapUser <user>       Set map owner username" << endl;
+            cout << "  --mapId <id>           Set map ID" << endl;
+            cout << "  --server <ip>          Set server host" << endl;
+            cout << "  --port <port>          Set server port" << endl;
+            cout << "  -h, --help             Display this help message" << endl;
+            return 0;
+        }
+    }
+    
     MinecraftApplet applet;
     applet.init(argc, argv);
     applet.t.join();

@@ -2,6 +2,7 @@
 
 #include <GLFW/glfw3.h>
 #include <atomic>
+#include <deque>
 #include "level/Level.h"
 #include "renderer/LevelRenderer.h"
 #include "player/Player.h"
@@ -15,9 +16,9 @@
 #include "MinecraftApplet.h"
 #include "gui/Screen.h"
 #include "net/ConnectionManager.h"
+#include "ChatLine.h"
 
 class Minecraft : public enable_shared_from_this<Minecraft> {
-private:
     bool fullscreen = false;
 public:
 	int32_t width;
@@ -51,9 +52,12 @@ private:
 public:
 	string loadMapUser;
 	int32_t loadMapID = 0;
-private:
 	ConnectionManager* sendQueue;
+private:
+	deque<ChatLine> chatMessages;
 	static vector<int32_t> creativeTiles;
+	string server;
+	int32_t port = 0;
 	float fogColorRed = 0.5f;
 	float fogColorGreen = 0.8f;
 	float fogColorBlue = 1.0f;
@@ -73,6 +77,8 @@ private:
 	string text = "";
     static GLFWwindow* window;
 public:
+	bool hideGui = false;
+
     Minecraft(int32_t width, int32_t height, bool fullscreen);
 
 	void setServer(string var1, int32_t port);
@@ -84,7 +90,7 @@ public:
     void run();
     void stop();
     void grabMouse();
-    void releaseMouse();
+    void pauseGame();
 private:
     void clickMouse();
 public:
@@ -92,10 +98,11 @@ public:
 private:
 	bool isMultiplayer();
     void orientCamera(float a);
-public:
     void render(float a);
+	void initGui();
+	void renderGui();
 private:
-    void setupFog(int32_t i);
+    void setupFog();
     vector<float>& getBuffer(float a, float b, float c, float d);
 public:
     void beginLevelLoading(string title);
@@ -105,4 +112,5 @@ public:
 	bool saveLevel(int32_t var1, string var2);
 	bool loadLevel(string var1, int32_t var2);
     void setLevel(shared_ptr<Level> level);
+	void addChatMessage(string message);
 };

@@ -7,7 +7,6 @@
 using namespace std;
 
 class ImprovedNoise : public Synth {
-private:
     vector<int32_t> p;
 public:
     ImprovedNoise();

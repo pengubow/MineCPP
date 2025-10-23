@@ -67,18 +67,23 @@ using PacketValue = variant<
 class SocketConnection {
 public:
     volatile bool connected;
+private:
     SocketHandle socketHandle;
+public:
     vector<uint8_t> readBuffer;
     vector<uint8_t> writeBuffer;
     size_t readPos;
     size_t writePos;
     ConnectionManager* manager;
     bool initialized;
+private:
     uint8_t stringPacket[64];
-
+public:
     SocketConnection(const string& var1, int var2);
 
     void disconnect();
     void processData();
     void sendPacket(Packet* var1, const vector<PacketValue>& var2);
+private:
+    PacketValue read(Packet* packet, size_t fieldIndex);
 };

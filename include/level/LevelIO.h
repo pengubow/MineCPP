@@ -8,7 +8,6 @@
 class Minecraft;
 
 class LevelIO {
-private:
     weak_ptr<Minecraft> minecraft;
 public:
     LevelIO(shared_ptr<Minecraft>& minecraft);

@@ -4,7 +4,6 @@
 #include "Timer.h"
 
 class DirtyChunkSorter {
-private:
     shared_ptr<Player> player;
 public:
     DirtyChunkSorter(shared_ptr<Player>& player);

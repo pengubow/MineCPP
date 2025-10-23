@@ -1,7 +1,6 @@
 #include "gui/Screen.h"
 
 class NameLevelScreen : public Screen {
-private:
     shared_ptr<Screen> parent;
     string title = "Enter level name:";
     int32_t id;

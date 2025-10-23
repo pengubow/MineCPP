@@ -7,7 +7,6 @@
 #include "player/MovementInputFromOptions.h"
 
 class Player : public Entity {
-private:
     shared_ptr<MovementInputFromOptions> input;
 public:
     Player(shared_ptr<Level>& level, shared_ptr<MovementInputFromOptions>& input);

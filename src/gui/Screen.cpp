@@ -68,34 +68,35 @@ void Screen::fill(int32_t var0, int32_t var1, int32_t var2, int32_t var3, int32_
     glDisable(GL_BLEND);
 }
 
-void Screen::fillGradient(int32_t var0, int32_t var1, int32_t var2, int32_t var3, int32_t var4, int32_t var5) {
-    float var9 = (float)96 / 255.0F;
-    float var10 = (float)5 / 255.0F;
-    float var11 = (float)5 / 255.0F;
-    float var12 = (float)160 / 255.0F;
-    float var6 = (float)48 / 255.0F;
-    float var7 = (float)48 / 255.0F;
-    float var8 = (float)96 / 255.0F;
+void Screen::fillGradient(int32_t var0, int32_t var1, int32_t x, int32_t y, int32_t var4, int32_t var5) {
+    float var10 = (float)((var4 >> 24) & 0xFF) / 255.0F;
+    float var11 = (float)(var4 >> 16 & 255) / 255.0F;
+    float var6 = (float)(var4 >> 8 & 255) / 255.0F;
+    float var12 = (float)(var4 & 255) / 255.0F;
+    float var7 = (float)((var5 >> 24) & 0xFF) / 255.0F;
+    float var8 = (float)(var5 >> 16 & 255) / 255.0F;
+    float var9 = (float)(var5 >> 8 & 255) / 255.0F;
+    float var13 = (float)(var5 & 255) / 255.0F;
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBegin(GL_QUADS);
-    glColor4f(var10, var11, 0.0F, var9);
-    glVertex2f((float)var2, 0.0F);
+    glColor4f(var11, var6, var12, var10);
+    glVertex2f((float)x, 0.0F);
     glVertex2f(0.0F, 0.0F);
-    glColor4f(var6, var7, var8, var12);
-    glVertex2f(0.0F, (float)var3);
-    glVertex2f((float)var2, (float)var3);
+    glColor4f(var8, var9, var13, var7);
+    glVertex2f(0.0F, (float)y);
+    glVertex2f((float)x, (float)y);
     glEnd();
     glDisable(GL_BLEND);
 }
 
-void Screen::drawCenteredString(string var1, int32_t var2, int32_t var3, int32_t var4) {
+void Screen::drawCenteredString(string msg, int32_t x, int32_t y, int32_t var4) {
     shared_ptr<Minecraft> minecraft = this->minecraft.lock();
     if (!minecraft) {
         return;
     }
     shared_ptr<Font> font = minecraft->font;
-    font->drawShadow(var1, var2 - font->width(var1) / 2, var3, var4);
+    font->drawShadow(msg, x - font->width(msg) / 2, y, var4);
 }
 
 void Screen::drawString(string var1, int32_t var2, int32_t var3, int32_t var4) {

@@ -7,7 +7,6 @@
 using namespace std;
 
 class Textures {
-private:
     static unordered_map<string, int32_t> idMap;
 public:
     int32_t loadTexture(string resourceName, int32_t mode);

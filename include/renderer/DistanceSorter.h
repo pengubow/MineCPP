@@ -4,7 +4,6 @@
 #include "Timer.h"
 
 class DistanceSorter {
-private:
     shared_ptr<Player> player;
 public:
     DistanceSorter(shared_ptr<Player>& player);

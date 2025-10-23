@@ -31,4 +31,6 @@ public:
     unordered_map<uint8_t, shared_ptr<NetworkPlayer>> players;
 
     ConnectionManager(shared_ptr<Minecraft>& var1, const string& var2, int var3, const string& var4);
+
+    void sendBlockChange(int16_t var1, int16_t var2, int16_t var3, int8_t var4, int8_t var5);
 };

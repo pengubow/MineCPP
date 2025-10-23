@@ -3,7 +3,6 @@
 #include "gui/Screen.h"
 
 class LoadLevelScreen : public Screen {
-private:
     shared_ptr<Screen> parent;
     bool finished = false;
     bool loaded = false;

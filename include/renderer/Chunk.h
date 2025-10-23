@@ -10,7 +10,6 @@
 #include "renderer/Frustum.h"
 
 class Chunk {
-private:
     weak_ptr<Level> level;
     int32_t lists = -1;
     static shared_ptr<Tesselator> t;

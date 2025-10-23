@@ -7,7 +7,6 @@
 class Tile;
 
 class Particle : public Entity {
-private:
     float xd;
     float yd;
     float zd;

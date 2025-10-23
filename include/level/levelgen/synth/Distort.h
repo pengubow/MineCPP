@@ -7,7 +7,6 @@
 using namespace std;
 
 class Distort : public Synth {
-private:
     shared_ptr<Synth> source;
     shared_ptr<Synth> distort;
 public:

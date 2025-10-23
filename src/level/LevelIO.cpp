@@ -424,7 +424,7 @@ shared_ptr<Level> LevelIO::loadDat(gzFile file) {
                         float x = 0, y = 0, z = 0;
                         float xd = 0, yd = 0, zd = 0;
                         float xo = 0, yo = 0, zo = 0;
-                        float yRot = 0, xRot = 0, yRotI = 0, xRotI = 0;
+                        float yRot = 0, xRot = 0, yRotO = 0, xRotO = 0;
                         float heightOffset = 0.0f;
                         float bbWidth = 0.6f, bbHeight = 1.8f;
                         bool onGround = false, horizontalCollision = false, removed = false;
@@ -448,12 +448,12 @@ shared_ptr<Level> LevelIO::loadDat(gzFile file) {
                                     else if (fname == "heightOffset") heightOffset = val;
                                     else if (fname == "x") x = val;
                                     else if (fname == "xRot") xRot = val;
-                                    else if (fname == "xRotI") xRotI = val;
+                                    else if (fname == "xRotO") xRotO = val;
                                     else if (fname == "xd") xd = val;
                                     else if (fname == "xo") xo = val;
                                     else if (fname == "y") y = val;
                                     else if (fname == "yRot") yRot = val;
-                                    else if (fname == "yRotI") yRotI = val;
+                                    else if (fname == "yRotO") yRotO = val;
                                     else if (fname == "yd") yd = val;
                                     else if (fname == "yo") yo = val;
                                     else if (fname == "z") z = val;
@@ -543,7 +543,7 @@ shared_ptr<Level> LevelIO::loadDat(gzFile file) {
                         entity->xd = xd; entity->yd = yd; entity->zd = zd;
                         entity->xo = xo; entity->yo = yo; entity->zo = zo;
                         entity->yRot = yRot; entity->xRot = xRot;
-                        entity->yRotI = yRotI; entity->xRotI = xRotI;
+                        entity->yRotO = yRotO; entity->xRotO = xRotO;
                         entity->heightOffset = heightOffset;
                         entity->bbWidth = bbWidth; entity->bbHeight = bbHeight;
                         entity->onGround = onGround;
@@ -800,11 +800,11 @@ shared_ptr<Level> LevelIO::load(gzFile file) {
                             else if (eHeader.name == "xRot") {
                                 entity->xRot = gzip::gzreadFloatValue(file);
                             }
-                            else if (eHeader.name == "yRotI") {
-                                entity->yRotI = gzip::gzreadFloatValue(file);
+                            else if (eHeader.name == "yRotO") {
+                                entity->yRotO = gzip::gzreadFloatValue(file);
                             }
-                            else if (eHeader.name == "xRotI") {
-                                entity->xRotI = gzip::gzreadFloatValue(file);
+                            else if (eHeader.name == "xRotO") {
+                                entity->xRotO = gzip::gzreadFloatValue(file);
                             }
                             else if (eHeader.name == "onGround") {
                                 entity->onGround = gzip::gzreadBoolValue(file);
@@ -933,8 +933,8 @@ void LevelIO::save(shared_ptr<Level>& level, gzFile file) {
             gzip::gzwriteFieldFloat(file, "zd", e->zd);
             gzip::gzwriteFieldFloat(file, "yRot", e->yRot);
             gzip::gzwriteFieldFloat(file, "xRot", e->xRot);
-            gzip::gzwriteFieldFloat(file, "yRotI", e->yRotI);
-            gzip::gzwriteFieldFloat(file, "xRotI", e->xRotI);
+            gzip::gzwriteFieldFloat(file, "yRotO", e->yRotO);
+            gzip::gzwriteFieldFloat(file, "xRotO", e->xRotO);
 
             gzip::gzwriteFieldBool(file, "onGround", e->onGround);
             gzip::gzwriteFieldBool(file, "horizontalCollision", e->horizontalCollision);

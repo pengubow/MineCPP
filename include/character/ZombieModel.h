@@ -4,7 +4,6 @@
 #include "character/Cube.h"
 
 class ZombieModel {
-private:
     Cube head = Cube(0, 0);
     Cube body;
     Cube arm0;

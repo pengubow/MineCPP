@@ -7,7 +7,6 @@ using namespace std;
 class Minecraft;
 
 class MinecraftApplet {
-private:
     static shared_ptr<Minecraft> minecraft;
 public:
     thread t;

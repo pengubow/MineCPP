@@ -76,4 +76,5 @@ public:
     float getBrightness(int32_t x, int32_t y, int32_t z);
     float getCaveness(float x, float y, float z, float var4);
     float getCaveness(shared_ptr<Entity>& entity);
+    vector<uint8_t> copyBlocks();
 };

@@ -8,7 +8,6 @@
 using namespace std;
 
 class Tesselator {
-private:
     static const int32_t MAX_VERTICES = 4194304;
     static const int32_t MAX_FLOATS = 524288;
     vector<float> buffer;

@@ -34,6 +34,25 @@ void Entity::setSize(float w, float h) {
     this->bbHeight = h;
 }
 
+void Entity::setPos(PlayerMove playerMove) {
+    if(playerMove.moving) {
+        setPos(playerMove.x, playerMove.y, playerMove.z);
+    } else {
+        setPos(x, y, z);
+    }
+
+    if(playerMove.rotating) {
+        setRot(playerMove.yRot, playerMove.xRot);
+    } else {
+        setRot(yRot, xRot);
+    }
+}
+
+void Entity::setRot(float yRot, float xRot) {
+    this->yRot = yRot;
+	this->xRot = xRot;
+}
+
 void Entity::setPos(float x, float y, float z) {
     this->x = x;
     this->y = y;
@@ -44,6 +63,22 @@ void Entity::setPos(float x, float y, float z) {
 }
 
 void Entity::turn(float xo, float yo) {
+    float xRotO = xRot;
+    float yRotO = yRot;
+    this->yRot = (float)((double)this->yRot + (double)xo * 0.15);
+    this->xRot = (float)((double)this->xRot - (double)yo * 0.15);
+    if (this->xRot < -90.0f) {
+        this->xRot = -90.0f;
+    }
+    if (this->xRot > 90.0f) {
+        this->xRot = 90.0f;
+    }
+
+    this->xRotO += xRot - xRotO;
+	this->yRotO += yRot - yRotO;
+}
+
+void Entity::interpolateTurn(float xo, float yo) {
     this->yRot = (float)((double)this->yRot + (double)xo * 0.15);
     this->xRot = (float)((double)this->xRot - (double)yo * 0.15);
     if (this->xRot < -90.0f) {
@@ -54,28 +89,12 @@ void Entity::turn(float xo, float yo) {
     }
 }
 
-void Entity::interpolateTurn(float xo, float yo) {
-    float xRot = this->xRot;
-    float yRot = this->yRot;
-    this->yRot = (float)((double)this->yRot - (double)xo * 0.15);
-    this->xRot = (float)((double)this->xRot - (double)yo * 0.15);
-    if (this->xRot < -90.0f) {
-        this->xRot = -90.0f;
-    }
-    if (this->xRot > 90.0f) {
-        this->xRot = 90.0f;
-    }
-
-    this->xRotI = this->xRot - xRot;
-    this->yRotI = this->yRot - yRot;
-}
-
 void Entity::tick() {
     this->xo = this->x;
     this->yo = this->y;
     this->zo = this->z;
-    xRotI = 0.0f;
-    yRotI = 0.0f;
+    xRotO = xRot;
+    yRotO = yRot;
 }
 
 bool Entity::isFree(float x, float y, float z) {

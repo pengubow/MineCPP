@@ -4,7 +4,6 @@
 #include "character/Quad.h"
 
 class Cube {
-private:
     vector<Vertex> vertices;
     vector<Quad> polygons;
     int32_t xTexOffs;

@@ -27,8 +27,13 @@ public:
     static Packet* PLACE_OR_REMOVE_TILE;
     static Packet* SET_TILE;
     static Packet* PLAYER_JOIN;
+    static Packet* PLAYER_TELEPORT;
+    static Packet* PLAYER_MOVE_AND_ROTATE;
     static Packet* PLAYER_MOVE;
+    static Packet* PLAYER_ROTATE;
     static Packet* PLAYER_DISCONNECT;
+    static Packet* CHAT_MESSAGE;
+    static Packet* KICK_PLAYER;
 
     const int size;
     const uint8_t id;

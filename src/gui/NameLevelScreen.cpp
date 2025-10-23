@@ -50,8 +50,8 @@ void NameLevelScreen::keyPressed(char var1, int32_t key) {
         name.pop_back();
     }
 
-    const string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ,.:-_'*!\"#%/()=+?[]{}<>";
-    if (allowed.find(var1) != string::npos) {
+    string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ,.:-_'*!\"#%/()=+?[]{}<>";
+    if (allowed.find(var1) != string::npos && name.length() < 64) {
         name += var1;
     }
 

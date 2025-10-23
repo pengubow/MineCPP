@@ -39,6 +39,10 @@ Font::Font(string name, shared_ptr<Textures>& textures) {
 
 void Font::drawShadow(string str, int32_t x, int32_t y, int32_t color) {
     draw(str, x + 1, y + 1, color, true);
+    draw(str, x, y, color);
+}
+
+void Font::draw(string str, int32_t x, int32_t y, int32_t color) {
     draw(str, x, y, color, false);
 }
 
@@ -71,10 +75,11 @@ void Font::draw(string str, int32_t x, int32_t y, int32_t color, bool darken) {
         }
         int32_t ix = str[i] % 16 * 8;
         int32_t iy = str[i] / 16 * 8;
-        t->vertexUV(x + xo, y + 8, 0.0f, (float)ix / 128.0f, (float)(iy + 8) / 128.0f);
-        t->vertexUV(x + xo + 8, y + 8, 0.0f, (float)(ix + 8) / 128.0f, (float)(iy + 8) / 128.0f);
-        t->vertexUV(x + xo + 8, y, 0.0f, (float)(ix + 8) / 128.0f, (float)iy / 128.0f);
-        t->vertexUV(x + xo, y, 0.0f, (float)ix / 128.0f, (float)iy / 128.0f);
+        float var13 = 7.99f;
+        t->vertexUV((float)(x + xo), (float)y + var13, 0.0f, (float)ix / 128.0f, (float)(iy + var13) / 128.0f);
+        t->vertexUV((float)(x + xo) + var13, (float)y + var13, 0.0f, ((float)ix + var13) / 128.0f, ((float)iy + var13) / 128.0f);
+        t->vertexUV((float)(x + xo) + var13, y, 0.0f, ((float)ix + var13) / 128.0f, (float)iy / 128.0f);
+        t->vertexUV((float)(x + xo), y, 0.0f, (float)ix / 128.0f, (float)iy / 128.0f);
         xo += this->charWidths[str[i]];
     }
     t->end();

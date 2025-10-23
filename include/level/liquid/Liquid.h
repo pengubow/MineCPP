@@ -6,7 +6,6 @@
 using namespace std;
 
 class Liquid {
-private:
     static vector<Liquid*> liquids;
 public:
     static Liquid* none;

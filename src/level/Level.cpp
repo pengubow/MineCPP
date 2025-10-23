@@ -576,3 +576,7 @@ float Level::getCaveness(shared_ptr<Entity>& entity) {
         return 1.0f - var22 * var22 * var22;
     }
 }
+
+vector<uint8_t> Level::copyBlocks() {
+    return blocks;
+}
