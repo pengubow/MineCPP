@@ -7,7 +7,7 @@ Bush::Bush(int32_t id)
     setTicking(true);
 }
 
-void Bush::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {
+void Bush::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random random) {
     int32_t below = level->getTile(x, y - 1, z);
     if (!level->isLit(x, y, z) || below != Tile::dirt->id && below != Tile::grass->id) {
         level->setTile(x, y, z, 0);

@@ -4,21 +4,8 @@
 #include "renderer/DistanceSorter.h"
 
 LevelRenderer::LevelRenderer(shared_ptr<Textures>& textures) 
-    : textures(textures), surroundLists(glGenLists(2)) {}
-
-void LevelRenderer::setLevel(shared_ptr<Level>& level) {
-    shared_ptr<Level> thislevel = this->level.lock();
-    if (thislevel) {
-        thislevel->removeListener(this);
-    }
-
-    this->level = level;
-    if (level != nullptr) {
-        level->addListener(this);
-        compileSurroundingGround();
-    }
-    
-}
+    : textures(textures), surroundLists(glGenLists(2)),
+    chunkRenderLists(glGenLists(4096 << 6 << 1)) {}
 
 void LevelRenderer::compileSurroundingGround() {
     shared_ptr<Level> level = this->level.lock();
@@ -39,11 +26,15 @@ void LevelRenderer::compileSurroundingGround() {
     sortedChunks = vector<shared_ptr<Chunk>>(xChunks * yChunks * zChunks);
     chunks = vector<shared_ptr<Chunk>>(xChunks * yChunks * zChunks);
 
-    for (var1 = 0; var1 < xChunks; ++var1) {
-        for (int32_t var2 = 0; var2 < yChunks; ++var2) {
-            for (int32_t var3 = 0; var3 < zChunks; ++var3) {
-                sortedChunks[(var3 * yChunks + var2) * xChunks + var1] = make_shared<Chunk>(level, var1 << 4, var2 << 4, var3 << 4, 16);
-                chunks[(var3 * yChunks + var2) * xChunks + var1] = sortedChunks[(var3 * yChunks + var2) * xChunks + var1];
+    var1 = 0;
+
+    int var4;
+    for(int var2 = 0; var2 < xChunks; ++var2) {
+        for(int var3 = 0; var3 < yChunks; ++var3) {
+            for(var4 = 0; var4 < zChunks; ++var4) {
+                sortedChunks[(var4 * yChunks + var3) * xChunks + var2] = make_shared<Chunk>(level, var2 << 4, var3 << 4, var4 << 4, 16, chunkRenderLists + var1);
+                chunks[(var4 * yChunks + var3) * xChunks + var2] = sortedChunks[(var4 * yChunks + var3) * xChunks + var2];
+                var1 += 2;
             }
         }
     }
@@ -55,7 +46,7 @@ void LevelRenderer::compileSurroundingGround() {
     float var10 = 0.5f;
     glColor4f(var10, var10, var10, 1.0f);
     shared_ptr<Tesselator> t = Tesselator::instance;
-    float var4 = level->getGroundLevel();
+    float groundLevel = level->getGroundLevel();
     int32_t var5 = 128;
     if (128 > level->width) {
         var5 = level->width;
@@ -70,7 +61,7 @@ void LevelRenderer::compileSurroundingGround() {
     int32_t var7;
     for (var7 = -var5 * var6; var7 < level->width + var5 * var6; var7 += var5) {
         for (int32_t var8 = -var5 * var6; var8 < level->height + var5 * var6; var8 += var5) {
-            var10 = var4;
+            var10 = groundLevel;
             if (var7 >= 0 && var8 >= 0 && var7 < level->width && var8 < level->height) {
                 var10 = 0.0f;
             }
@@ -90,10 +81,10 @@ void LevelRenderer::compileSurroundingGround() {
     for (var7 = 0; var7 < level->width; var7 += var5) {
         t->vertexUV((float)var7, 0.0f, 0.0f, 0.0f, 0.0f);
         t->vertexUV((float)(var7 + var5), 0.0f, 0.0f, (float)var5, 0.0f);
-        t->vertexUV((float)(var7 + var5), var4, 0.0f, (float)var5, var4);
-        t->vertexUV((float)var7, var4, 0.0f, 0.0f, var4);
-        t->vertexUV((float)var7, var4, (float)(level->height), 0.0f, var4);
-        t->vertexUV((float)(var7 + var5), var4, (float)(level->height), (float)var5, var4);
+        t->vertexUV((float)(var7 + var5), groundLevel, 0.0f, (float)var5, groundLevel);
+        t->vertexUV((float)var7, groundLevel, 0.0f, 0.0f, groundLevel);
+        t->vertexUV((float)var7, groundLevel, (float)(level->height), 0.0f, groundLevel);
+        t->vertexUV((float)(var7 + var5), groundLevel, (float)(level->height), (float)var5, groundLevel);
         t->vertexUV((float)(var7 + var5), 0.0f, (float)(level->height), (float)var5, 0.0f);
         t->vertexUV((float)var7, 0.0f, (float)(level->height), 0.0f, 0.0f);
     }
@@ -101,14 +92,14 @@ void LevelRenderer::compileSurroundingGround() {
     glColor3f(0.6f, 0.6f, 0.6f);
 
     for (var7 = 0; var7 < level->height; var7 += var5) {
-        t->vertexUV(0.0f, var4, (float)var7, 0.0f, 0.0f);
-        t->vertexUV(0.0f, var4, (float)(var7 + var5), (float)var5, 0.0f);
-        t->vertexUV(0.0f, 0.0f, (float)(var7 + var5), (float)var5, var4);
-        t->vertexUV(0.0f, 0.0f, (float)var7, 0.0f, var4);
-        t->vertexUV((float)(level->width), 0.0f, (float)var7, 0.0f, var4);
-        t->vertexUV((float)(level->width), 0.0f, (float)(var7 + var5), (float)var5, var4);
-        t->vertexUV((float)(level->width), var4, (float)(var7 + var5), (float)var5, 0.0F);
-        t->vertexUV((float)(level->width), var4, (float)var7, 0.0f, 0.0f);
+        t->vertexUV(0.0f, groundLevel, (float)var7, 0.0f, 0.0f);
+        t->vertexUV(0.0f, groundLevel, (float)(var7 + var5), (float)var5, 0.0f);
+        t->vertexUV(0.0f, 0.0f, (float)(var7 + var5), (float)var5, groundLevel);
+        t->vertexUV(0.0f, 0.0f, (float)var7, 0.0f, groundLevel);
+        t->vertexUV((float)(level->width), 0.0f, (float)var7, 0.0f, groundLevel);
+        t->vertexUV((float)(level->width), 0.0f, (float)(var7 + var5), (float)var5, groundLevel);
+        t->vertexUV((float)(level->width), groundLevel, (float)(var7 + var5), (float)var5, 0.0F);
+        t->vertexUV((float)(level->width), groundLevel, (float)var7, 0.0f, 0.0f);
     }
 
     t->end();
@@ -290,11 +281,9 @@ void LevelRenderer::renderHit(shared_ptr<Player>& player, optional<HitResult>& h
     glColor4f(1.0f, 1.0f, 1.0f, ((float)sin((double)Timer::nanoTime() / 1000000 / 100.0) * 0.2f + 0.4f) * 0.5f);
     if (mode == 0) {
         t->begin();
-
-        for(int32_t i = 0; i < 6; ++i) {
+        for (int32_t i = 0; i < 6; ++i) {
             Tile::renderFaceNoTexture(player, t, h->x, h->y, h->z, i);
         }
-
         t->end();
     }
     else {

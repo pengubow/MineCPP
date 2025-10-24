@@ -35,6 +35,8 @@ void Level::setData(int32_t width, int32_t depth, int32_t height, vector<uint8_t
     this->blocks = blocks;
     heightMap = vector<int32_t>(width * height, depth);
     calcLightDepths(0, 0, width, height);
+    random = Random();
+    randValue = random.nextInt();
 
     for (int32_t i = 0; i < levelListeners.size(); i++) {
         levelListeners[i]->compileSurroundingGround();
@@ -45,6 +47,7 @@ void Level::setData(int32_t width, int32_t depth, int32_t height, vector<uint8_t
 }
 
 void Level::findSpawn() {
+    Random random = Random();
     int32_t var2 = 0;
 
     int32_t x = 0;
@@ -52,8 +55,8 @@ void Level::findSpawn() {
     int32_t y = 0;
     while ((float)y <= getWaterLevel()) {
         var2++;
-        x = Util::nextInt(width / 2) + width / 4;
-        z = Util::nextInt(height / 2) + height / 4;
+        x = random.nextInt(width / 2) + width / 4;
+        z = random.nextInt(height / 2) + height / 4;
         y = getHighestTile(x, z) + 1;
         if (var2 == 10000) {
             xSpawn = x;
@@ -238,6 +241,11 @@ int32_t Level::getTile(int32_t x, int32_t y, int32_t z) {
     return x >= 0 && y >= 0 && z >= 0 && x < width && y < depth && z < height ? blocks[(y * height + z) * width + x] : 0;
 }
 
+bool Level::isSolidTile(int32_t x, int32_t y, int32_t z) {
+    Tile* tile = Tile::tiles[getTile(x, y, z)];
+	return tile == nullptr ? false : tile->isSolid();
+}
+
 void Level::tickEntities() {
     for (int32_t var1 = 0; var1 < entities.size(); ++var1) {
         entities[var1]->tick();
@@ -270,14 +278,14 @@ void Level::tick() {
         for (var7 = 0; var7 < var6; ++var7) {
             shared_ptr<Coord> coord = tickList[0];
             tickList.erase(tickList.begin());
-            if (coord > 0) {
+            if (coord->scheduledTime > 0) {
                 coord->scheduledTime--;
                 tickList.push_back(coord); 
             }
             else if (isInLevelBounds(coord->x, coord->y, coord->z)) {
                 uint8_t var9 = blocks[(coord->y * height + coord->z) * width + coord->x];
                 if (var9 == coord->id && var9 > 0) {
-                    Tile::tiles[var9]->tick(shared, coord->x, coord->y, coord->z);
+                    Tile::tiles[var9]->tick(shared, coord->x, coord->y, coord->z, random);
                 }
             }
         }
@@ -295,7 +303,7 @@ void Level::tick() {
         var12 = var12 >> var1 + var2 & var5;
         uint8_t var11 = blocks[(var12 * height + var10) * width + var13];
         if(Tile::shouldTick[var11]) {
-            Tile::tiles[var11]->tick(shared, var13, var12, var10);
+            Tile::tiles[var11]->tick(shared, var13, var12, var10, random);
         }
     }
 }
@@ -451,9 +459,9 @@ bool Level::isSolid(float var1, float var2, float var3, float var4) {
     return isSolidTile(var1 - var4, var2 - var4, var3 - var4) ? true : (isSolidTile(var1 - var4, var2 - var4, var3 + var4) ? true : (isSolidTile(var1 - var4, var2 + var4, var3 - var4) ? true : (isSolidTile(var1 - var4, var2 + var4, var3 + var4) ? true : (isSolidTile(var1 + var4, var2 - var4, var3 - var4) ? true : (isSolidTile(var1 + var4, var2 - var4, var3 + var4) ? true : (isSolidTile(var1 + var4, var2 + var4, var3 - var4) ? true : isSolidTile(var1 + var4, var2 + var4, var3 + var4)))))));
 }
 
-bool Level::isSolidTile(int32_t x, int32_t y, int32_t z) {
-    Tile* tile = Tile::tiles[getTile(x, y, z)];
-	return tile == nullptr ? false : tile->isSolid();
+bool Level::isSolidTile(float x, float y, float z) {
+    int32_t tile = getTile((int32_t)x, (int32_t)y, (int32_t)z);
+	return tile > 0 && Tile::tiles[tile]->isSolid();
 }
 
 int32_t Level::getHighestTile(int32_t x, int32_t z) {

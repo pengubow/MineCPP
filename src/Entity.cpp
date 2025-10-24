@@ -222,11 +222,11 @@ void Entity::setLevel(shared_ptr<Level>& level) {
     this->level = level;
 }
 
-void Entity::moveTo(float x, float y, float z, float xRot, float yRot) {
+void Entity::moveTo(float x, float y, float z, float yRot, float xRot) {
     this->xo = this->x = x;
     this->yo = this->y = y;
     this->zo = this->z = z;
-    this->xRot = xRot;
     this->yRot = yRot;
+    this->xRot = xRot;
     setPos(x, y, z);
 }

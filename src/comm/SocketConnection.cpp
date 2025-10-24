@@ -7,6 +7,8 @@
 #include "level/LevelIO.h"
 #include "gui/ErrorScreen.h"
 
+// chatgpt'd
+
 SocketConnection::SocketConnection(const string& var1, int var2) 
     : connected(false), socketHandle(INVALID_SOCKET_HANDLE), 
       readPos(0), writePos(0), manager(nullptr), initialized(false) {
@@ -44,7 +46,13 @@ SocketConnection::SocketConnection(const string& var1, int var2)
     this->connected = true;
     readPos = 0;
     writePos = 0;
-    
+#ifdef _WIN32
+    u_long mode = 1;
+    ioctlsocket(socketHandle, FIONBIO, &mode);
+#else
+    int flags = fcntl(socketHandle, F_GETFL, 0);
+    fcntl(socketHandle, F_SETFL, flags | O_NONBLOCK);
+#endif
     int flag = 1;
     setsockopt(socketHandle, IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(int));
 #ifndef _WIN32
@@ -55,13 +63,6 @@ SocketConnection::SocketConnection(const string& var1, int var2)
     setsockopt(socketHandle, SOL_SOCKET, SO_KEEPALIVE, (char*)&flag, sizeof(int));
     flag = 0;
     setsockopt(socketHandle, SOL_SOCKET, SO_REUSEADDR, (char*)&flag, sizeof(int));
-#ifdef _WIN32
-    u_long mode = 1;
-    ioctlsocket(socketHandle, FIONBIO, &mode);
-#else
-    int flags = fcntl(socketHandle, F_GETFL, 0);
-    fcntl(socketHandle, F_SETFL, flags | O_NONBLOCK);
-#endif
 }
 
 void SocketConnection::disconnect() {
@@ -89,7 +90,7 @@ void SocketConnection::disconnect() {
 #endif
 }
 
-void SocketConnection::processData() {
+void SocketConnection::processDataFunc() {
     if (this->writePos > 0) {
         int sent = send(socketHandle, (char*)writeBuffer.data(), writePos, 0);
         if (sent > 0) {
@@ -105,10 +106,17 @@ void SocketConnection::processData() {
     } else if (received == 0) {
         this->connected = false;
         throw runtime_error("Server closed connection");
-    } else if (errno != EAGAIN && errno != EWOULDBLOCK) {
+#ifdef _WIN32
+    } else if (WSAGetLastError() != WSAEWOULDBLOCK && WSAGetLastError() != WSAEINTR) {
+        this->connected = false;
+        throw runtime_error("recv error: " + to_string(WSAGetLastError()));
+    }
+#else
+    } else if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
         this->connected = false;
         throw runtime_error("recv error: " + string(strerror(errno)));
     }
+#endif
 
     int32_t var1 = 0;
 
@@ -144,136 +152,141 @@ void SocketConnection::processData() {
             break;
         }
 
-        if (var3 == Packet::LOGIN) {
-            minecraft->beginLevelLoading(get<string>(var11[1]));
-            minecraft->levelLoadUpdate(get<string>(var11[2]));
-        } else if (var3 == Packet::LEVEL_INITIALIZE) {
-            minecraft->setLevel(nullptr);
-            var12->levelBuffer.clear();
-        } else if (var3 == Packet::LEVEL_DATA_CHUNK) {
-            int16_t var13 = get<int16_t>(var11[0]);
-            vector<uint8_t> var5 = get<vector<uint8_t>>(var11[1]);
-            int8_t var6 = get<int8_t>(var11[2]);
-            minecraft->setLoadingProgress(var6);
-            var12->levelBuffer.insert(var12->levelBuffer.end(), var5.begin(), 
-                                      var5.begin() + var13);
-        } else if (var3 == Packet::LEVEL_FINALIZE) {
-            int16_t var18 = get<int16_t>(var11[0]);
-            int16_t var21 = get<int16_t>(var11[1]);
-            int16_t var17 = get<int16_t>(var11[2]);
-            vector<uint8_t> var13 = LevelIO::loadBlocks(var12->levelBuffer);
-            var12->levelBuffer.clear();
-            shared_ptr<Level> var7 = make_shared<Level>();
-            var7->setData(var18, var21, var17, var13);
-            minecraft->setLevel(var7);
-            minecraft->hideGui = false;
-        } else if (var3 == Packet::SET_TILE) {
-            if (minecraft->level != nullptr) {
-                minecraft->level->setTile(
-                    get<int16_t>(var11[0]),
-                    get<int16_t>(var11[1]),
-                    get<int16_t>(var11[2]),
-                    get<int8_t>(var11[3])
-                );
-            }
-        } else if (var3 == Packet::PLAYER_JOIN) {
-            int8_t var15 = get<int8_t>(var11[0]);
-            string var19 = get<string>(var11[1]);
-            int16_t var18_2 = get<int16_t>(var11[2]);
-            int16_t var21_2 = get<int16_t>(var11[3]);
-            int16_t var24 = get<int16_t>(var11[4]);
-            int8_t var8 = get<int8_t>(var11[5]);
-            int8_t var9 = get<int8_t>(var11[6]);
-
-            if (var15 >= 0) {
-                shared_ptr<NetworkPlayer> var20 = make_shared<NetworkPlayer>(
-                    minecraft, var15, var19, var18_2, var21_2, var24,
-                    (float)(-var8 * 360) / 256.0f, (float)(var9 * 360) / 256.0f
-                );
-                var12->players[var15] = var20;
-                minecraft->level->entities.push_back(var20);
-            } else {
-                minecraft->player->moveTo(
-                    (float)var18_2 / 32.0f, (float)var21_2 / 32.0f, (float)var24 / 32.0f,
-                    (float)(-var8 * 360) / 256.0f, (float)(var9 * 360) / 256.0f
-                );
-            }
-        } else if (var3 == Packet::PLAYER_TELEPORT) {
-            int8_t var15 = get<int8_t>(var11[0]);
-            int16_t var17_2 = get<int16_t>(var11[1]);
-            int16_t var18_3 = get<int16_t>(var11[2]);
-            int16_t var21_3 = get<int16_t>(var11[3]);
-            int8_t var25 = get<int8_t>(var11[4]);
-            int8_t var8_2 = get<int8_t>(var11[5]);
-
-            if (var15 >= 0) {
-                shared_ptr<NetworkPlayer> var28 = var12->players[var15];
-                if (var28 != nullptr) {
-                    var28->teleport(var17_2, var18_3, var21_3,
-                        (float)(-var25 * 360) / 256.0f, (float)(var8_2 * 360) / 256.0f);
+        if (manager->processData) {
+            if (var3 == Packet::LOGIN) {
+                minecraft->beginLevelLoading(get<string>(var11[1]));
+                minecraft->levelLoadUpdate(get<string>(var11[2]));
+            } else if (var3 == Packet::LEVEL_INITIALIZE) {
+                minecraft->setLevel(nullptr);
+                var12->levelBuffer.clear();
+            } else if (var3 == Packet::LEVEL_DATA_CHUNK) {
+                int16_t var13 = get<int16_t>(var11[0]);
+                vector<uint8_t> var5 = get<vector<uint8_t>>(var11[1]);
+                int8_t var6 = get<int8_t>(var11[2]);
+                minecraft->setLoadingProgress(var6);
+                var12->levelBuffer.insert(var12->levelBuffer.end(), var5.begin(), 
+                                        var5.begin() + var13);
+            } else if (var3 == Packet::LEVEL_FINALIZE) {
+                int16_t var18 = get<int16_t>(var11[0]);
+                int16_t var21 = get<int16_t>(var11[1]);
+                int16_t var17 = get<int16_t>(var11[2]);
+                vector<uint8_t> var13 = LevelIO::loadBlocks(var12->levelBuffer);
+                var12->levelBuffer.clear();
+                shared_ptr<Level> var7 = make_shared<Level>();
+                var7->setData(var18, var21, var17, var13);
+                minecraft->setLevel(var7);
+                minecraft->hideGui = false;
+            } else if (var3 == Packet::SET_TILE) {
+                if (minecraft->level != nullptr) {
+                    minecraft->level->setTile(
+                        get<int16_t>(var11[0]),
+                        get<int16_t>(var11[1]),
+                        get<int16_t>(var11[2]),
+                        get<int8_t>(var11[3])
+                    );
                 }
-            }
-        } else if (var3 == Packet::PLAYER_MOVE_AND_ROTATE) {
-            int8_t var15 = get<int8_t>(var11[0]);
-            int8_t var30 = get<int8_t>(var11[1]);
-            int8_t var31 = get<int8_t>(var11[2]);
-            int8_t var6_2 = get<int8_t>(var11[3]);
-            int8_t var33 = get<int8_t>(var11[4]);
-            int8_t var8_3 = get<int8_t>(var11[5]);
+            } else if (var3 == Packet::PLAYER_JOIN) {
+                int8_t var15 = get<int8_t>(var11[0]);
+                string var19 = get<string>(var11[1]);
+                int16_t var18_2 = get<int16_t>(var11[2]);
+                int16_t var21_2 = get<int16_t>(var11[3]);
+                int16_t var24 = get<int16_t>(var11[4]);
+                int8_t var8 = get<int8_t>(var11[5]);
+                int8_t var9 = get<int8_t>(var11[6]);
 
-            if (var15 >= 0) {
-                shared_ptr<NetworkPlayer> var28 = var12->players[var15];
-                if (var28 != nullptr) {
-                    var28->queue(var30, var31, var6_2,
-                        (float)(-var33 * 360) / 256.0f, (float)(var8_3 * 360) / 256.0f);
+                if (var15 >= 0) {
+                    shared_ptr<NetworkPlayer> var20 = make_shared<NetworkPlayer>(
+                        minecraft, var15, var19, var18_2, var21_2, var24,
+                        (float)(-var8 * 360) / 256.0f, (float)(var9 * 360) / 256.0f
+                    );
+                    var12->players[var15] = var20;
+                    minecraft->level->entities.push_back(var20);
+                } else {
+                    minecraft->level->setSpawnPos(var18_2 / 32, var21_2 / 32, var24 / 32, 
+                              (float)(var8 * 320 / 256));
+                    minecraft->player->moveTo(
+                        (float)var18_2 / 32.0f, (float)var21_2 / 32.0f, (float)var24 / 32.0f,
+                        (float)(var8 * 360) / 256.0f, (float)(var9 * 360) / 256.0f
+                    );
                 }
-            }
-        } else if (var3 == Packet::PLAYER_ROTATE) {
-            int8_t var15 = get<int8_t>(var11[0]);
-            int8_t var30 = get<int8_t>(var11[1]);
-            int8_t var23 = get<int8_t>(var11[2]);
+            } else if (var3 == Packet::PLAYER_TELEPORT) {
+                int8_t var15 = get<int8_t>(var11[0]);
+                int16_t var17_2 = get<int16_t>(var11[1]);
+                int16_t var18_3 = get<int16_t>(var11[2]);
+                int16_t var21_3 = get<int16_t>(var11[3]);
+                int8_t var25 = get<int8_t>(var11[4]);
+                int8_t var8_2 = get<int8_t>(var11[5]);
 
-            if (var15 >= 0) {
-                shared_ptr<NetworkPlayer> var26 = var12->players[var15];
-                if (var26 != nullptr) {
-                    var26->queue((float)(-var30 * 360) / 256.0f, 
-                               (float)(var23 * 360) / 256.0f);
+                if (var15 >= 0) {
+                    shared_ptr<NetworkPlayer> var28 = var12->players[var15];
+                    if (var28 != nullptr) {
+                        var28->teleport(var17_2, var18_3, var21_3,
+                            (float)(-var25 * 360) / 256.0f, (float)(var8_2 * 360) / 256.0f);
+                    }
                 }
-            }
-        } else if (var3 == Packet::PLAYER_MOVE) {
-            int8_t var15 = get<int8_t>(var11[0]);
-            int8_t var30 = get<int8_t>(var11[1]);
-            int8_t var31 = get<int8_t>(var11[2]);
-            int8_t var6_3 = get<int8_t>(var11[3]);
+            } else if (var3 == Packet::PLAYER_MOVE_AND_ROTATE) {
+                int8_t var15 = get<int8_t>(var11[0]);
+                int8_t var30 = get<int8_t>(var11[1]);
+                int8_t var31 = get<int8_t>(var11[2]);
+                int8_t var6_2 = get<int8_t>(var11[3]);
+                int8_t var33 = get<int8_t>(var11[4]);
+                int8_t var8_3 = get<int8_t>(var11[5]);
 
-            if (var15 >= 0) {
-                shared_ptr<NetworkPlayer> var27 = var12->players[var15];
-                if (var27 != nullptr) {
-                    var27->queue(var30, var31, var6_3);
+                if (var15 >= 0) {
+                    shared_ptr<NetworkPlayer> var28 = var12->players[var15];
+                    if (var28 != nullptr) {
+                        var28->queue(var30, var31, var6_2,
+                            (float)(-var33 * 360) / 256.0f, (float)(var8_3 * 360) / 256.0f);
+                    }
                 }
-            }
-        } else if (var3 == Packet::PLAYER_DISCONNECT) {
-            int8_t var15 = get<int8_t>(var11[0]);
-            if (var15 >= 0) {
-                shared_ptr<NetworkPlayer> var20 = var12->players[var15];
-                if (var20 != nullptr) {
-                    var12->players.erase(var15);
-                    auto& entities = minecraft->level->entities;
-                    entities.erase(remove(entities.begin(), entities.end(), var20), entities.end());
-                }
-            }
-        } else if (var3 == Packet::CHAT_MESSAGE) {
-            int8_t var15 = get<int8_t>(var11[0]);
-            string var19 = get<string>(var11[1]);
+            } else if (var3 == Packet::PLAYER_ROTATE) {
+                int8_t var15 = get<int8_t>(var11[0]);
+                int8_t var30 = get<int8_t>(var11[1]);
+                int8_t var23 = get<int8_t>(var11[2]);
 
-            if (var15 < 0) {
-                minecraft->addChatMessage("&e" + var19);
-            } else {
-                minecraft->addChatMessage(var19);
+                if (var15 >= 0) {
+                    shared_ptr<NetworkPlayer> var26 = var12->players[var15];
+                    if (var26 != nullptr) {
+                        var26->queue((float)(-var30 * 360) / 256.0f, 
+                                (float)(var23 * 360) / 256.0f);
+                    }
+                }
+            } else if (var3 == Packet::PLAYER_MOVE) {
+                int8_t var15 = get<int8_t>(var11[0]);
+                int8_t var30 = get<int8_t>(var11[1]);
+                int8_t var31 = get<int8_t>(var11[2]);
+                int8_t var6_3 = get<int8_t>(var11[3]);
+
+                if (var15 >= 0) {
+                    shared_ptr<NetworkPlayer> var27 = var12->players[var15];
+                    if (var27 != nullptr) {
+                        var27->queue(var30, var31, var6_3);
+                    }
+                }
+            } else if (var3 == Packet::PLAYER_DISCONNECT) {
+                int8_t var15 = get<int8_t>(var11[0]);
+                if (var15 >= 0) {
+                    shared_ptr<NetworkPlayer> var20 = var12->players[var15];
+                    if (var20 != nullptr) {
+                        var12->players.erase(var15);
+                        auto& entities = minecraft->level->entities;
+                        entities.erase(remove(entities.begin(), entities.end(), var20), entities.end());
+                    }
+                }
+            } else if (var3 == Packet::CHAT_MESSAGE) {
+                int8_t var15 = get<int8_t>(var11[0]);
+                string var19 = get<string>(var11[1]);
+
+                if (var15 < 0) {
+                    minecraft->addChatMessage("&e" + var19);
+                } else {
+                    minecraft->addChatMessage(var19);
+                }
+            } else if (var3 == Packet::KICK_PLAYER) {
+                string reason = get<string>(var11[0]);
+                cout << "kicked" << endl;
+                minecraft->setScreen(make_shared<ErrorScreen>("Connection lost", reason));
             }
-        } else if (var3 == Packet::KICK_PLAYER) {
-            string reason = get<string>(var11[0]);
-            minecraft->setScreen(make_shared<ErrorScreen>("Connection lost", reason));
         }
 
         memmove(readBuffer.data(), readBuffer.data() + packetSize, savedReadPos - packetSize);
@@ -302,6 +315,7 @@ void SocketConnection::sendPacket(Packet* var1, const vector<PacketValue>& var2)
             const PacketValue& var6 = var2[var3];
             FieldType var5 = var10001;
             SocketConnection* var4 = this;
+            vector<uint8_t> var7;
             if (connected) {
                 try {
                     if (var5 == FieldType::LONG) {
@@ -336,37 +350,32 @@ void SocketConnection::sendPacket(Packet* var1, const vector<PacketValue>& var2)
                         temp = htonl(temp);
                         memcpy(&writeBuffer[writePos], &temp, 4);
                         writePos += 4;
-                    } else {
-                        vector<uint8_t> var7;
-                        if (var5 != FieldType::STRING) {
-                            if (var5 == FieldType::BYTE_ARRAY) {
-                                var7 = get<vector<uint8_t>>(var6);
-                                if (var7.size() < 1024) {
-                                    var7.resize(1024);
-                                }
-                                memcpy(&writeBuffer[writePos], var7.data(), 1024);
-                                writePos += 1024;
-                            }
-                        } else {
-                            string str = get<string>(var6);
-                            var7 = vector<uint8_t>(str.begin(), str.end());
-                            fill(var4->stringPacket, var4->stringPacket + 64, 32);
-                            
-                            int var8;
-                            for (var8 = 0; var8 < 64 && var8 < var7.size(); ++var8) {
-                                var4->stringPacket[var8] = var7[var8];
-                            }
-                            
-                            for (var8 = var7.size(); var8 < 64; ++var8) {
-                                var4->stringPacket[var8] = 32;
-                            }
-                            
-                            memcpy(&writeBuffer[writePos], var4->stringPacket, 64);
-                            writePos += 64;
+                    } else if (var5 == FieldType::BYTE_ARRAY) {
+                        var7 = get<vector<uint8_t>>(var6);
+                        if (var7.size() < 1024) {
+                            var7.resize(1024);
                         }
+                        memcpy(&writeBuffer[writePos], var7.data(), 1024);
+                        writePos += 1024;
+                    } else if (var5 == FieldType::STRING) {
+                        string str = get<string>(var6);
+                        var7 = vector<uint8_t>(str.begin(), str.end());
+                        fill(var4->stringPacket, var4->stringPacket + 64, 32);
+                        
+                        int var8;
+                        for (var8 = 0; var8 < 64 && var8 < var7.size(); ++var8) {
+                            var4->stringPacket[var8] = var7[var8];
+                        }
+                        
+                        for (var8 = var7.size(); var8 < 64; ++var8) {
+                            var4->stringPacket[var8] = 32;
+                        }
+                        
+                        memcpy(&writeBuffer[writePos], var4->stringPacket, 64);
+                        writePos += 64;
                     }
                 } catch (const exception& e) {
-                    manager->connection->disconnect();
+                    manager->disconnect(e);
                 }
             }
         }
@@ -421,8 +430,19 @@ PacketValue SocketConnection::read(Packet* packet, size_t fieldIndex) {
         } else if (type == FieldType::STRING) {
             memcpy(stringPacket, readBuffer.data() + readPos, 64);
             readPos += 64;
-            string result(reinterpret_cast<char*>(stringPacket), 64);
-            result.erase(result.find_last_not_of(' ') + 1);
+            size_t len = 0;
+            for (size_t i = 0; i < 64; ++i) {
+                if (stringPacket[i] == '\0') {
+                    len = i;
+                    break;
+                }
+                len = i + 1;
+            }
+            // Trim trailing spaces
+            while (len > 0 && stringPacket[len - 1] == ' ') {
+                len--;
+            }
+            string result(reinterpret_cast<char*>(stringPacket), len);
             return PacketValue(result);
         } else if (type == FieldType::BYTE_ARRAY) {
             vector<uint8_t> result(1024);
@@ -431,7 +451,7 @@ PacketValue SocketConnection::read(Packet* packet, size_t fieldIndex) {
             return PacketValue(result);
         }
     } catch (const exception& e) {
-        manager->connection->disconnect();
+        manager->disconnect(e);
     }
 
     return PacketValue(int8_t(0));

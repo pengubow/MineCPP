@@ -1,8 +1,7 @@
 #include <cmath>
 #include "level/tile/Tile.h"
 #include "particle/Particle.h"
-#include "Util/Util.h"
-#include <iostream>
+
 Particle::Particle(shared_ptr<Level>& level, float x, float y, float z, float xa, float ya, float za, Tile* tile) 
     : Entity(level) {
     tex = tile->tex;
@@ -10,18 +9,18 @@ Particle::Particle(shared_ptr<Level>& level, float x, float y, float z, float xa
     setSize(0.2f, 0.2f);
     heightOffset = bbHeight / 2.0f;
     setPos(x, y, z);
-    xd = xa + (float)(Util::nextFloat() * 2.0 - 1.0) * 0.4f;
-    yd = ya + (float)(Util::nextFloat() * 2.0 - 1.0) * 0.4f;
-    zd = za + (float)(Util::nextFloat() * 2.0 - 1.0) * 0.4f;
-    float speed = (float)(Util::nextFloat() + Util::nextFloat() + 1.0) * 0.15;
+    xd = xa + (float)(Random::random() * 2.0 - 1.0) * 0.4f;
+    yd = ya + (float)(Random::random() * 2.0 - 1.0) * 0.4f;
+    zd = za + (float)(Random::random() * 2.0 - 1.0) * 0.4f;
+    float speed = (float)(Random::random() + Random::random() + 1.0) * 0.15;
     float dd = (float)sqrt(xd * xd + yd * yd + zd * zd);
     xd = xd / dd * speed * 0.4f;
     yd = yd / dd * speed * 0.4f + 0.1f;
     zd = zd / dd * speed * 0.4f;
-    uo = Util::nextFloat() * 3.0f;
-    vo = Util::nextFloat() * 3.0f;
-    size = (float)(Util::nextFloat() * 0.5 + 0.5);
-    lifetime = (int32_t)(4.0 / (Util::nextFloat() * 0.9 + 0.1));
+    uo = (float)Random::random() * 3.0f;
+    vo = (float)Random::random() * 3.0f;
+    size = (float)(Random::random() * 0.5 + 0.5);
+    lifetime = (int32_t)(4.0 / (Random::random() * 0.9 + 0.1));
     age = 0;
 }
 

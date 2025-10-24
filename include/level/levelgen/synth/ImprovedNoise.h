@@ -3,6 +3,7 @@
 #include <vector>
 #include <stdint.h>
 #include "level/levelgen/synth/Synth.h"
+#include "Util/Random.h"
 
 using namespace std;
 
@@ -10,6 +11,7 @@ class ImprovedNoise : public Synth {
     vector<int32_t> p;
 public:
     ImprovedNoise();
+    ImprovedNoise(Random random);
 private:
     static double fade(double var0);
     static double lerp(double var0, double var2, double var4);

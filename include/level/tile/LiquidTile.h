@@ -12,7 +12,7 @@ public:
     LiquidTile(int32_t id, Liquid* type);
 
     void onBlockAdded(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) override;
-    void tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) override;
+    void tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random random) override;
 private:
     bool checkWater(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z);
 protected:

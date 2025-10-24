@@ -27,6 +27,9 @@ void MinecraftApplet::init(int argc, char* argv[]) {
     map<string, string> args = parseArgs(argc, argv);
     if (args.count("username") && args.count("sessionId")) {
         minecraft->user = make_shared<User>(args["username"], args["sessionId"]);
+        if (args.count("mppass")) {
+            minecraft->user->mpPass = args["mppass"];
+        }
     }
 
     if (args.count("mapUser") && args.count("mapId")) {
@@ -35,7 +38,8 @@ void MinecraftApplet::init(int argc, char* argv[]) {
     }
 
     if (args.count("server") && args.count("port")) {
-        minecraft->setServer(args["server"], stoi(args["port"]));
+        minecraft->server = args["server"];
+        minecraft->port = stoi(args["port"]);
     }
 
     minecraft->minecraftUri = "www.betacraft.uk"; // for loading worlds
@@ -61,7 +65,7 @@ void MinecraftApplet::destroy() {
 }
 
 void MinecraftApplet::stopGameThread() {
-    minecraft->stop();
+    minecraft->running = false;
 }
 
 int main(int argc, char** argv) {
@@ -72,6 +76,7 @@ int main(int argc, char** argv) {
             cout << "Options:" << endl;
             cout << "  --username <name>      Set player username" << endl;
             cout << "  --sessionId <id>       Set session ID" << endl;
+            cout << "  --mppass <pass>        Sets multiplayer pass" << endl;
             cout << "  --mapUser <user>       Set map owner username" << endl;
             cout << "  --mapId <id>           Set map ID" << endl;
             cout << "  --server <ip>          Set server host" << endl;

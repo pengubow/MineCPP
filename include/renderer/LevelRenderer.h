@@ -18,6 +18,7 @@ private:
     int32_t xChunks;
     int32_t yChunks;
     int32_t zChunks;
+    int32_t chunkRenderLists;
 public:
     int32_t cloudTickCounter = 0;
 private:
@@ -27,7 +28,6 @@ private:
 public:
     LevelRenderer(shared_ptr<Textures>& textures);
 
-    void setLevel(shared_ptr<Level>& level);
     void compileSurroundingGround();
     void renderEntities(Frustum& frustum, float var2);
     int32_t render(shared_ptr<Player>& player, int32_t var2);

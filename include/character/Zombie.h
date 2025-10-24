@@ -13,7 +13,7 @@ public:
     float rot;
     float timeOffs;
     float speed;
-    float rotA = (float)(Util::nextFloat() + 1.0) * 0.01f;
+    float rotA = (float)(Random::random() + 1.0) * 0.01f;
 
     Zombie(shared_ptr<Level>& level, float x, float y, float z);
 

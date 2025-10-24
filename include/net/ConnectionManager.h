@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <cstdint>
 #include <memory>
+#include <atomic>
 
 using namespace std;
 
@@ -28,9 +29,12 @@ public:
     vector<uint8_t> levelBuffer;
     SocketConnection* connection;
     weak_ptr<Minecraft> minecraft;
+    bool processData = false;
     unordered_map<uint8_t, shared_ptr<NetworkPlayer>> players;
 
-    ConnectionManager(shared_ptr<Minecraft>& var1, const string& var2, int var3, const string& var4);
+    ConnectionManager(shared_ptr<Minecraft>& var1, const string& var2, int var3, const string& var4, const string& mpPass);
 
     void sendBlockChange(int16_t var1, int16_t var2, int16_t var3, int8_t var4, int8_t var5);
+    void disconnect(const exception& e);
+    bool isConnected();
 };

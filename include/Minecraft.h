@@ -46,22 +46,27 @@ public:
 private:
 	int32_t editMode = 0;
 	shared_ptr<Screen> screen;
+public:
 	shared_ptr<LevelIO> levelIo;
+private:
 	shared_ptr<LevelGen> levelGen;
 	int32_t ticksRan = 0;
 public:
 	string loadMapUser;
 	int32_t loadMapID = 0;
-	ConnectionManager* sendQueue;
+	ConnectionManager* connectionManager;
 private:
 	deque<ChatLine> chatMessages;
-	static vector<int32_t> creativeTiles;
+public:
 	string server;
 	int32_t port = 0;
+private:
 	float fogColorRed = 0.5f;
 	float fogColorGreen = 0.8f;
 	float fogColorBlue = 1.0f;
+public:
 	atomic<bool> running = false;
+private:
 	string fpsString = "";
 	bool mouseGrabbed = false;
 	int32_t prevFrameTime = 0;
@@ -78,17 +83,16 @@ private:
     static GLFWwindow* window;
 public:
 	bool hideGui = false;
+	ZombieModel playerModel = ZombieModel();
 
     Minecraft(int32_t width, int32_t height, bool fullscreen);
 
-	void setServer(string var1, int32_t port);
     void setScreen(shared_ptr<Screen> screen);
 private:
     void checkGlError(string string);
-public:
     void destroy();
+public:
     void run();
-    void stop();
     void grabMouse();
     void pauseGame();
 private:
@@ -109,7 +113,6 @@ public:
     void levelLoadUpdate(string text);
     void setLoadingProgress(int32_t var1);
     void generateLevel(int32_t var1);
-	bool saveLevel(int32_t var1, string var2);
 	bool loadLevel(string var1, int32_t var2);
     void setLevel(shared_ptr<Level> level);
 	void addChatMessage(string message);

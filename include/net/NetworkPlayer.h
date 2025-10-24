@@ -8,7 +8,7 @@
 class Minecraft;
 
 class NetworkPlayer : public Entity {
-    static ZombieModel zombieModel;
+    ZombieModel zombieModel;
     float animStep = 0.0f;
     float animStepO = 0.0f;
     deque<PlayerMove> moveQueue;
@@ -18,9 +18,9 @@ class NetworkPlayer : public Entity {
     int32_t zp;
     float yBodyRot = 0.0f;
     float yBodyRotO = 0.0f;
+public:
     string name;
     
-public:
     NetworkPlayer(shared_ptr<Minecraft>& minecraft, int32_t id, string name, int32_t x, int32_t y, int32_t z, float yRot, float xRot);
     
     void tick() override;

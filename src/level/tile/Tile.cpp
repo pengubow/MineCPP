@@ -251,49 +251,49 @@ void Tile::renderBackFace(shared_ptr<Tesselator>& t, int32_t x, int32_t y, int32
     }
 }
 
-void Tile::renderFaceNoTexture(shared_ptr<Player>& player, shared_ptr<Tesselator>& t, int32_t x, int32_t y, int32_t z, int32_t var5) {
+void Tile::renderFaceNoTexture(shared_ptr<Entity> entity, shared_ptr<Tesselator>& t, int32_t x, int32_t y, int32_t z, int32_t var5) {
     float minX = (float)x;
     float maxX = (float)x + 1.0f;
     float minY = (float)y;
     float maxY = (float)y + 1.0f;
     float minZ = (float)z;
     float maxZ = (float)z + 1.0f;
-    if(var5 == 0 && (float)y > player->y) {
+    if(var5 == 0 && (float)y > entity->y) {
         t->vertex(minX, minY, maxZ);
         t->vertex(minX, minY, minZ);
         t->vertex(maxX, minY, minZ);
         t->vertex(maxX, minY, maxZ);
     }
 
-    if(var5 == 1 && (float)y < player->y) {
+    if(var5 == 1 && (float)y < entity->y) {
         t->vertex(maxX, maxY, maxZ);
         t->vertex(maxX, maxY, minZ);
         t->vertex(minX, maxY, minZ);
         t->vertex(minX, maxY, maxZ);
     }
 
-    if(var5 == 2 && (float)z > player->z) {
+    if(var5 == 2 && (float)z > entity->z) {
         t->vertex(minX, maxY, minZ);
         t->vertex(maxX, maxY, minZ);
         t->vertex(maxX, minY, minZ);
         t->vertex(minX, minY, minZ);
     }
 
-    if(var5 == 3 && (float)z < player->z) {
+    if(var5 == 3 && (float)z < entity->z) {
         t->vertex(minX, maxY, maxZ);
         t->vertex(minX, minY, maxZ);
         t->vertex(maxX, minY, maxZ);
         t->vertex(maxX, maxY, maxZ);
     }
 
-    if(var5 == 4 && (float)minX > player->x) {
+    if(var5 == 4 && (float)minX > entity->x) {
         t->vertex(minX, maxY, maxZ);
         t->vertex(minX, maxY, minZ);
         t->vertex(minX, minY, minZ);
         t->vertex(minX, minY, maxZ);
     }
 
-    if(var5 == 5 && (float)minX < player->x) {
+    if(var5 == 5 && (float)minX < entity->x) {
         t->vertex(maxX, minY, maxZ);
         t->vertex(maxX, minY, minZ);
         t->vertex(maxX, maxY, minZ);
@@ -322,7 +322,7 @@ bool Tile::mayPick() {
     return true;
 }
 
-void Tile::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {}
+void Tile::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random random) {}
 
 void Tile::destroy(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, shared_ptr<ParticleEngine>& particleEngine) {
     int32_t SD = 4;

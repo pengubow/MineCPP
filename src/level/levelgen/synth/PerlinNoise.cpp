@@ -1,8 +1,8 @@
 #include "level/levelgen/synth/PerlinNoise.h"
 
-PerlinNoise::PerlinNoise(int32_t var1) {
+PerlinNoise::PerlinNoise(Random random, int32_t var1) {
     for (var1 = 0; var1 < 8; var1++) {
-        noiseLevels[var1] = make_shared<ImprovedNoise>();
+        noiseLevels[var1] = make_shared<ImprovedNoise>(random);
     }
 }
 

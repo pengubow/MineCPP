@@ -8,11 +8,11 @@
 shared_ptr<Tesselator> Chunk::t = Tesselator::instance == nullptr ? Tesselator::instance = make_shared<Tesselator>() : Tesselator::instance;
 int32_t Chunk::updates = 0;
 
-Chunk::Chunk(shared_ptr<Level>& level, int32_t minX, int32_t minY, int32_t minZ, int32_t var5)
+Chunk::Chunk(shared_ptr<Level>& level, int32_t minX, int32_t minY, int32_t minZ, int32_t var5, int32_t var6)
     : level(level), minX(minX), minY(minY), minZ(minZ),
     maxX(16), maxY(16), maxZ(16) {
     sqrt((double)(this->maxX * this->maxX + this->maxY * this->maxY + this->maxZ * this->maxZ));
-    this->lists = glGenLists(2);
+    this->lists = var6;
     reset();
 }
 
@@ -31,8 +31,8 @@ void Chunk::reset() {
 }
 
 void Chunk::clear() {
-    glDeleteLists(lists, 2);
-    level;
+    reset();
+    level.reset();
 }
 
 void Chunk::rebuild() {

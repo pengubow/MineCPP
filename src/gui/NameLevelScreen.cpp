@@ -34,7 +34,7 @@ void NameLevelScreen::buttonClicked(shared_ptr<Button>& button) {
             return;
         }
         if (button->id == 0 && Util::trim(name).length() > 1) {
-            minecraft->saveLevel(id, Util::trim(name));
+            minecraft->levelIo->save(minecraft->level, minecraft->minecraftUri, minecraft->user->name, minecraft->user->sessionId, Util::trim(name), id);
             minecraft->setScreen(nullptr);
             minecraft->grabMouse();
         }

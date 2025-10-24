@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <chrono>
+#include <atomic>
 #ifdef _WIN32
     #include <winsock2.h>
     #include <windows.h>
@@ -66,7 +67,7 @@ using PacketValue = variant<
 
 class SocketConnection {
 public:
-    volatile bool connected;
+    bool connected = false;
 private:
     SocketHandle socketHandle;
 public:
@@ -82,7 +83,7 @@ public:
     SocketConnection(const string& var1, int var2);
 
     void disconnect();
-    void processData();
+    void processDataFunc();
     void sendPacket(Packet* var1, const vector<PacketValue>& var2);
 private:
     PacketValue read(Packet* packet, size_t fieldIndex);

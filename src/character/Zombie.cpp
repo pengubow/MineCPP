@@ -9,8 +9,8 @@ ZombieModel Zombie::zombieModel = ZombieModel();
 Zombie::Zombie(shared_ptr<Level>& level, float x, float y, float z) 
     : Entity(level) {
     setPos(x, y, z);
-    timeOffs = Util::nextFloat() * 1239813.0f;
-    rot = (Util::nextFloat() * M_PI * 2.0);
+    timeOffs = Random::random() * 1239813.0f;
+    rot = (Random::random() * M_PI * 2.0);
     speed = 1.0f;
 }
 
@@ -25,10 +25,10 @@ void Zombie::tick() {
     }
     rot += rotA;
     rotA = rotA * 0.99;
-    rotA = (float)((double)rotA + (Util::random() - Util::random()) * Util::random() * Util::random() * (double)0.08f);
+    rotA = (float)((double)rotA + (Random::random() - Random::random()) * Random::random() * Random::random() * (double)0.08f);
     xa = sin(rot);
     ya = cos(rot);
-    if (onGround && Util::nextFloat() < 0.08) {
+    if (onGround && Random::random() < 0.08) {
         yd = 0.5f;
     }
     moveRelative(xa, ya, onGround ? 0.1f : 0.02f);

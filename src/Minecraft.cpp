@@ -14,6 +14,7 @@
 #include "renderer/DirtyChunkSorter.h"
 #include "comm/SocketConnection.h"
 #include "net/Packet.h"
+#include "net/NetworkPlayer.h"
 
 static int32_t scrollWheel = 0;
 
@@ -23,17 +24,10 @@ void scroll_callback(GLFWwindow*, double, double yoffset) {
 
 GLFWwindow* Minecraft::window = Util::getGLFWWindow();
 shared_ptr<Textures> Minecraft::textures;
-vector<int32_t> Minecraft::creativeTiles;
 
 Minecraft::Minecraft(int32_t width, int32_t height, bool fullscreen) 
     : width(width), height(height), fullscreen(fullscreen) {
-    Minecraft::creativeTiles = {Tile::rock->id, Tile::dirt->id, Tile::stoneBrick->id, Tile::wood->id, Tile::bush->id, Tile::log->id, Tile::leaf->id, Tile::sand->id, Tile::gravel->id};
     textures = make_shared<Textures>();
-}
-
-void Minecraft::setServer(string var1, int32_t var2) {
-    server = var1;
-    port = var2;
 }
 
 void Minecraft::setScreen(shared_ptr<Screen> screen) {
@@ -104,7 +98,7 @@ void Minecraft::run() {
         }
 
         glfwMakeContextCurrent(window);
-        glfwSetWindowTitle(window, "Minecraft 0.0.16a_02");
+        glfwSetWindowTitle(window, "Minecraft 0.0.17a");
         glfwSwapInterval(0);
 
         glfwSetScrollCallback(window, scroll_callback);
@@ -127,14 +121,9 @@ void Minecraft::run() {
         shared_ptr<Minecraft> mcshared = shared_from_this();
         levelIo = make_shared<LevelIO>(mcshared);
         levelGen = make_shared<LevelGen>(mcshared);
-        if (!server.empty()) {
-            try {
-                shared_ptr<Minecraft> shared = shared_from_this();
-				sendQueue = new ConnectionManager(shared, server, port, user != nullptr ? user->name : "guest");
-			} catch (const exception& e) {
-				setScreen(make_shared<ErrorScreen>("Failed to connect", "You failed to connect to the server. It\'s probably down!"));
-			}
-
+        if (!server.empty() && user != nullptr) {
+            shared_ptr<Minecraft> shared = shared_from_this();
+            connectionManager = new ConnectionManager(shared, server, port, user->name, user->mpPass);
             level = nullptr;
         }
         else {
@@ -180,7 +169,7 @@ void Minecraft::run() {
         player = make_shared<Player>(level, shared);
         player->resetPos();
         if (level != nullptr) {
-            levelRenderer->setLevel(level);
+            setLevel(level);
         }
 
         checkGlError("Post startup");
@@ -304,10 +293,6 @@ void Minecraft::run() {
     destroy();
 }
 
-void Minecraft::stop() {
-    running = false;
-}
-
 void Minecraft::grabMouse() {
     if(!mouseGrabbed) {
         mouseGrabbed = true;
@@ -359,7 +344,7 @@ void Minecraft::clickMouse() {
             bool changed = level->setTile(x, y, z, 0);
             if (tile != nullptr && changed) {
                 if (isMultiplayer()) {
-                    sendQueue->sendBlockChange(x, y, z, editMode, paintTexture);
+                    connectionManager->sendBlockChange(x, y, z, editMode, paintTexture);
                 }
 
                 tile->destroy(level, x, y, z, particleEngine);
@@ -371,7 +356,7 @@ void Minecraft::clickMouse() {
                 optional<AABB> aabb = Tile::tiles[paintTexture]->getAABB(x, y, z);
                 if(!aabb.has_value() || (player->bb.intersects(aabb.value()) ? false : level->isFree(aabb.value()))) {
                     if (isMultiplayer()) {
-                        sendQueue->sendBlockChange(x, y, z, editMode, paintTexture);
+                        connectionManager->sendBlockChange(x, y, z, editMode, paintTexture);
                     }
                     level->setTile(x, y, z, paintTexture);
                     Tile::tiles[paintTexture]->onBlockAdded(level, x, y, z);
@@ -383,29 +368,36 @@ void Minecraft::clickMouse() {
 
 void Minecraft::tick() {
     for (int32_t i = 0; i < chatMessages.size(); ++i) {
-        ChatLine& line = chatMessages[i];
-        if ((float)line.counter++ >= timer.ticksPerSecond * 10.0f) {
-            chatMessages.erase(chatMessages.begin() + i--);
-        }
+        chatMessages[i].counter++;
     }
 
-    if (sendQueue != nullptr) {
-        try {
-            if (sendQueue->connection->connected) {
-                sendQueue->connection->processData();
+    if (connectionManager != nullptr) {
+        if (!connectionManager->isConnected()) {
+            beginLevelLoading("Connecting..");
+            setLoadingProgress(0);
+        }
+        else {
+            if (connectionManager->processData) {
+                if (connectionManager->connection->connected) {
+                    try {
+                        connectionManager->connection->processDataFunc();
+                    } catch (const exception& e) {
+                        setScreen(make_shared<ErrorScreen>("Disconnected!", "You\'ve lost connection to the server"));
+                        hideGui = false;
+                        cout << e.what() << endl;
+                        connectionManager->connection->disconnect();
+                        connectionManager = nullptr;
+                    }
+                }
             }
-            int32_t x = (int32_t)(player->x * 32.0F);
-            int32_t y = (int32_t)(player->y * 32.0F);
-            int32_t z = (int32_t)(player->z * 32.0F);
-            int32_t yRot = (int32_t)(player->yRot * 256.0F / 360.0F) & 255;
-            int32_t xRot = (int32_t)(player->xRot * 256.0F / 360.0F) & 255;
-            sendQueue->connection->sendPacket(Packet::PLAYER_TELEPORT, {(int8_t)-1, (int16_t)x, (int16_t)y, (int16_t)z, (int8_t)yRot, (int8_t)xRot});
-        } catch (const exception& e) {
-            setScreen(make_shared<ErrorScreen>("Disconnected!", "You\'ve lost connection to the server"));
-            hideGui = false;
-            cerr << e.what() << endl;
-            sendQueue->connection->disconnect();
-            sendQueue = nullptr;
+            if (connectionManager && connectionManager->connection) {
+                int32_t x = (int32_t)(player->x * 32.0F);
+                int32_t y = (int32_t)(player->y * 32.0F);
+                int32_t z = (int32_t)(player->z * 32.0F);
+                int32_t yRot = (int32_t)(player->yRot * 256.0F / 360.0F) & 255;
+                int32_t xRot = (int32_t)(player->xRot * 256.0F / 360.0F) & 255;
+                connectionManager->connection->sendPacket(Packet::PLAYER_TELEPORT, {(int8_t)-1, (int16_t)x, (int16_t)y, (int16_t)z, (int8_t)yRot, (int8_t)xRot});
+            }
         }
     }
 
@@ -433,19 +425,19 @@ void Minecraft::tick() {
 
                 var3 = 0;
 
-                for (int32_t var4 = 0; var4 < creativeTiles.size(); ++var4) {
-                    if (creativeTiles[var4] == paintTexture) {
+                for (int32_t var4 = 0; var4 < User::getCreativeTiles().size(); ++var4) {
+                    if (User::getCreativeTiles()[var4] == paintTexture) {
                         var3 = var4;
                     }
                 }
 
-                for (var3 += var2; var3 < 0; var3 += creativeTiles.size()) {}
+                for (var3 += var2; var3 < 0; var3 += User::getCreativeTiles().size()) {}
 
-                while (var3 >= creativeTiles.size()) {
-                    var3 -= creativeTiles.size();
+                while (var3 >= User::getCreativeTiles().size()) {
+                    var3 -= User::getCreativeTiles().size();
                 }
 
-                paintTexture = creativeTiles[var3];
+                paintTexture = User::getCreativeTiles()[var3];
             }
 
             if (!mouseGrabbed) {
@@ -468,9 +460,9 @@ void Minecraft::tick() {
                             var2 = Tile::dirt->id;
                         }
 
-                        for (var3 = 0; var3 < creativeTiles.size(); ++var3) {
-                            if (var2 == creativeTiles[var3]) {
-                                paintTexture = creativeTiles[var3];
+                        for (var3 = 0; var3 < User::getCreativeTiles().size(); ++var3) {
+                            if (var2 == User::getCreativeTiles()[var3]) {
+                                paintTexture = User::getCreativeTiles()[var3];
                             }
                         }
                     }
@@ -501,22 +493,22 @@ void Minecraft::tick() {
 
             for (int var1 = 0; var1 < 9; ++var1) {
                 if (Util::isKeyDownPrev(GLFW_KEY_1 + var1)) {
-                    paintTexture = creativeTiles[var1];
+                    paintTexture = User::getCreativeTiles()[var1];
                 }
             }
-
 
             if (Util::isKeyDownPrev(GLFW_KEY_Y)) {
                 yMouseAxis = -yMouseAxis;
             }
 
-            if (Util::isKeyDownPrev(GLFW_KEY_G) && sendQueue == nullptr && level->entities.size() < 256) {
+            if (Util::isKeyDownPrev(GLFW_KEY_G) && connectionManager == nullptr && level->entities.size() < 256) {
                 shared_ptr<Zombie> zombie = make_shared<Zombie>(level, player->x, player->y, player->z);
                 level->entities.push_back(zombie);
             }
 
             if (Util::isKeyDownPrev(GLFW_KEY_F)) {
-                levelRenderer->drawDistance = (levelRenderer->drawDistance + 1) % 4;
+                bool isShiftDown = Util::isKeyDown(GLFW_KEY_LEFT_SHIFT) || Util::isKeyDown(GLFW_KEY_RIGHT_SHIFT);
+                levelRenderer->drawDistance = levelRenderer->drawDistance + (isShiftDown ? -1 : 1) & 3;
             }
 
             if(Util::isKeyDownPrev(GLFW_KEY_T)) {
@@ -558,7 +550,7 @@ void Minecraft::tick() {
 }
 
 bool Minecraft::isMultiplayer() {
-    return sendQueue != nullptr;
+    return connectionManager != nullptr;
 }
 
 void Minecraft::orientCamera(float a) {
@@ -581,6 +573,21 @@ void Minecraft::render(float a) {
     fogColorRed *= fogColorMultiplier;
     fogColorGreen *= fogColorMultiplier;
     fogColorBlue *= fogColorMultiplier;
+    Tile* tile = Tile::tiles[level->getTile((int32_t)player->x, (int32_t)(player->y + 0.12f), (int32_t)player->z)];
+    if (tile && tile->getLiquidType() != Liquid::none) {
+        Liquid* liquid = tile->getLiquidType();
+        if (liquid == Liquid::water) {
+            fogColorRed = 0.02f;
+            fogColorGreen = 0.02f;
+            fogColorBlue = 0.2f;
+        }
+        else if (liquid == Liquid::lava) {
+            fogColorRed = 0.6;
+            fogColorGreen = 0.1f;
+            fogColorBlue = 0.0f;
+        }
+    }
+
     glClearColor(fogColorRed, fogColorGreen, fogColorBlue, 0.0f);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     checkGlError("Set viewport");
@@ -806,11 +813,19 @@ void Minecraft::renderGui() {
     glDisable(GL_TEXTURE_2D);
     glPopMatrix();
     checkGlError("GUI: Draw selected");
-    font->drawShadow("0.0.16a_02", 2, 2, 16777215);
+    font->drawShadow("0.0.17a", 2, 2, 16777215);
     font->drawShadow(fpsString, 2, 12, 16777215);
+    uint8_t maxMessageAmount = 10;
+    bool chatOpen = false;
+    if (dynamic_pointer_cast<ChatScreen>(screen)) {
+        maxMessageAmount = 20;
+        chatOpen = true;
+    }
 
-    for(int32_t i = 0; i < chatMessages.size(); ++i) {
-		font->drawShadow(chatMessages[i].message, 2, height - 4 - (chatMessages.size() << 3) + (i << 3) - 16, 16777215);
+    for(int32_t i = 0; i < chatMessages.size() && i < maxMessageAmount; ++i) {
+        if (chatMessages[i].counter < 200 || chatOpen) {
+            font->drawShadow(chatMessages[i].message, 2, height - 8 - (i << 3) - 16, 16777215);
+        }
 	}
 
     checkGlError("GUI: Draw text");
@@ -828,6 +843,34 @@ void Minecraft::renderGui() {
     t->vertex((float)(width + 5), (float)(height + 1), 0.0f);
     t->end();
     checkGlError("GUI: Draw crosshair");
+    if (Util::isKeyDown(GLFW_KEY_TAB) && connectionManager != nullptr && connectionManager->isConnected()) {
+        vector<string> playerNames;
+        playerNames.push_back(user->name);
+        for (auto& pair : connectionManager->players) {
+            auto var14 = pair.second;
+            playerNames.push_back(var14->name);
+        }
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glBegin(GL_QUADS);
+        glColor4f(0.0f, 0.0f, 0.0f, 0.7f);
+        glVertex2f((float)(width + 128), (float)(height - 68 - 12));
+        glVertex2f((float)(width - 128), (float)(height - 68 - 12));
+        glColor4f(0.2f, 0.2f, 0.2f, 0.8f);
+        glVertex2f((float)(width - 128), (float)(height + 68));
+        glVertex2f((float)(width + 128), (float)(height + 68));
+        glEnd();
+        glDisable(GL_BLEND);
+        string var11 = "Connected players:";
+        font->drawShadow(var11, width - font->width(var11) / 2, height - 64 - 12, 16777215);
+
+        for (int32_t i = 0; i < playerNames.size(); i++) {
+            int32_t x = width + i % 2 * 120 - 120;
+            int32_t y = height - 64 + (i / 2 << 3);
+            font->draw(playerNames[i], x, y, 16777215);
+        }
+    }
 }
 
 void Minecraft::setupFog() {
@@ -933,10 +976,6 @@ void Minecraft::generateLevel(int32_t var1) {
     setLevel(generatedLevel);
 }
 
-bool Minecraft::saveLevel(int32_t var1, string var2) {
-    return levelIo->save(level, minecraftUri, user->name, user->sessionId, var2, var1);
-}
-
 bool Minecraft::loadLevel(string var1, int32_t var2) {
     shared_ptr<Level> var3 = levelIo->load(minecraftUri, var1, var2);
     bool var4 = var3 != nullptr;
@@ -955,7 +994,16 @@ void Minecraft::setLevel(shared_ptr<Level> level) {
 
     this->level = level;
     if (levelRenderer != nullptr) {
-        levelRenderer->setLevel(level);
+        shared_ptr<Level> rendererLevel = levelRenderer->level.lock();
+        if (rendererLevel != nullptr) {
+            rendererLevel->removeListener(levelRenderer.get());
+        }
+
+        levelRenderer->level = level;
+        if (level != nullptr) {
+            level->addListener(levelRenderer.get());
+            levelRenderer->compileSurroundingGround();
+        }
     }
 
     if(particleEngine != nullptr) {
@@ -969,9 +1017,9 @@ void Minecraft::setLevel(shared_ptr<Level> level) {
 }
 
 void Minecraft::addChatMessage(string message) {
-    chatMessages.push_back(ChatLine(message));
+    chatMessages.push_front(ChatLine(message));
 
-    while (chatMessages.size() > 8) {
-        chatMessages.pop_front();
+    while (chatMessages.size() > 50) {
+        chatMessages.pop_back();
     }
 }

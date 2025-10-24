@@ -7,6 +7,7 @@
 #include "level/Coord.h"
 #include "level/liquid/Liquid.h"
 #include "Util/Util.h"
+#include "Util/Random.h"
 
 using namespace std;
 class LevelRenderer;
@@ -29,7 +30,8 @@ public:
 private:
     vector<LevelRenderer*> levelListeners;
     vector<int32_t> heightMap;
-    int32_t randValue = Util::nextInt();
+    Random random = Random();
+    int32_t randValue = random.nextInt();
     vector<shared_ptr<Coord>> tickList;
 public:
     vector<shared_ptr<Entity>> entities;
@@ -57,6 +59,7 @@ private:
 public:
     bool isLit(int32_t x, int32_t y, int32_t z);
     int32_t getTile(int32_t x, int32_t y, int32_t z);
+    bool isSolidTile(int32_t x, int32_t y, int32_t z);
     void tickEntities();
     void tick();
 private:
@@ -69,7 +72,7 @@ public:
     void addToTickNextTick(int32_t x, int32_t y, int32_t z, int32_t id);
     bool isFree(AABB& aabb);
     bool isSolid(float var1, float var2, float var3, float var4);
-    bool isSolidTile(int32_t x, int32_t y, int32_t z);
+    bool isSolidTile(float x, float y, float z);
 public:
     int32_t getHighestTile(int32_t x, int32_t z);
     void setSpawnPos(int32_t x, int32_t y, int32_t z, float rot);

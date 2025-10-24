@@ -21,6 +21,12 @@ void PauseScreen::init() {
         buttons[2]->enabled = false;
     }
 
+    if (minecraft->connectionManager != nullptr) {
+        buttons[0]->enabled = false;
+        buttons[1]->enabled = false;
+        buttons[2]->enabled = false;
+    }
+
 }
 
 void PauseScreen::buttonClicked(shared_ptr<Button>& button) {

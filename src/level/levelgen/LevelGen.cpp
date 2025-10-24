@@ -18,9 +18,9 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
     this->depth = depth;
     this->blocks = vector<uint8_t>(width * height << 6);
     minecraft->levelLoadUpdate("Raising..");
-    shared_ptr<Distort> var8 = make_shared<Distort>(make_shared<PerlinNoise>(8), make_shared<PerlinNoise>(8));
-    shared_ptr<Distort> var9 = make_shared<Distort>(make_shared<PerlinNoise>(8), make_shared<PerlinNoise>(8));
-    shared_ptr<PerlinNoise> var10 = make_shared<PerlinNoise>(8);
+    shared_ptr<Distort> var8 = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
+    shared_ptr<Distort> var9 = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
+    shared_ptr<PerlinNoise> var10 = make_shared<PerlinNoise>(random, 8);
     vector<int32_t> var11 = vector<int32_t>(this->width * this->height);
     float var6 = 1.3f;
 
@@ -48,8 +48,8 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
 
     minecraft->levelLoadUpdate("Eroding..");
     vector<int32_t>& var31 = var11;
-    var9 = make_shared<Distort>(make_shared<PerlinNoise>(8), make_shared<PerlinNoise>(8));
-    shared_ptr<Distort> var37 = make_shared<Distort>(make_shared<PerlinNoise>(8), make_shared<PerlinNoise>(8));
+    var9 = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
+    shared_ptr<Distort> var37 = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
 
     int32_t var16;
     int32_t var29;
@@ -74,7 +74,7 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
     int32_t var34 = this->width;
     int32_t var38 = this->height;
     var39 = this->depth;
-    shared_ptr<PerlinNoise> var30 = make_shared<PerlinNoise>(8);
+    shared_ptr<PerlinNoise> var30 = make_shared<PerlinNoise>(random, 8);
 
     int32_t var18;
     int32_t var46;
@@ -113,13 +113,13 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
 
     for (var14 = 0; var14 < var13; ++var14) {
         this->setNextPhase(var14 * 100 / (var13 - 1) / 4);
-        float var43 = Util::nextFloat() * (float)var38;
-        float var44 = Util::nextFloat() * (float)var29;
-        float var47 = Util::nextFloat() * (float)var39;
-        var18 = (int32_t)((Util::nextFloat() + Util::nextFloat()) * 75.0f);
-        float var49 = (float)((double)Util::nextFloat() * M_PI * 2.0);
+        float var43 = random.nextFloat() * (float)var38;
+        float var44 = random.nextFloat() * (float)var29;
+        float var47 = random.nextFloat() * (float)var39;
+        var18 = (int32_t)((random.nextFloat() + random.nextFloat()) * 75.0f);
+        float var49 = (float)((double)random.nextFloat() * M_PI * 2.0);
         float this0 = 0.0F;
-        float this1 = (float)((double)Util::nextFloat() * M_PI * 2.0);
+        float this1 = (float)((double)random.nextFloat() * M_PI * 2.0);
         float var22 = 0.0F;
 
         for (int32_t var7 = 0; var7 < var18; ++var7) {
@@ -128,11 +128,11 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
             var44 = (float)((double)var44 + sin((double)this1));
             var49 += this0 * 0.2F;
             this0 *= 0.9F;
-            this0 += Util::nextFloat() - Util::nextFloat();
+            this0 += random.nextFloat() - random.nextFloat();
             this1 += var22 * 0.5F;
             this1 *= 0.5F;
             var22 *= 0.9F;
-            var22 += Util::nextFloat() - Util::nextFloat();
+            var22 += random.nextFloat() - random.nextFloat();
             float var33 = (float)(sin((double)var7 * M_PI / (double)var18) * 2.5 + 1.0);
 
             for (var34 = (int32_t)(var43 - var33); var34 <= (int32_t)(var43 + var33); ++var34) {
@@ -180,9 +180,9 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
             this->setNextPhase(var42 * 100 / (var14 - 1));
         }
 
-        var16 = Util::nextInt(this->width);
-        var46 = this->depth / 2 - 1 - Util::nextInt(3);
-        var18 = Util::nextInt(this->height);
+        var16 = random.nextInt(this->width);
+        var46 = this->depth / 2 - 1 - random.nextInt(3);
+        var18 = random.nextInt(this->height);
         if (this->blocks[(var46 * this->height + var18) * this->width + var16] == 0) {
             var40 += this->floodFillLiquid(var16, var46, var18, 0, var13);
         }
@@ -209,8 +209,8 @@ void LevelGen::addBeaches(vector<int32_t>& var1) {
     int32_t width = this->width;
     int32_t height = this->height;
     int32_t depth = this->depth;
-    shared_ptr<PerlinNoise> var5 = make_shared<PerlinNoise>(8);
-    shared_ptr<PerlinNoise> var6 = make_shared<PerlinNoise>(8);
+    shared_ptr<PerlinNoise> var5 = make_shared<PerlinNoise>(random, 8);
+    shared_ptr<PerlinNoise> var6 = make_shared<PerlinNoise>(random, 8);
 
     for (int32_t var7 = 0; var7 < width; ++var7) {
         setNextPhase(var7 * 100 / (this->width - 1));
@@ -245,19 +245,19 @@ void LevelGen::plantTrees(vector<int32_t>& var1) {
 
     for (int32_t var4 = 0; var4 < var3; ++var4) {
         setNextPhase(var4 * 100 / (var3 - 1));
-        int32_t var5 = Util::nextInt(this->width);
-        int32_t var6 = Util::nextInt(this->height);
+        int32_t var5 = random.nextInt(this->width);
+        int32_t var6 = random.nextInt(this->height);
 
         for (int32_t var7 = 0; var7 < 20; ++var7) {
             int32_t var8 = var5;
             int32_t var9 = var6;
 
             for (int32_t var10 = 0; var10 < 20; ++var10) {
-                var8 += Util::nextInt(6) - Util::nextInt(6);
-                var9 += Util::nextInt(6) - Util::nextInt(6);
+                var8 += random.nextInt(6) - random.nextInt(6);
+                var9 += random.nextInt(6) - random.nextInt(6);
                 if (var8 >= 0 && var9 >= 0 && var8 < this->width && var9 < this->height) {
                     int32_t var11 = var1[var8 + var9 * var2] + 1;
-                    int32_t var12 = Util::nextInt(3) + 4;
+                    int32_t var12 = random.nextInt(3) + 4;
                     bool var13 = true;
 
                     int32_t var14;
@@ -300,7 +300,7 @@ void LevelGen::plantTrees(vector<int32_t>& var1) {
 
                                     for(int32_t var19 = var9 - var18; var19 <= var9 + var18; ++var19) {
                                         int32_t var20 = var19 - var9;
-                                        if(abs(var22) != var18 || abs(var20) != var18 || Util::nextInt(2) != 0 && var17 != 0) {
+                                        if(abs(var22) != var18 || abs(var20) != var18 || random.nextInt(2) != 0 && var17 != 0) {
                                             blocks[(var16 * height + var19) * width + var21] = (uint8_t)Tile::leaf->id;
                                         }
                                     }
@@ -328,13 +328,13 @@ void LevelGen::carveTunnels(int32_t var1, int32_t var2, int32_t var3, int32_t va
 
     for (int32_t var8 = 0; var8 < var7; var8++) {
         this->setNextPhase(var8 * 100 / (var7 - 1) / 4 + var3 * 100 / 4);
-        float var9 = Util::nextFloat() * (float)var4;
-        float var10 = Util::nextFloat() * (float)var6;
-        float var11 = Util::nextFloat() * (float)var5;
-        int var12 = (int32_t)((Util::nextFloat() + Util::nextFloat()) * 75.0F * (float)var2 / 100.0F);
-        float var13 = (float)((double)Util::nextFloat() * M_PI * 2.0);
+        float var9 = random.nextFloat() * (float)var4;
+        float var10 = random.nextFloat() * (float)var6;
+        float var11 = random.nextFloat() * (float)var5;
+        int var12 = (int32_t)((random.nextFloat() + random.nextFloat()) * 75.0F * (float)var2 / 100.0F);
+        float var13 = (float)((double)random.nextFloat() * M_PI * 2.0);
         float var14 = 0.0F;
-        float var15 = (float)((double)Util::nextFloat() * M_PI * 2.0);
+        float var15 = (float)((double)random.nextFloat() * M_PI * 2.0);
         float var16 = 0.0F;
 
         for (int32_t var17 = 0; var17 < var12; var17++) {
@@ -343,11 +343,11 @@ void LevelGen::carveTunnels(int32_t var1, int32_t var2, int32_t var3, int32_t va
             var10 = (float)((double)var10 + sin((double)var15));
             var13 += var14 * 0.2F;
             var14 *= 0.9F;
-            var14 += Util::nextFloat() - Util::nextFloat();
+            var14 += random.nextFloat() - random.nextFloat();
             var15 += var16 * 0.5F;
             var15 *= 0.5F;
             var16 *= 0.9F;
-            var16 += Util::nextFloat() - Util::nextFloat();
+            var16 += random.nextFloat() - random.nextFloat();
             float var18 = (float)(sin((double)var17 * M_PI / (double)var12) * (double)var2 / 100.0 + 1.0);
 
             for (int32_t var19 = (int32_t)(var9 - var18); var19 <= (int32_t)(var9 + var18); var19++) {
@@ -388,9 +388,9 @@ void LevelGen::addLava() {
             this->setNextPhase(var3 * 100 / (var2 - 1));
         }
 
-        int32_t var4 = Util::nextInt(this->width);
-        int32_t var5 = Util::nextInt(this->depth / 2 - 4);
-        int32_t var6 = Util::nextInt(this->height);
+        int32_t var4 = random.nextInt(this->width);
+        int32_t var5 = random.nextInt(this->depth / 2 - 4);
+        int32_t var6 = random.nextInt(this->height);
         if (this->blocks[(var5 * this->height + var6) * this->width + var4] == 0) {
             var1++;
             this->floodFillLiquid(var4, var5, var6, 0, Tile::calmLava->id);

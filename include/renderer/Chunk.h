@@ -26,7 +26,7 @@ private:
 public:
     bool isInFrustum = false;
 
-    Chunk(shared_ptr<Level>& level, int32_t minX, int32_t minY, int32_t minZ, int32_t var5);
+    Chunk(shared_ptr<Level>& level, int32_t minX, int32_t minY, int32_t minZ, int32_t var5, int32_t var6);
 
     float distanceToSqr(shared_ptr<Player>& player);
 private:

@@ -30,10 +30,10 @@ void ChatScreen::keyPressed(char var1, int32_t key) {
     else if (key == GLFW_KEY_ENTER) {
         string var4 = Util::trim(TypedMsg);
         if (var4.length() > 0) {
-            if (!minecraft->sendQueue) {
+            if (!minecraft->connectionManager) {
                 throw runtime_error("On java, this caused NullPointerException");
             }
-            minecraft->sendQueue->connection->sendPacket(Packet::CHAT_MESSAGE, {(int8_t)-1, var4});
+            minecraft->connectionManager->connection->sendPacket(Packet::CHAT_MESSAGE, {(int8_t)-1, var4});
         }
 
         minecraft->setScreen(nullptr);
@@ -44,7 +44,7 @@ void ChatScreen::keyPressed(char var1, int32_t key) {
         }
 
         string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ,.:-_\'*!\"#%/()=+?[]{}<>";
-        if (allowed.find(var1) != string::npos && TypedMsg.length() < 64) {
+        if (allowed.find(var1) != string::npos && TypedMsg.length() < 64 - (minecraft->user->name.length() + 2)) {
             TypedMsg += var1;
         }
     }

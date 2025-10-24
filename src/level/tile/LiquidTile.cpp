@@ -22,7 +22,7 @@ void LiquidTile::onBlockAdded(shared_ptr<Level>& level, int32_t x, int32_t y, in
     level->addToTickNextTick(x, y, z, tileId);
 }
 
-void LiquidTile::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {
+void LiquidTile::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random random) {
     bool var7 = false;
     bool var9 = false;
 

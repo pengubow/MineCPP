@@ -11,6 +11,7 @@ class LevelGen : public enable_shared_from_this<LevelGen> {
 	int32_t width;
 	int32_t height;
 	int32_t depth;
+	Random random = Random();
 	vector<uint8_t> blocks;
 	vector<int32_t> coords = vector<int32_t>(1048576);
 public:

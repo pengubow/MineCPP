@@ -7,7 +7,7 @@ CalmLiquidTile::CalmLiquidTile(int32_t id, Liquid* type)
     setTicking(false);
 }
 
-void CalmLiquidTile::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {}
+void CalmLiquidTile::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random random) {}
 
 void CalmLiquidTile::neighborChanged(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, int32_t type) {
     bool var6 = false;

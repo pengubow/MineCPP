@@ -57,5 +57,5 @@ public:
     float getBrightness();
     virtual void render(shared_ptr<Textures>& textures, float a);
     void setLevel(shared_ptr<Level>& level);
-    void moveTo(float x, float y, float z, float xRot, float yRot);
+    void moveTo(float x, float y, float z, float yRot, float xRot);
 };

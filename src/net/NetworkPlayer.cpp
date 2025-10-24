@@ -5,11 +5,10 @@
 #include "gui/Font.h"
 #include "GL_compat.h"
 
-ZombieModel NetworkPlayer::zombieModel = ZombieModel();
-
 NetworkPlayer::NetworkPlayer(shared_ptr<Minecraft>& minecraft, int32_t id, string name, int32_t x, int32_t y, int32_t z, float yRot, float xRot)
     : Entity(minecraft->level), minecraft(minecraft), name(name), 
     xp(x), yp(y), zp(z) {
+    zombieModel = minecraft->playerModel;
     setPos((float)x / 32.0f, (float)y / 32.0f, (float)z / 32.0f);
     this->xRot = xRot;
     this->yRot = yRot;

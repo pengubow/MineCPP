@@ -919,6 +919,7 @@ void LevelIO::save(shared_ptr<Level>& level, gzFile file) {
                 gzip::gzwriteFieldFloat(file, "rotA", zombie->rotA);
             }
             else {
+                gzip::gzwriteFieldEnd(file);
                 continue;
             }
 
