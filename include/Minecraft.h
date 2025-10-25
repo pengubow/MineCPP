@@ -90,8 +90,8 @@ public:
     void setScreen(shared_ptr<Screen> screen);
 private:
     void checkGlError(string string);
-    void destroy();
 public:
+    void destroy();
     void run();
     void grabMouse();
     void pauseGame();

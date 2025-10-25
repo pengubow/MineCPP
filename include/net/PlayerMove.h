@@ -2,11 +2,11 @@
 
 class PlayerMove {
 public:
-    float x;
-    float y;
-    float z;
-    float yRot;
-    float xRot;
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+    float yRot = 0.0f;
+    float xRot = 0.0f;
     bool rotating = false;
     bool moving = false;
 

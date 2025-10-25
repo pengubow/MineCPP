@@ -15,6 +15,7 @@
 #include "comm/SocketConnection.h"
 #include "net/Packet.h"
 #include "net/NetworkPlayer.h"
+#include "StopGameException.h"
 
 static int32_t scrollWheel = 0;
 
@@ -98,7 +99,7 @@ void Minecraft::run() {
         }
 
         glfwMakeContextCurrent(window);
-        glfwSetWindowTitle(window, "Minecraft 0.0.17a");
+        glfwSetWindowTitle(window, "Minecraft 0.0.18a_02");
         glfwSwapInterval(0);
 
         glfwSetScrollCallback(window, scroll_callback);
@@ -287,8 +288,10 @@ void Minecraft::run() {
         
 
         return;
+    } catch (const StopGameException& e) {
     } catch (const exception& e) {
         cerr << e.what() << endl;
+        return;
     }
     destroy();
 }
@@ -511,7 +514,7 @@ void Minecraft::tick() {
                 levelRenderer->drawDistance = levelRenderer->drawDistance + (isShiftDown ? -1 : 1) & 3;
             }
 
-            if(Util::isKeyDownPrev(GLFW_KEY_T)) {
+            if (Util::isKeyDownPrev(GLFW_KEY_T) && connectionManager && connectionManager->isConnected()) {
                 player->releaseAllKeys();
                 setScreen(make_shared<ChatScreen>());
             }
@@ -760,7 +763,7 @@ void Minecraft::render(float a) {
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     if(var22 > 0) {
         glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, textures->loadTexture("terrain.png", GL_NEAREST));
+        glBindTexture(GL_TEXTURE_2D, textures->getTextureId("terrain.png"));
         glCallLists(levelRenderer->dummyBuffer.size(), GL_INT, levelRenderer->dummyBuffer.data());
         glDisable(GL_TEXTURE_2D);
     }
@@ -804,7 +807,7 @@ void Minecraft::renderGui() {
     glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
     glTranslatef(-1.5f, 0.5f, 0.5f);
     glScalef(-1.0f, -1.0f, -1.0f);
-    int32_t tex = textures->loadTexture("terrain.png", GL_NEAREST);
+    int32_t tex = textures->getTextureId("terrain.png");
     glBindTexture(GL_TEXTURE_2D, tex);
     glEnable(GL_TEXTURE_2D);
     t->begin();
@@ -813,7 +816,7 @@ void Minecraft::renderGui() {
     glDisable(GL_TEXTURE_2D);
     glPopMatrix();
     checkGlError("GUI: Draw selected");
-    font->drawShadow("0.0.17a", 2, 2, 16777215);
+    font->drawShadow("0.0.18a_02", 2, 2, 16777215);
     font->drawShadow(fpsString, 2, 12, 16777215);
     uint8_t maxMessageAmount = 10;
     bool chatOpen = false;
@@ -911,63 +914,78 @@ vector<float>& Minecraft::getBuffer(float a, float b, float c, float d) {
 }
 
 void Minecraft::beginLevelLoading(string title) {
-    this->title = title;
-    int32_t width = this->width * 240 / this->height;
-    int32_t height = this->height * 240 / this->height;
-    glClear(GL_DEPTH_BUFFER_BIT);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0.0, (double)width, (double)height, 0.0, 100.0, 300.0);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glTranslatef(0.0f, 0.0f, -200.0f);
+    if (!running) {
+        throw StopGameException();
+    }
+    else {
+        this->title = title;
+        int32_t width = this->width * 240 / this->height;
+        int32_t height = this->height * 240 / this->height;
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glOrtho(0.0, (double)width, (double)height, 0.0, 100.0, 300.0);
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glTranslatef(0.0f, 0.0f, -200.0f);
+    }
 }
 
 void Minecraft::levelLoadUpdate(string text) {
-    this->text = text;
-    setLoadingProgress(-1);
+    if (!running) {
+        throw StopGameException();
+    }
+    else {
+        this->text = text;
+        setLoadingProgress(-1);
+    }
 }
 
 void Minecraft::setLoadingProgress(int32_t var1) {
-    int32_t width = this->width * 240 / this->height;
-    int32_t height = this->height * 240 / this->height;
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-    shared_ptr<Tesselator> t = Tesselator::instance;
-    glEnable(GL_TEXTURE_2D);
-    int32_t var5 = textures->loadTexture("dirt.png", GL_NEAREST);
-    glBindTexture(GL_TEXTURE_2D, var5);
-    float var8 = 32.0F;
-    t->begin();
-    t->color(4210752);
-    t->vertexUV(0.0F, (float)height, 0.0f, 0.0f, (float)height / var8);
-    t->vertexUV((float)width, (float)height, 0.0f, (float)width / var8, (float)height / var8);
-    t->vertexUV((float)width, 0.0f, 0.0f, (float)width / var8, 0.0f);
-    t->vertexUV(0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-    t->end();
-    if(var1 >= 0) {
-        var5 = width / 2 - 50;
-        int32_t var6 = height / 2 + 16;
-        glDisable(GL_TEXTURE_2D);
-        t->begin();
-        t->color(8421504);
-        t->vertex((float)var5, (float)var6, 0.0f);
-        t->vertex((float)var5, (float)(var6 + 2), 0.0f);
-        t->vertex((float)(var5 + 100), (float)(var6 + 2), 0.0f);
-        t->vertex((float)(var5 + 100), (float)var6, 0.0f);
-        t->color(8454016);
-        t->vertex((float)var5, (float)var6, 0.0f);
-        t->vertex((float)var5, (float)(var6 + 2), 0.0f);
-        t->vertex((float)(var5 + var1), (float)(var6 + 2), 0.0f);
-        t->vertex((float)(var5 + var1), (float)var6, 0.0f);
-        t->end();
-        glEnable(GL_TEXTURE_2D);
+    if (!running) {
+        throw StopGameException();
     }
+    else {
+        int32_t width = this->width * 240 / this->height;
+        int32_t height = this->height * 240 / this->height;
+        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+        shared_ptr<Tesselator> t = Tesselator::instance;
+        glEnable(GL_TEXTURE_2D);
+        int32_t var5 = textures->getTextureId("dirt.png");
+        glBindTexture(GL_TEXTURE_2D, var5);
+        float var8 = 32.0F;
+        t->begin();
+        t->color(4210752);
+        t->vertexUV(0.0F, (float)height, 0.0f, 0.0f, (float)height / var8);
+        t->vertexUV((float)width, (float)height, 0.0f, (float)width / var8, (float)height / var8);
+        t->vertexUV((float)width, 0.0f, 0.0f, (float)width / var8, 0.0f);
+        t->vertexUV(0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+        t->end();
+        if(var1 >= 0) {
+            var5 = width / 2 - 50;
+            int32_t var6 = height / 2 + 16;
+            glDisable(GL_TEXTURE_2D);
+            t->begin();
+            t->color(8421504);
+            t->vertex((float)var5, (float)var6, 0.0f);
+            t->vertex((float)var5, (float)(var6 + 2), 0.0f);
+            t->vertex((float)(var5 + 100), (float)(var6 + 2), 0.0f);
+            t->vertex((float)(var5 + 100), (float)var6, 0.0f);
+            t->color(8454016);
+            t->vertex((float)var5, (float)var6, 0.0f);
+            t->vertex((float)var5, (float)(var6 + 2), 0.0f);
+            t->vertex((float)(var5 + var1), (float)(var6 + 2), 0.0f);
+            t->vertex((float)(var5 + var1), (float)var6, 0.0f);
+            t->end();
+            glEnable(GL_TEXTURE_2D);
+        }
 
-    font->drawShadow(title, (width - font->width(title)) / 2, height / 2 - 4 - 16, 16777215);
-    font->drawShadow(text, (width - font->width(text)) / 2, height / 2 - 4 + 8, 16777215);
-    glfwSwapBuffers(window);
+        font->drawShadow(title, (width - font->width(title)) / 2, height / 2 - 4 - 16, 16777215);
+        font->drawShadow(text, (width - font->width(text)) / 2, height / 2 - 4 + 8, 16777215);
+        glfwSwapBuffers(window);
 
-    this_thread::yield();
+        this_thread::yield();
+    }
 }
 
 void Minecraft::generateLevel(int32_t var1) {

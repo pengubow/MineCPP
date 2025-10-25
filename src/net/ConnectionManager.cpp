@@ -9,10 +9,8 @@
 ConnectionManager::ConnectionManager(shared_ptr<Minecraft>& var1, const string& var2, int var3, const string& var4, const string& mpPass)
     : minecraft(var1), connection(nullptr) {
     var1->hideGui = true;
-    thread([this, var2, var3, var4, mpPass, var1]() {
-        ConnectionThread* ct = new ConnectionThread(this, var2, var3, var4, mpPass, var1);
-        ct->run();
-    }).detach();
+    ConnectionThread* ct = new ConnectionThread(this, var2, var3, var4, mpPass, var1);
+    ct->start();
 }
 
 void ConnectionManager::sendBlockChange(int16_t var1, int16_t var2, int16_t var3, int8_t var4, int8_t var5) {

@@ -45,7 +45,7 @@ void Zombie::tick() {
 
 void Zombie::render(shared_ptr<Textures>& textures, float a) {
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, textures->loadTexture("char.png", GL_NEAREST));
+    glBindTexture(GL_TEXTURE_2D, textures->getTextureId("char.png"));
     glPushMatrix();
     double time = Timer::nanoTime() / 1.0E9 * 10 * speed + timeOffs;
     float brightness = getBrightness();

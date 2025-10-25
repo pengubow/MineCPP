@@ -211,17 +211,23 @@ void SocketConnection::processDataFunc() {
                 }
             } else if (var3 == Packet::PLAYER_TELEPORT) {
                 int8_t var15 = get<int8_t>(var11[0]);
-                int16_t var17_2 = get<int16_t>(var11[1]);
-                int16_t var18_3 = get<int16_t>(var11[2]);
-                int16_t var21_3 = get<int16_t>(var11[3]);
-                int8_t var25 = get<int8_t>(var11[4]);
-                int8_t var8_2 = get<int8_t>(var11[5]);
+                int16_t x = get<int16_t>(var11[1]);
+                int16_t y = get<int16_t>(var11[2]);
+                int16_t z = get<int16_t>(var11[3]);
+                int8_t yRot = get<int8_t>(var11[4]);
+                int8_t xRot = get<int8_t>(var11[5]);
 
-                if (var15 >= 0) {
-                    shared_ptr<NetworkPlayer> var28 = var12->players[var15];
+                if (var15 < 0) {
+                    minecraft->player->moveTo((float)x / 32.0f, 
+                        (float)y / 32.0f, (float)z / 32.0f, 
+                        (float)(yRot * 360) / 256.0f, (float)(xRot * 360));
+                }
+                else {
+                    shared_ptr<NetworkPlayer>& var28 = var12->players[var15];
                     if (var28 != nullptr) {
-                        var28->teleport(var17_2, var18_3, var21_3,
-                            (float)(-var25 * 360) / 256.0f, (float)(var8_2 * 360) / 256.0f);
+                        var28->teleport(x, y, z,
+                            (float)(-yRot * 360) / 256.0f, 
+                            (float)(xRot * 360) / 256.0f);
                     }
                 }
             } else if (var3 == Packet::PLAYER_MOVE_AND_ROTATE) {
@@ -233,7 +239,7 @@ void SocketConnection::processDataFunc() {
                 int8_t var8_3 = get<int8_t>(var11[5]);
 
                 if (var15 >= 0) {
-                    shared_ptr<NetworkPlayer> var28 = var12->players[var15];
+                    shared_ptr<NetworkPlayer>& var28 = var12->players[var15];
                     if (var28 != nullptr) {
                         var28->queue(var30, var31, var6_2,
                             (float)(-var33 * 360) / 256.0f, (float)(var8_3 * 360) / 256.0f);
@@ -245,7 +251,7 @@ void SocketConnection::processDataFunc() {
                 int8_t var23 = get<int8_t>(var11[2]);
 
                 if (var15 >= 0) {
-                    shared_ptr<NetworkPlayer> var26 = var12->players[var15];
+                    shared_ptr<NetworkPlayer>& var26 = var12->players[var15];
                     if (var26 != nullptr) {
                         var26->queue((float)(-var30 * 360) / 256.0f, 
                                 (float)(var23 * 360) / 256.0f);
@@ -258,7 +264,7 @@ void SocketConnection::processDataFunc() {
                 int8_t var6_3 = get<int8_t>(var11[3]);
 
                 if (var15 >= 0) {
-                    shared_ptr<NetworkPlayer> var27 = var12->players[var15];
+                    shared_ptr<NetworkPlayer>& var27 = var12->players[var15];
                     if (var27 != nullptr) {
                         var27->queue(var30, var31, var6_3);
                     }
@@ -266,9 +272,10 @@ void SocketConnection::processDataFunc() {
             } else if (var3 == Packet::PLAYER_DISCONNECT) {
                 int8_t var15 = get<int8_t>(var11[0]);
                 if (var15 >= 0) {
-                    shared_ptr<NetworkPlayer> var20 = var12->players[var15];
+                    shared_ptr<NetworkPlayer>& var20 = var12->players[var15];
+                    var12->players.erase(var15);
                     if (var20 != nullptr) {
-                        var12->players.erase(var15);
+                        var20->clear();
                         auto& entities = minecraft->level->entities;
                         entities.erase(remove(entities.begin(), entities.end(), var20), entities.end());
                     }
@@ -284,7 +291,6 @@ void SocketConnection::processDataFunc() {
                 }
             } else if (var3 == Packet::KICK_PLAYER) {
                 string reason = get<string>(var11[0]);
-                cout << "kicked" << endl;
                 minecraft->setScreen(make_shared<ErrorScreen>("Connection lost", reason));
             }
         }

@@ -21,3 +21,9 @@ void ConnectionThread::run() {
         minecraft->setScreen(make_shared<ErrorScreen>("Failed to connect", "You failed to connect to the server. It's probably down!"));
     }
 }
+
+void ConnectionThread::start() {
+    thread([this]() {
+        run();
+    }).detach();
+}

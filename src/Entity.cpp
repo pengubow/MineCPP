@@ -49,6 +49,14 @@ void Entity::setPos(PlayerMove playerMove) {
 }
 
 void Entity::setRot(float yRot, float xRot) {
+    while (this->yRotO - yRot < -180.0F) {
+        this->yRotO += 360.0F;
+    }
+
+    while (this->yRotO - yRot >= 180.0F) {
+        this->yRotO -= 360.0F;
+    }
+
     this->yRot = yRot;
 	this->xRot = xRot;
 }

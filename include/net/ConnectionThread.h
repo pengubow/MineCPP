@@ -11,4 +11,5 @@ public:
     ConnectionThread(ConnectionManager* connectionManager, const string& ip, int32_t port, const string& username, const string& mpPass, shared_ptr<Minecraft> minecraft);
 
     void run();
+    void start();
 };

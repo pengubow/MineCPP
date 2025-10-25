@@ -1,6 +1,7 @@
 
 #include <stdint.h>
 #include <map>
+#include <future>
 #include "Minecraft.h"
 #include "MinecraftApplet.h"
 #include "User.h"
@@ -65,7 +66,26 @@ void MinecraftApplet::destroy() {
 }
 
 void MinecraftApplet::stopGameThread() {
-    minecraft->running = false;
+    if (t.joinable()) {
+        minecraft->running = false;
+        
+        try {
+            auto future = async(launch::async, [this]() {
+                if (t.joinable()) {
+                    t.join();
+                }
+            });
+            
+            auto status = future.wait_for(chrono::milliseconds(1000));
+        } catch (const exception& e) {
+            try {
+                minecraft->destroy();
+            } catch (const exception& e2) {
+                cerr << e2.what() << endl;
+            }
+        }
+        this->t = thread();
+    }
 }
 
 int main(int argc, char** argv) {

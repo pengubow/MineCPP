@@ -7,7 +7,10 @@
 using namespace std;
 
 class Textures {
-    static unordered_map<string, int32_t> idMap;
+    unordered_map<string, int32_t> idMap = unordered_map<string, int32_t>();
 public:
-    int32_t loadTexture(string resourceName, int32_t mode);
+    vector<GLuint> idBuffer = vector<GLuint>(1);
+    
+    int32_t getTextureId(string resourceName);
+    int32_t addTexture(uint8_t* image, int32_t width, int32_t height);
 };

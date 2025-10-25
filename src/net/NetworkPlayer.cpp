@@ -1,5 +1,6 @@
 #include <cmath>
 #include "net/NetworkPlayer.h"
+#include "net/NetworkSkinDownloadThread.h"
 #include "Minecraft.h"
 #include "renderer/Textures.h"
 #include "gui/Font.h"
@@ -13,6 +14,7 @@ NetworkPlayer::NetworkPlayer(shared_ptr<Minecraft>& minecraft, int32_t id, strin
     this->xRot = xRot;
     this->yRot = yRot;
     this->heightOffset = 1.62f;
+    make_shared<NetworkSkinDownloadThread>(this)->start();
 }
 
 void NetworkPlayer::tick() {
@@ -34,15 +36,28 @@ void NetworkPlayer::tick() {
     float var3 = (float)sqrt((double)(var6 * var6 + var2 * var2));
     float var4 = yBodyRot;
     float var5 = 0.0f;
+    oRun = run;
+    float whattonamethis = 0.0f;
     
     if (var3 == 0.0f) {
         animStep = 0.0f;
-    } else {
+    }
+    else {
+        whattonamethis = 1.0f;
         var5 = var3 * 3.0f;
         var4 = -((float)atan2((double)var2, (double)var6) * 180.0f / M_PI + 90.0f);
     }
 
+    run += (whattonamethis - run) * 0.1f;
+
     for (var6 = var4 - yBodyRot; var6 < -180.0f; var6 += 360.0f) {}
+    while (var6 >= 180.0f) {
+        var6 -= 360.0f;
+    }
+
+    yBodyRot += var6 * 0.1f;
+
+    for (var6 = yRot - yBodyRot; var6 < -180.0f; var6 += 360.0f) {}
 
     while (var6 >= 180.0f) {
         var6 -= 360.0f;
@@ -97,13 +112,24 @@ void NetworkPlayer::tick() {
 }
 
 void NetworkPlayer::render(shared_ptr<Textures>& textures, float a) {
+    this->textures = textures;
     shared_ptr<Minecraft> minecraft = this->minecraft.lock();
     if (!minecraft) {
         return;
     }
 
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, textures->loadTexture("char.png", GL_NEAREST));
+    if (newTexture) {
+        skin = textures->addTexture(newTexture, skinWidth, skinHeight);
+        newTexture = nullptr;
+    }
+
+    if (skin < 0) {
+        glBindTexture(GL_TEXTURE_2D, textures->getTextureId("char.png"));
+    }
+    else {
+        glBindTexture(GL_TEXTURE_2D, skin);
+    }
     
     float var8 = yBodyRotO + (yBodyRot - yBodyRotO) * a;
     float var3 = yRotO + (yRot - yRotO) * a;
@@ -118,17 +144,18 @@ void NetworkPlayer::render(shared_ptr<Textures>& textures, float a) {
     float var7 = (float)(-fabs(sin((double)var5 * 0.6662)) * 5.0 - 23.0);
     
     glTranslatef(xo + (x - xo) * a, yo + (y - yo) * a - heightOffset, 
-                 zo + (z - zo) * a);
+        zo + (z - zo) * a);
     glScalef(1.0f, -1.0f, 1.0f);
     glScalef(var6, var6, var6);
     glTranslatef(0.0f, var7, 0.0f);
     glRotatef(var8, 0.0f, 1.0f, 0.0f);
+    glDisable(GL_ALPHA_TEST);
     zombieModel.render(var5, var3, var4);
-    
+    glEnable(GL_ALPHA_TEST);
     glPopMatrix();
     glPushMatrix();
     glTranslatef(xo + (x - xo) * a, yo + (y - yo) * a + 0.8f, 
-                 zo + (z - zo) * a);
+        zo + (z - zo) * a);
     glRotatef(-minecraft->player->yRot, 0.0f, 1.0f, 0.0f);
     
     a = 0.05f;
@@ -156,6 +183,14 @@ void NetworkPlayer::queue(int8_t dx, int8_t dy, int8_t dz, float yRot, float xRo
     moveQueue.push_back(PlayerMove((float)xp / 32.0f, (float)yp / 32.0f, (float)zp / 32.0f, yRot, xRot));
 }
 
+void NetworkPlayer::teleport(int16_t x, int16_t y, int16_t z, float yRot, float xRot) {
+    moveQueue.push_back(PlayerMove((float)(xp + x) / 64.0f, (float)(yp + y) / 64.0f, (float)(zp + z) / 64.0f, (this->yRot + yRot) / 2.0f, (this->xRot + xRot) / 2.0f));
+    xp = x;
+    yp = y;
+    zp = z;
+    moveQueue.push_back(PlayerMove((float)xp / 32.0f, (float)yp / 32.0f, (float)zp / 32.0f, yRot, xRot));
+}
+
 void NetworkPlayer::queue(int8_t dx, int8_t dy, int8_t dz) {
     moveQueue.push_back(PlayerMove(((float)xp + (float)dx / 2.0f) / 32.0f, ((float)yp + (float)dy / 2.0f) / 32.0f, ((float)zp + (float)dz / 2.0f) / 32.0f));
     xp += dx;
@@ -169,10 +204,12 @@ void NetworkPlayer::queue(float yRot, float xRot) {
     moveQueue.push_back(PlayerMove(yRot, xRot));
 }
 
-void NetworkPlayer::teleport(int16_t x, int16_t y, int16_t z, float yRot, float xRot) {
-    moveQueue.push_back(PlayerMove((float)(xp + x) / 64.0f, (float)(yp + y) / 64.0f, (float)(zp + z) / 64.0f, (this->yRot + yRot) / 2.0f, (this->xRot + xRot) / 2.0f));
-    xp = x;
-    yp = y;
-    zp = z;
-    moveQueue.push_back(PlayerMove((float)xp / 32.0f, (float)yp / 32.0f, (float)zp / 32.0f, yRot, xRot));
+void NetworkPlayer::clear() {
+    if (skin >= 0) {
+        cout << "Releasing texture for " << this->name << endl;
+        textures->idBuffer.clear();
+        textures->idBuffer.resize(1);
+        textures->idBuffer.push_back(skin);
+        glDeleteTextures(1, textures->idBuffer.data());
+    }
 }

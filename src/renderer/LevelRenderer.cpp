@@ -42,7 +42,7 @@ void LevelRenderer::compileSurroundingGround() {
     dirtyChunks.clear();
     glNewList(surroundLists, GL_COMPILE);
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, this->textures->loadTexture("rock.png", GL_NEAREST));
+    glBindTexture(GL_TEXTURE_2D, this->textures->getTextureId("rock.png"));
     float var10 = 0.5f;
     glColor4f(var10, var10, var10, 1.0f);
     shared_ptr<Tesselator> t = Tesselator::instance;
@@ -74,7 +74,7 @@ void LevelRenderer::compileSurroundingGround() {
     }
 
     t->end();
-    glBindTexture(GL_TEXTURE_2D, this->textures->loadTexture("rock.png", GL_NEAREST));
+    glBindTexture(GL_TEXTURE_2D, this->textures->getTextureId("rock.png"));
     glColor3f(0.8f, 0.8f, 0.8f);
     t->begin();
 
@@ -109,7 +109,7 @@ void LevelRenderer::compileSurroundingGround() {
     glNewList(surroundLists + 1, GL_COMPILE);
     glEnable(GL_TEXTURE_2D);
     glColor3f(1.0F, 1.0F, 1.0F);
-    glBindTexture(GL_TEXTURE_2D, this->textures->loadTexture("water.png", GL_NEAREST));
+    glBindTexture(GL_TEXTURE_2D, this->textures->getTextureId("water.png"));
     var10 = level->getWaterLevel();
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -182,7 +182,7 @@ int32_t LevelRenderer::render(shared_ptr<Player>& player, int32_t layer) {
 
     if (!dummyBuffer.empty()) {
         glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, textures->loadTexture("terrain.png", GL_NEAREST));
+        glBindTexture(GL_TEXTURE_2D, textures->getTextureId("terrain.png"));
         glCallLists(dummyBuffer.size(), GL_INT, dummyBuffer.data());
         glDisable(GL_TEXTURE_2D);
     }
@@ -197,7 +197,7 @@ void LevelRenderer::renderClouds(float var1) {
     }
 
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, textures->loadTexture("clouds.png", GL_NEAREST));
+    glBindTexture(GL_TEXTURE_2D, textures->getTextureId("clouds.png"));
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     shared_ptr<Tesselator> t = Tesselator::instance;
     float var3 = 0.0F;
@@ -291,7 +291,7 @@ void LevelRenderer::renderHit(shared_ptr<Player>& player, optional<HitResult>& h
         float var8 = (float)sin((double)Timer::nanoTime() / 1000000 / 100.0) * 0.2f + 0.8f;
         glColor4f(var8, var8, var8, (float)sin((double)Timer::nanoTime() / 1000000 / 200.0) * 0.2f + 0.5f);
         glEnable(GL_TEXTURE_2D);
-        int32_t id = textures->loadTexture("terrain.png", GL_NEAREST);
+        int32_t id = textures->getTextureId("terrain.png");
         glBindTexture(GL_TEXTURE_2D, id);
         int32_t x = h->x;
         int32_t y = h->y;

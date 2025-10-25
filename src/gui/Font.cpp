@@ -1,7 +1,7 @@
 #include <iostream>
 #include "GL_compat.h"
 #include "gui/Font.h"
-#include "stb_image.h"
+#include "Util/stb_image.h"
 #include "renderer/Tesselator.h"
 
 Font::Font(string name, shared_ptr<Textures>& textures) {
@@ -33,7 +33,7 @@ Font::Font(string name, shared_ptr<Textures>& textures) {
         }
         this->charWidths[i] = x;
     }
-    this->fontTexture = textures->loadTexture(name, GL_NEAREST);
+    this->fontTexture = textures->getTextureId(name);
     stbi_image_free(img);
 }
 
@@ -47,46 +47,52 @@ void Font::draw(string str, int32_t x, int32_t y, int32_t color) {
 }
 
 void Font::draw(string str, int32_t x, int32_t y, int32_t color, bool darken) {
-    if (darken) {
-        color = (color & 0xFCFCFC) >> 2;
-    }
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, fontTexture);
-    shared_ptr<Tesselator> t = Tesselator::instance;
-    t->begin();
-    t->color(color);
-    int32_t xo = 0;
-    for (int32_t i = 0; i < str.length(); i++) {
-        if (str[i] == '&') {
-            int32_t cc = string("0123456789abcdef").find(str[i + 1]);
-            if (cc != string::npos) {
-                int32_t br = (cc & 8) * 8;
-                int32_t b = (cc & 1) * 191 + br;
-                int32_t g = ((cc & 2) >> 1) * 191 + br;
-                int32_t r = ((cc & 4) >> 2) * 191 + br;
-                color = r << 16 | g << 8 | b;
-                i += 2;
-                if (darken) {
-                    color = (color & 0xFCFCFC) >> 2;
-                }
-                t->color(color);
-            }
-            
+    if (!str.empty()) {
+        if (darken) {
+            color = (color & 0xFCFCFC) >> 2;
         }
-        int32_t ix = str[i] % 16 * 8;
-        int32_t iy = str[i] / 16 * 8;
-        float var13 = 7.99f;
-        t->vertexUV((float)(x + xo), (float)y + var13, 0.0f, (float)ix / 128.0f, (float)(iy + var13) / 128.0f);
-        t->vertexUV((float)(x + xo) + var13, (float)y + var13, 0.0f, ((float)ix + var13) / 128.0f, ((float)iy + var13) / 128.0f);
-        t->vertexUV((float)(x + xo) + var13, y, 0.0f, ((float)ix + var13) / 128.0f, (float)iy / 128.0f);
-        t->vertexUV((float)(x + xo), y, 0.0f, (float)ix / 128.0f, (float)iy / 128.0f);
-        xo += this->charWidths[str[i]];
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, fontTexture);
+        shared_ptr<Tesselator> t = Tesselator::instance;
+        t->begin();
+        t->color(color);
+        int32_t xo = 0;
+        for (int32_t i = 0; i < str.length(); i++) {
+            if (str[i] == '&') {
+                int32_t cc = string("0123456789abcdef").find(str[i + 1]);
+                if (cc != string::npos) {
+                    int32_t br = (cc & 8) * 8;
+                    int32_t b = (cc & 1) * 191 + br;
+                    int32_t g = ((cc & 2) >> 1) * 191 + br;
+                    int32_t r = ((cc & 4) >> 2) * 191 + br;
+                    color = r << 16 | g << 8 | b;
+                    i += 2;
+                    if (darken) {
+                        color = (color & 0xFCFCFC) >> 2;
+                    }
+                    t->color(color);
+                }
+                
+            }
+            int32_t ix = str[i] % 16 * 8;
+            int32_t iy = str[i] / 16 * 8;
+            float var13 = 7.99f;
+            t->vertexUV((float)(x + xo), (float)y + var13, 0.0f, (float)ix / 128.0f, (float)(iy + var13) / 128.0f);
+            t->vertexUV((float)(x + xo) + var13, (float)y + var13, 0.0f, ((float)ix + var13) / 128.0f, ((float)iy + var13) / 128.0f);
+            t->vertexUV((float)(x + xo) + var13, y, 0.0f, ((float)ix + var13) / 128.0f, (float)iy / 128.0f);
+            t->vertexUV((float)(x + xo), y, 0.0f, (float)ix / 128.0f, (float)iy / 128.0f);
+            xo += this->charWidths[str[i]];
+        }
+        t->end();
+        glDisable(GL_TEXTURE_2D);
     }
-    t->end();
-    glDisable(GL_TEXTURE_2D);
+    
 }
 
 int32_t Font::width(string str) {
+    if (str.empty()) {
+        return 0;
+    }
     int32_t len = 0;
     for (int32_t i = 0; i < str.size(); i++) {
         if (str[i] == '&') {

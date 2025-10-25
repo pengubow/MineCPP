@@ -43,7 +43,7 @@ void ChatScreen::keyPressed(char var1, int32_t key) {
             TypedMsg.pop_back();
         }
 
-        string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ,.:-_\'*!\"#%/()=+?[]{}<>";
+        string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ,.:-_\'*!\\\"#%/()=+?[]{}<>@|$";
         if (allowed.find(var1) != string::npos && TypedMsg.length() < 64 - (minecraft->user->name.length() + 2)) {
             TypedMsg += var1;
         }

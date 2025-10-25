@@ -9,7 +9,7 @@ ParticleEngine::ParticleEngine(shared_ptr<Level>& level, shared_ptr<Textures>& t
 void ParticleEngine::render(Player* player, float a) {
     if (!this->particles.empty()) {
         glEnable(GL_TEXTURE_2D);
-        int32_t id = textures->loadTexture("terrain.png", GL_NEAREST);
+        int32_t id = textures->getTextureId("terrain.png");
         glBindTexture(GL_TEXTURE_2D, id);
         float xa = -((float)cos((double)player->yRot * M_PI / 180.0));
         float za = -((float)sin((double)player->yRot * M_PI / 180.0));
