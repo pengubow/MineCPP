@@ -11,7 +11,7 @@ public:
     int32_t surroundLists;
     int32_t drawDistance = 0;
     vector<int32_t> dummyBuffer = vector<int32_t>(65536);
-    vector<shared_ptr<Chunk>> dirtyChunks;
+    unordered_set<shared_ptr<Chunk>> dirtyChunks;
     vector<shared_ptr<Chunk>> chunks;
     vector<shared_ptr<Chunk>> sortedChunks;
 private:

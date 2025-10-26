@@ -731,17 +731,14 @@ void Minecraft::render(float a) {
         c->isInFrustumFunc(frustum);
     }
 
-    vector<shared_ptr<Chunk>> dirty = levelRenderer->dirtyChunks;
+    vector<shared_ptr<Chunk>> dirty(levelRenderer->dirtyChunks.begin(), levelRenderer->dirtyChunks.end());
     DirtyChunkSorter sorter(player);
     sort(dirty.begin(), dirty.end(), sorter);
 
     int32_t rebuildCount = 4;
     for (shared_ptr<Chunk> c : dirty) {
         c->rebuild();
-        auto it = find(levelRenderer->dirtyChunks.begin(), levelRenderer->dirtyChunks.end(), c);
-        if (it != levelRenderer->dirtyChunks.end()) {
-            levelRenderer->dirtyChunks.erase(it);
-        }
+        levelRenderer->dirtyChunks.erase(c);
         if (--rebuildCount == 0) {
             break;
         }

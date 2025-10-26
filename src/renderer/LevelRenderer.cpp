@@ -431,7 +431,7 @@ void LevelRenderer::setDirty(int32_t minX, int32_t minY, int32_t minZ, int32_t m
     for (int32_t x = minX; x <= maxX; x++) {
         for (int32_t y = minY; y <= maxY; y++) {
             for (int32_t z = minZ; z <= maxZ; z++) {
-                dirtyChunks.push_back(sortedChunks[(z * yChunks + y) * xChunks + x]);
+                dirtyChunks.insert(sortedChunks[(z * yChunks + y) * xChunks + x]);
             }
         }
     }
