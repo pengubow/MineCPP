@@ -105,7 +105,7 @@ void Minecraft::run() {
         }
 
         glfwMakeContextCurrent(window);
-        glfwSetWindowTitle(window, "Minecraft 0.0.20a_01");
+        glfwSetWindowTitle(window, "Minecraft 0.0.20a_02");
         glfwSwapInterval(0);
 
         glfwSetScrollCallback(window, scroll_callback);
@@ -853,6 +853,8 @@ void Minecraft::initGui() {
 
 void Minecraft::setupFog() {
     glFogfv(GL_FOG_COLOR, getBuffer(fogColorRed, fogColorGreen, fogColorBlue, 1.0f).data());
+    glNormal3f(0.0f, -1.0f, 0.0f);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     Tile* tile = Tile::tiles[level->getTile((int32_t)player->x, (int32_t)(player->y + 0.12f), (int32_t)player->z)];
     if (tile != nullptr && tile->getLiquidType() != Liquid::none) {
         Liquid* liquid = tile->getLiquidType();

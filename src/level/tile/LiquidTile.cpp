@@ -12,7 +12,7 @@ LiquidTile::LiquidTile(int32_t id, Liquid* type)
     calmTileId = id + 1;
     float var4 = 0.01f;
     float var3 = 0.1f;
-    setShape(0.0f - var4, 0.0f - var3 - var4, 0.0f - var4, var4 + 1.0f, 1.0f - var3 + var4, var4 + 1.0f);
+    setShape(var4 + 0.0f, 0.0f - var3 + var4, var4 + 0.0f, var4 + 1.0f, 1.0f - var3 + var4, var4 + 1.0f);
     setTicking(true);
     if (type == Liquid::lava) {
         setTickSpeed(16);

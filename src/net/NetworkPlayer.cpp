@@ -175,13 +175,17 @@ void NetworkPlayer::render(shared_ptr<Textures>& textures, float a) {
     a = 0.05f;
     glScalef(a, -a, a);
     glTranslatef((float)(-minecraft->font->width(name)) / 2.0f, 0.0f, 0.0f);
-    
+    glNormal3f(1.0f, -1.0f, 1.0f);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_COLOR_BUFFER_BIT);
     if (name == "Notch") {
         minecraft->font->draw(name, 0, 0, 16776960);
     } else {
         minecraft->font->draw(name, 0, 0, 16777215);
     }
 
+    glEnable(GL_COLOR_BUFFER_BIT);
+    glEnable(GL_LIGHTING);
     glTranslatef(1.0f, 1.0f, -0.05f);
     minecraft->font->draw(name, 0, 0, 5263440);
     
