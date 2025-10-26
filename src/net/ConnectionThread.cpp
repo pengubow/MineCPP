@@ -13,7 +13,7 @@ void ConnectionThread::run() {
         SocketConnection* connection = new SocketConnection(ip, port);
         connectionManager->connection = connection;
         connection->manager = connectionManager;
-        connection->sendPacket(Packet::LOGIN, {(int8_t)4, username, mpPass});
+        connection->sendPacket(Packet::LOGIN, {(int8_t)5, username, mpPass});
         connectionManager->processData = true;
     } catch (const exception& e) {
         minecraft->hideGui = false;

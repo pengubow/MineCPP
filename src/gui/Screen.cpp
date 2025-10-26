@@ -184,7 +184,7 @@ void Screen::updateEvents() {
                     var4++;
                     continue;
                 }
-                if (var2 >= var5->x && var3 >= var5->y &&
+                if (var5->enabled && var2 >= var5->x && var3 >= var5->y &&
                     var2 < var5->x + var5->w && var3 < var5->y + var5->h) {
                     this->buttonClicked(var5);
                 }

@@ -18,6 +18,8 @@
 #include "net/ConnectionManager.h"
 #include "ChatLine.h"
 
+class InGameHud;
+
 class Minecraft : public enable_shared_from_this<Minecraft> {
     bool fullscreen = false;
 public:
@@ -31,8 +33,8 @@ public:
 	shared_ptr<Level> level;
 	shared_ptr<LevelRenderer> levelRenderer;
 	shared_ptr<Player> player;
-private:
 	int32_t paintTexture = 1;
+private:
 	shared_ptr<ParticleEngine> particleEngine;
 public:
 	shared_ptr<User> user;
@@ -40,24 +42,22 @@ public:
 	atomic<bool> pause = false;
 private:
 	int32_t yMouseAxis = 1;
-	static shared_ptr<Textures> textures;
 public:
+	static shared_ptr<Textures> textures;
 	shared_ptr<Font> font;
 private:
 	int32_t editMode = 0;
-	shared_ptr<Screen> screen;
 public:
+	shared_ptr<Screen> screen;
 	shared_ptr<LevelIO> levelIo;
 private:
 	shared_ptr<LevelGen> levelGen;
 	int32_t ticksRan = 0;
 public:
 	string loadMapUser;
-	int32_t loadMapID = 0;
+	int32_t loadMapId = 0;
+	shared_ptr<InGameHud> hud;
 	ConnectionManager* connectionManager;
-private:
-	deque<ChatLine> chatMessages;
-public:
 	string server;
 	int32_t port = 0;
 private:
@@ -66,8 +66,8 @@ private:
 	float fogColorBlue = 1.0f;
 public:
 	atomic<bool> running = false;
-private:
 	string fpsString = "";
+private:
 	bool mouseGrabbed = false;
 	int32_t prevFrameTime = 0;
 	float renderDistance = 0.0f;
@@ -103,8 +103,8 @@ private:
 	bool isMultiplayer();
     void orientCamera(float a);
     void render(float a);
+public:
 	void initGui();
-	void renderGui();
 private:
     void setupFog();
     vector<float>& getBuffer(float a, float b, float c, float d);

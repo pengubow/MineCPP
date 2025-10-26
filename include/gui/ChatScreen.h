@@ -1,3 +1,5 @@
+#pragma once
+
 #include "gui/Screen.h"
 
 class ChatScreen : public Screen {

@@ -35,7 +35,7 @@ void MinecraftApplet::init(int argc, char* argv[]) {
 
     if (args.count("mapUser") && args.count("mapId")) {
         minecraft->loadMapUser = args["mapUser"];
-        minecraft->loadMapID = stoi(args["mapId"]);
+        minecraft->loadMapId = stoi(args["mapId"]);
     }
 
     if (args.count("server") && args.count("port")) {

@@ -35,6 +35,9 @@ private:
     vector<shared_ptr<Coord>> tickList;
 public:
     vector<shared_ptr<Entity>> entities;
+private:
+    bool networkMode = false;
+public:
     int32_t unprocessed = 0;
     int32_t tickCount = 0;
 
@@ -49,13 +52,14 @@ public:
     vector<AABB> getCubes(AABB& aABB);
     void swap(int32_t minX, int32_t minY, int32_t minZ, int32_t maxX, int32_t maxY, int32_t maxZ);
     bool setTileNoNeighborChange(int32_t x, int32_t y, int32_t z, int32_t type);
+    bool netSetTileNoNeighborChange(int32_t x, int32_t y, int32_t z, int32_t type);
     bool setTile(int32_t x, int32_t y, int32_t z, int32_t type);
-private:
-    void updateNeighborAt(int32_t x, int32_t y, int32_t z, int32_t type);
+    bool netSetTile(int32_t x, int32_t y, int32_t z, int32_t type);
+    void updateNeighborsAt(int32_t x, int32_t y, int32_t z, int32_t type);
 public:
     bool setTileNoUpdate(int32_t x, int32_t y, int32_t z, int32_t type);
 private:
-    void neighborChanged(int32_t x, int32_t y, int32_t z, int32_t type);
+    void updateNeighborAt(int32_t x, int32_t y, int32_t z, int32_t type);
 public:
     bool isLit(int32_t x, int32_t y, int32_t z);
     int32_t getTile(int32_t x, int32_t y, int32_t z);
@@ -80,4 +84,6 @@ public:
     float getCaveness(float x, float y, float z, float var4);
     float getCaveness(shared_ptr<Entity>& entity);
     vector<uint8_t> copyBlocks();
+    bool isWater(int32_t x, int32_t y, int32_t z);
+    void setNetworkMode(bool networkMode);
 };

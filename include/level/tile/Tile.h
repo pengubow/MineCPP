@@ -32,6 +32,8 @@ public:
     static Tile* oreCoal;
     static Tile* log;
     static Tile* leaf;
+    static Tile* sponge;
+    static Tile* glass;
     int32_t tex;
     int32_t id;
 private:
@@ -53,7 +55,9 @@ protected:
     Tile(int32_t id, int32_t tex);
 public:
     virtual bool render(shared_ptr<Tesselator>& t, shared_ptr<Level>& level, int32_t layer, int32_t x, int32_t y, int32_t z);
-protected:
+    virtual void onTileAdded(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z);
+    virtual void onTileRemoved(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z);
+    protected:
     virtual float getBrightness(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z);
 public:
     static bool cullFace(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, int32_t face);

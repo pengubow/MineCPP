@@ -20,6 +20,10 @@ NetworkPlayer::NetworkPlayer(shared_ptr<Minecraft>& minecraft, int32_t id, strin
 void NetworkPlayer::tick() {
     Entity::tick();
     animStepO = animStep;
+    yBodyRotO = yBodyRot;
+    yRotO = yRot;
+    xRotO = xRot;
+    tickCount++;
     int32_t var1 = 5;
 
     do {
@@ -32,33 +36,21 @@ void NetworkPlayer::tick() {
 
     float var6 = x - xo;
     float var2 = z - zo;
-    yBodyRotO = yBodyRot;
     float var3 = (float)sqrt((double)(var6 * var6 + var2 * var2));
     float var4 = yBodyRot;
     float var5 = 0.0f;
     oRun = run;
     float whattonamethis = 0.0f;
     
-    if (var3 == 0.0f) {
-        animStep = 0.0f;
-    }
-    else {
+    if (var3 != 0.0f) {
         whattonamethis = 1.0f;
         var5 = var3 * 3.0f;
         var4 = -((float)atan2((double)var2, (double)var6) * 180.0f / M_PI + 90.0f);
     }
 
-    run += (whattonamethis - run) * 0.1f;
+    run += (whattonamethis - run) * 0.3f;
 
     for (var6 = var4 - yBodyRot; var6 < -180.0f; var6 += 360.0f) {}
-    while (var6 >= 180.0f) {
-        var6 -= 360.0f;
-    }
-
-    yBodyRot += var6 * 0.1f;
-
-    for (var6 = yRot - yBodyRot; var6 < -180.0f; var6 += 360.0f) {}
-
     while (var6 >= 180.0f) {
         var6 -= 360.0f;
     }
@@ -80,6 +72,7 @@ void NetworkPlayer::tick() {
     }
 
     yBodyRot = yRot - var6;
+    yBodyRot += var6 * 0.1f;
     if (var7) {
         var5 = -var5;
     }
@@ -113,6 +106,7 @@ void NetworkPlayer::tick() {
 
 void NetworkPlayer::render(shared_ptr<Textures>& textures, float a) {
     this->textures = textures;
+    float var3 = oRun + (run - oRun) * a;
     shared_ptr<Minecraft> minecraft = this->minecraft.lock();
     if (!minecraft) {
         return;
@@ -131,26 +125,47 @@ void NetworkPlayer::render(shared_ptr<Textures>& textures, float a) {
         glBindTexture(GL_TEXTURE_2D, skin);
     }
     
-    float var8 = yBodyRotO + (yBodyRot - yBodyRotO) * a;
-    float var3 = yRotO + (yRot - yRotO) * a;
-    float var4 = xRotO + (xRot - xRotO) * a;
-    var3 -= var8;
-    
+    while (yBodyRotO - yBodyRot < -180.0f) {
+        yBodyRotO += 360.0f;
+    }
+
+    while (yBodyRotO - yBodyRot >= 180.0f) {
+        yBodyRotO -= 360.0f;
+    }
+
+    float var9;
+    for (var9 = yBodyRotO + (yBodyRot - yBodyRotO) * a; xRotO - xRot < -180.0f; xRotO += 360.0f) {}
+
+    while (xRotO - xRot >= 180.0f) {
+        xRotO -= 360.0f;
+    }
+
+    while (yRotO - yRot < -180.0f) {
+        yRotO += 360.0f;
+    }
+
+    while (yRotO - yRot >= 180.0f) {
+        yRotO -= 360.0f;
+    }
+
+    float var4 = yRotO + (yRot - yRotO) * a;
+    float var5 = xRotO + (xRot - xRotO) * a;
+    var4 = -(var4 - var9);  
     glPushMatrix();
-    float var5 = animStepO + (animStep - animStepO) * a;
-    float var6 = getBrightness();
-    glColor3f(var6, var6, var6);
-    var6 = 1.0f / 16.0f;
-    float var7 = (float)(-fabs(sin((double)var5 * 0.6662)) * 5.0 - 23.0);
-    
+    float var6 = animStepO + (animStep - animStepO) * a;
+    float var7 = getBrightness();
+    glColor3f(var7, var7, var7);
+    var7 = 1.0F / 16.0F;
+    float var8 = (float)(-abs(cos((double)var6 * 0.6662)) * 5.0 * (double)var3 - 23.0);
     glTranslatef(xo + (x - xo) * a, yo + (y - yo) * a - heightOffset, 
         zo + (z - zo) * a);
     glScalef(1.0f, -1.0f, 1.0f);
-    glScalef(var6, var6, var6);
-    glTranslatef(0.0f, var7, 0.0f);
-    glRotatef(var8, 0.0f, 1.0f, 0.0f);
+    glScalef(var7, var7, var7);
+    glTranslatef(0.0f, var8, 0.0f);
+    glRotatef(var9, 0.0f, 1.0f, 0.0f);
     glDisable(GL_ALPHA_TEST);
-    zombieModel.render(var5, var3, var4);
+    glScalef(-1.0f, 1.0f, 1.0f);
+    zombieModel.render(var6, var3, (float)tickCount + a, var4, var5);
     glEnable(GL_ALPHA_TEST);
     glPopMatrix();
     glPushMatrix();
@@ -176,7 +191,27 @@ void NetworkPlayer::render(shared_ptr<Textures>& textures, float a) {
 }
 
 void NetworkPlayer::queue(int8_t dx, int8_t dy, int8_t dz, float yRot, float xRot) {
-    moveQueue.push_back(PlayerMove(((float)xp + (float)dx / 2.0f) / 32.0f, ((float)yp + (float)dy / 2.0f) / 32.0f, ((float)zp + (float)dz / 2.0f) / 32.0f, (this->yRot + yRot) / 2.0f, (this->xRot + xRot) / 2.0f));
+    float var6 = yRot - this->yRot;
+
+    float var7;
+    for (var7 = xRot - this->xRot; var6 >= 180.0f; var6 -= 360.0f) {
+    }
+
+    while (var6 < -180.0f) {
+        var6 += 360.0f;
+    }
+
+    while (var7 >= 180.0f) {
+        var7 -= 360.0f;
+    }
+
+    while (var7 < -180.0f) {
+        var7 += 360.0f;
+    }
+
+    var6 = this->yRot + var6 * 0.5f;
+    var7 = this->xRot + var7 * 0.5f;
+    moveQueue.push_back(PlayerMove(((float)xp + (float)dx / 2.0f) / 32.0f, ((float)yp + (float)dy / 2.0f) / 32.0f, ((float)zp + (float)dz / 2.0f) / 32.0f, var6, var7));
     xp += dx;
     yp += dy;
     zp += dz;
@@ -184,7 +219,27 @@ void NetworkPlayer::queue(int8_t dx, int8_t dy, int8_t dz, float yRot, float xRo
 }
 
 void NetworkPlayer::teleport(int16_t x, int16_t y, int16_t z, float yRot, float xRot) {
-    moveQueue.push_back(PlayerMove((float)(xp + x) / 64.0f, (float)(yp + y) / 64.0f, (float)(zp + z) / 64.0f, (this->yRot + yRot) / 2.0f, (this->xRot + xRot) / 2.0f));
+    float var6 = yRot - this->yRot;
+
+    float var7;
+    for (var7 = xRot - this->xRot; var6 >= 180.0f; var6 -= 360.0f) {
+    }
+
+    while (var6 < -180.0f) {
+        var6 += 360.0f;
+    }
+
+    while (var7 >= 180.0f) {
+        var7 -= 360.0f;
+    }
+
+    while (var7 < -180.0f) {
+        var7 += 360.0f;
+    }
+
+    var6 = this->yRot + var6 * 0.5f;
+    var7 = this->xRot + var7 * 0.5f;
+    moveQueue.push_back(PlayerMove((float)(xp + x) / 64.0f, (float)(yp + y) / 64.0f, (float)(zp + z) / 64.0f, var6, var7));
     xp = x;
     yp = y;
     zp = z;
@@ -200,7 +255,27 @@ void NetworkPlayer::queue(int8_t dx, int8_t dy, int8_t dz) {
 }
 
 void NetworkPlayer::queue(float yRot, float xRot) {
-    moveQueue.push_back(PlayerMove((this->yRot + yRot) / 2.0f, (this->xRot + xRot) / 2.0f));
+    float var3 = yRot - this->yRot;
+
+    float var4;
+    for (var4 = xRot - this->xRot; var3 >= 180.0F; var3 -= 360.0F) {
+    }
+
+    while (var3 < -180.0F) {
+        var3 += 360.0F;
+    }
+
+    while (var4 >= 180.0F) {
+        var4 -= 360.0F;
+    }
+
+    while (var4 < -180.0F) {
+        var4 += 360.0F;
+    }
+
+    var3 = this->yRot + var3 * 0.5F;
+    var4 = this->xRot + var4 * 0.5F;
+    moveQueue.push_back(PlayerMove(var3, var4));
     moveQueue.push_back(PlayerMove(yRot, xRot));
 }
 
@@ -208,7 +283,7 @@ void NetworkPlayer::clear() {
     if (skin >= 0) {
         cout << "Releasing texture for " << this->name << endl;
         textures->idBuffer.clear();
-        textures->idBuffer.resize(1);
+        textures->idBuffer.reserve(1);
         textures->idBuffer.push_back(skin);
         glDeleteTextures(1, textures->idBuffer.data());
     }

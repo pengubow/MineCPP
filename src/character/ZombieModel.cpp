@@ -20,15 +20,19 @@ ZombieModel::ZombieModel() {
     leg1.setPos(2.0f, 12.0f, 0.0f);
 }
 
-void ZombieModel::render(double time, float var2, float var3) {
-    head.yRot = var2 * (M_PI / 180.0f);
-    head.xRot = var3 * (M_PI / 180.0f);
-    arm0.xRot = (float)sin(time * 0.6662 + M_PI) * 2.0f;
-    arm0.zRot = (float)(sin(time * 0.2312) + 1.0);
-    arm1.xRot = (float)sin(time * 0.6662) * 2.0f;
-    arm1.zRot = (float)(sin(time * 0.2812) - 1.0);
-    leg0.xRot = (float)sin(time * 0.6662) * 1.4f;
-    leg1.xRot = (float)sin(time * 0.6662 + M_PI) * 1.4f;
+void ZombieModel::render(double time, float var2, float var3, float var4, float var5) {
+    head.yRot = var4 / 57.29578f;
+    head.xRot = var5 / 57.29578f;
+    arm0.xRot = (float)cos((double)time * 0.6662 + M_PI) * 2.0f * var2;
+    arm0.zRot = (float)(cos((double)time * 0.2312) + 1.0) * var2;
+    arm1.xRot = (float)cos((double)time * 0.6662) * 2.0f * var2;
+    arm1.zRot = (float)(cos((double)time * 0.2812) - 1.0) * var2;
+    leg0.xRot = (float)cos((double)time * 0.6662) * 1.4f * var2;
+    leg1.xRot = (float)cos((double)time * 0.6662 + M_PI) * 1.4f * var2;
+    arm0.zRot += (float)cos((double)var3 * 0.09) * 0.05f + 0.05f;
+    arm1.zRot -= (float)cos((double)var3 * 0.09) * 0.05f + 0.05f;
+    arm0.xRot += (float)sin((double)var3 * 0.067) * 0.05f;
+    arm1.xRot -= (float)sin((double)var3 * 0.067) * 0.05f;
     head.render();
     body.render();
     arm0.render();

@@ -30,6 +30,7 @@ public:
     SocketConnection* connection;
     weak_ptr<Minecraft> minecraft;
     bool processData = false;
+    bool connected = false;
     unordered_map<uint8_t, shared_ptr<NetworkPlayer>> players;
 
     ConnectionManager(shared_ptr<Minecraft>& var1, const string& var2, int var3, const string& var4, const string& mpPass);

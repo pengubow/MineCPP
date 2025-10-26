@@ -8,6 +8,8 @@
 #include "level/tile/FallingTile.h"
 #include "level/tile/LogTile.h"
 #include "level/tile/LeafTile.h"
+#include "level/tile/SpongeTile.h"
+#include "level/tile/GlassTile.h"
 
 vector<Tile*> Tile::tiles = vector<Tile*>(256);
 vector<bool> Tile::shouldTick = vector<bool>(256);
@@ -29,7 +31,9 @@ Tile* Tile::oreGold = new Tile(14, 32);
 Tile* Tile::oreIron = new Tile(15, 33);
 Tile* Tile::oreCoal = new Tile(16, 34);
 Tile* Tile::log = new LogTile(17);
-Tile* Tile::leaf = new LeafTile(18, 22);
+Tile* Tile::leaf = new LeafTile(18, 22, false);
+Tile* Tile::sponge = new SpongeTile(19);
+Tile* Tile::glass = new GlassTile(20, 49, false);
 
 Tile::Tile(int32_t id) : id(id) {
     tiles[id] = this;
@@ -60,12 +64,11 @@ Tile::Tile(int32_t id, int32_t tex) : id(id), tex(tex) {
 
 bool Tile::render(shared_ptr<Tesselator>& t, shared_ptr<Level>& level, int32_t layer, int32_t x, int32_t y, int32_t z) {
     bool returnValue = false;
-    float var8 = 0.0f;
+    float var8 = 0.5f;
     float c1;
     float c2 = 0.8f;
     float c3 = 0.6f;
     if (this->shouldRenderFace(level, x, y - 1, z, layer, 0)) {
-        var8 = 0.5f;
         c1 = getBrightness(level, x, y - 1, z);
         t->color(var8 * c1, var8 * c1, var8 * c1);
         this->renderFace(t, x, y, z, 0);
@@ -103,6 +106,10 @@ bool Tile::render(shared_ptr<Tesselator>& t, shared_ptr<Level>& level, int32_t l
     }
     return returnValue;
 }
+
+void Tile::onTileAdded(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {}
+
+void Tile::onTileRemoved(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {}
 
 float Tile::getBrightness(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {
     return level->getBrightness(x, y, z);

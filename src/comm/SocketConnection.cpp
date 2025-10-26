@@ -9,6 +9,18 @@
 
 // chatgpt'd
 
+template<typename T, typename type>
+T catch_get(const type& v, const char* fieldName = "unknown") {
+    try {
+        return get<T>(v);
+    } catch (const bad_variant_access& e) {
+        cerr << "ERROR: Failed to extract field '" << fieldName << "'" << endl;
+        cerr << "  Expected type: " << typeid(T).name() << endl;
+        cerr << "  Exception: " << e.what() << endl;
+        throw;
+    }
+}
+
 SocketConnection::SocketConnection(const string& var1, int var2) 
     : connected(false), socketHandle(INVALID_SOCKET_HANDLE), 
       readPos(0), writePos(0), manager(nullptr), initialized(false) {
@@ -154,45 +166,47 @@ void SocketConnection::processDataFunc() {
 
         if (manager->processData) {
             if (var3 == Packet::LOGIN) {
-                minecraft->beginLevelLoading(get<string>(var11[1]));
-                minecraft->levelLoadUpdate(get<string>(var11[2]));
+                minecraft->beginLevelLoading(catch_get<string>(var11[1]));
+                minecraft->levelLoadUpdate(catch_get<string>(var11[2]));
             } else if (var3 == Packet::LEVEL_INITIALIZE) {
                 minecraft->setLevel(nullptr);
                 var12->levelBuffer.clear();
             } else if (var3 == Packet::LEVEL_DATA_CHUNK) {
-                int16_t var13 = get<int16_t>(var11[0]);
-                vector<uint8_t> var5 = get<vector<uint8_t>>(var11[1]);
-                int8_t var6 = get<int8_t>(var11[2]);
+                int16_t var13 = catch_get<int16_t>(var11[0]);
+                vector<uint8_t> var5 = catch_get<vector<uint8_t>>(var11[1]);
+                int8_t var6 = catch_get<int8_t>(var11[2]);
                 minecraft->setLoadingProgress(var6);
                 var12->levelBuffer.insert(var12->levelBuffer.end(), var5.begin(), 
                                         var5.begin() + var13);
             } else if (var3 == Packet::LEVEL_FINALIZE) {
-                int16_t var18 = get<int16_t>(var11[0]);
-                int16_t var21 = get<int16_t>(var11[1]);
-                int16_t var17 = get<int16_t>(var11[2]);
-                vector<uint8_t> var13 = LevelIO::loadBlocks(var12->levelBuffer);
+                int16_t width = catch_get<int16_t>(var11[0]);
+                int16_t depth = catch_get<int16_t>(var11[1]);
+                int16_t height = catch_get<int16_t>(var11[2]);
+                vector<uint8_t> blocks = LevelIO::loadBlocks(var12->levelBuffer);
                 var12->levelBuffer.clear();
-                shared_ptr<Level> var7 = make_shared<Level>();
-                var7->setData(var18, var21, var17, var13);
-                minecraft->setLevel(var7);
+                shared_ptr<Level> level = make_shared<Level>();
+                level->setNetworkMode(true);
+                level->setData(width, depth, height, blocks);
+                minecraft->setLevel(level);
                 minecraft->hideGui = false;
+                connected = true;
             } else if (var3 == Packet::SET_TILE) {
                 if (minecraft->level != nullptr) {
-                    minecraft->level->setTile(
-                        get<int16_t>(var11[0]),
-                        get<int16_t>(var11[1]),
-                        get<int16_t>(var11[2]),
-                        get<int8_t>(var11[3])
+                    minecraft->level->netSetTile(
+                        catch_get<int16_t>(var11[0]),
+                        catch_get<int16_t>(var11[1]),
+                        catch_get<int16_t>(var11[2]),
+                        catch_get<int8_t>(var11[3])
                     );
                 }
             } else if (var3 == Packet::PLAYER_JOIN) {
-                int8_t var15 = get<int8_t>(var11[0]);
-                string var19 = get<string>(var11[1]);
-                int16_t var18_2 = get<int16_t>(var11[2]);
-                int16_t var21_2 = get<int16_t>(var11[3]);
-                int16_t var24 = get<int16_t>(var11[4]);
-                int8_t var8 = get<int8_t>(var11[5]);
-                int8_t var9 = get<int8_t>(var11[6]);
+                int8_t var15 = catch_get<int8_t>(var11[0]);
+                string var19 = catch_get<string>(var11[1]);
+                int16_t var18_2 = catch_get<int16_t>(var11[2]);
+                int16_t var21_2 = catch_get<int16_t>(var11[3]);
+                int16_t var24 = catch_get<int16_t>(var11[4]);
+                int8_t var8 = catch_get<int8_t>(var11[5]);
+                int8_t var9 = catch_get<int8_t>(var11[6]);
 
                 if (var15 >= 0) {
                     shared_ptr<NetworkPlayer> var20 = make_shared<NetworkPlayer>(
@@ -210,12 +224,12 @@ void SocketConnection::processDataFunc() {
                     );
                 }
             } else if (var3 == Packet::PLAYER_TELEPORT) {
-                int8_t var15 = get<int8_t>(var11[0]);
-                int16_t x = get<int16_t>(var11[1]);
-                int16_t y = get<int16_t>(var11[2]);
-                int16_t z = get<int16_t>(var11[3]);
-                int8_t yRot = get<int8_t>(var11[4]);
-                int8_t xRot = get<int8_t>(var11[5]);
+                int8_t var15 = catch_get<int8_t>(var11[0]);
+                int16_t x = catch_get<int16_t>(var11[1]);
+                int16_t y = catch_get<int16_t>(var11[2]);
+                int16_t z = catch_get<int16_t>(var11[3]);
+                int8_t yRot = catch_get<int8_t>(var11[4]);
+                int8_t xRot = catch_get<int8_t>(var11[5]);
 
                 if (var15 < 0) {
                     minecraft->player->moveTo((float)x / 32.0f, 
@@ -231,12 +245,12 @@ void SocketConnection::processDataFunc() {
                     }
                 }
             } else if (var3 == Packet::PLAYER_MOVE_AND_ROTATE) {
-                int8_t var15 = get<int8_t>(var11[0]);
-                int8_t var30 = get<int8_t>(var11[1]);
-                int8_t var31 = get<int8_t>(var11[2]);
-                int8_t var6_2 = get<int8_t>(var11[3]);
-                int8_t var33 = get<int8_t>(var11[4]);
-                int8_t var8_3 = get<int8_t>(var11[5]);
+                int8_t var15 = catch_get<int8_t>(var11[0]);
+                int8_t var30 = catch_get<int8_t>(var11[1]);
+                int8_t var31 = catch_get<int8_t>(var11[2]);
+                int8_t var6_2 = catch_get<int8_t>(var11[3]);
+                int8_t var33 = catch_get<int8_t>(var11[4]);
+                int8_t var8_3 = catch_get<int8_t>(var11[5]);
 
                 if (var15 >= 0) {
                     shared_ptr<NetworkPlayer>& var28 = var12->players[var15];
@@ -246,9 +260,9 @@ void SocketConnection::processDataFunc() {
                     }
                 }
             } else if (var3 == Packet::PLAYER_ROTATE) {
-                int8_t var15 = get<int8_t>(var11[0]);
-                int8_t var30 = get<int8_t>(var11[1]);
-                int8_t var23 = get<int8_t>(var11[2]);
+                int8_t var15 = catch_get<int8_t>(var11[0]);
+                int8_t var30 = catch_get<int8_t>(var11[1]);
+                int8_t var23 = catch_get<int8_t>(var11[2]);
 
                 if (var15 >= 0) {
                     shared_ptr<NetworkPlayer>& var26 = var12->players[var15];
@@ -258,10 +272,10 @@ void SocketConnection::processDataFunc() {
                     }
                 }
             } else if (var3 == Packet::PLAYER_MOVE) {
-                int8_t var15 = get<int8_t>(var11[0]);
-                int8_t var30 = get<int8_t>(var11[1]);
-                int8_t var31 = get<int8_t>(var11[2]);
-                int8_t var6_3 = get<int8_t>(var11[3]);
+                int8_t var15 = catch_get<int8_t>(var11[0]);
+                int8_t var30 = catch_get<int8_t>(var11[1]);
+                int8_t var31 = catch_get<int8_t>(var11[2]);
+                int8_t var6_3 = catch_get<int8_t>(var11[3]);
 
                 if (var15 >= 0) {
                     shared_ptr<NetworkPlayer>& var27 = var12->players[var15];
@@ -270,7 +284,7 @@ void SocketConnection::processDataFunc() {
                     }
                 }
             } else if (var3 == Packet::PLAYER_DISCONNECT) {
-                int8_t var15 = get<int8_t>(var11[0]);
+                int8_t var15 = catch_get<int8_t>(var11[0]);
                 if (var15 >= 0) {
                     shared_ptr<NetworkPlayer>& var20 = var12->players[var15];
                     var12->players.erase(var15);
@@ -281,8 +295,8 @@ void SocketConnection::processDataFunc() {
                     }
                 }
             } else if (var3 == Packet::CHAT_MESSAGE) {
-                int8_t var15 = get<int8_t>(var11[0]);
-                string var19 = get<string>(var11[1]);
+                int8_t var15 = catch_get<int8_t>(var11[0]);
+                string var19 = catch_get<string>(var11[1]);
 
                 if (var15 < 0) {
                     minecraft->addChatMessage("&e" + var19);
@@ -290,7 +304,7 @@ void SocketConnection::processDataFunc() {
                     minecraft->addChatMessage(var19);
                 }
             } else if (var3 == Packet::KICK_PLAYER) {
-                string reason = get<string>(var11[0]);
+                string reason = catch_get<string>(var11[0]);
                 minecraft->setScreen(make_shared<ErrorScreen>("Connection lost", reason));
             }
         }
@@ -325,46 +339,46 @@ void SocketConnection::sendPacket(Packet* var1, const vector<PacketValue>& var2)
             if (connected) {
                 try {
                     if (var5 == FieldType::LONG) {
-                        int64_t val = get<int64_t>(var6);
+                        int64_t val = catch_get<int64_t>(var6);
                         uint64_t netVal = htobe64(val);
                         memcpy(&writeBuffer[writePos], &netVal, 8);
                         writePos += 8;
                     } else if (var5 == FieldType::INT) {
-                        int32_t val = get<int32_t>(var6);
+                        int32_t val = catch_get<int32_t>(var6);
                         uint32_t netVal = htonl(val);
                         memcpy(&writeBuffer[writePos], &netVal, 4);
                         writePos += 4;
                     } else if (var5 == FieldType::SHORT) {
-                        int16_t val = get<int16_t>(var6);
+                        int16_t val = catch_get<int16_t>(var6);
                         uint16_t netVal = htons(val);
                         memcpy(&writeBuffer[writePos], &netVal, 2);
                         writePos += 2;
                     } else if (var5 == FieldType::BYTE) {
-                        int8_t val = get<int8_t>(var6);
+                        int8_t val = catch_get<int8_t>(var6);
                         writeBuffer[writePos++] = val;
                     } else if (var5 == FieldType::DOUBLE) {
-                        double val = get<double>(var6);
+                        double val = catch_get<double>(var6);
                         uint64_t temp;
                         memcpy(&temp, &val, 8);
                         temp = htobe64(temp);
                         memcpy(&writeBuffer[writePos], &temp, 8);
                         writePos += 8;
                     } else if (var5 == FieldType::FLOAT) {
-                        float val = get<float>(var6);
+                        float val = catch_get<float>(var6);
                         uint32_t temp;
                         memcpy(&temp, &val, 4);
                         temp = htonl(temp);
                         memcpy(&writeBuffer[writePos], &temp, 4);
                         writePos += 4;
                     } else if (var5 == FieldType::BYTE_ARRAY) {
-                        var7 = get<vector<uint8_t>>(var6);
+                        var7 = catch_get<vector<uint8_t>>(var6);
                         if (var7.size() < 1024) {
                             var7.resize(1024);
                         }
                         memcpy(&writeBuffer[writePos], var7.data(), 1024);
                         writePos += 1024;
                     } else if (var5 == FieldType::STRING) {
-                        string str = get<string>(var6);
+                        string str = catch_get<string>(var6);
                         var7 = vector<uint8_t>(str.begin(), str.end());
                         fill(var4->stringPacket, var4->stringPacket + 64, 32);
                         

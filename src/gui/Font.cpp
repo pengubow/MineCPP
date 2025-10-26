@@ -58,9 +58,13 @@ void Font::draw(string str, int32_t x, int32_t y, int32_t color, bool darken) {
         t->color(color);
         int32_t xo = 0;
         for (int32_t i = 0; i < str.length(); i++) {
-            if (str[i] == '&') {
+            if (str[i] == '&' && str.length() > i + 1) {
                 int32_t cc = string("0123456789abcdef").find(str[i + 1]);
                 if (cc != string::npos) {
+                    if (cc < 0) {
+                        cc = 15;
+                    }
+
                     int32_t br = (cc & 8) * 8;
                     int32_t b = (cc & 1) * 191 + br;
                     int32_t g = ((cc & 2) >> 1) * 191 + br;

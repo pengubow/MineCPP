@@ -10,8 +10,9 @@ LiquidTile::LiquidTile(int32_t id, Liquid* type)
 
     tileId = id;
     calmTileId = id + 1;
+    float var4 = 0.01f;
     float var3 = 0.1f;
-    setShape(0.0f, 0.0f - var3, 0.0f, 1.0f, 1.0f - var3, 1.0f);
+    setShape(0.0f - var4, 0.0f - var3 - var4, 0.0f - var4, var4 + 1.0f, 1.0f - var3 + var4, var4 + 1.0f);
     setTicking(true);
     if (type == Liquid::lava) {
         setTickSpeed(16);
@@ -29,12 +30,12 @@ void LiquidTile::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z,
     bool var6;
     do {
         --y;
-        if(level->getTile(x, y, z) != 0) {
+        if (level->getTile(x, y, z) != 0 || !checkSponge(level, x, y, z)) {
             break;
         }
 
         var6 = level->setTile(x, y, z, tileId);
-        if(var6) {
+        if (var6) {
             var9 = true;
         }
     } while (var6 && liquid != Liquid::lava);
@@ -55,9 +56,29 @@ void LiquidTile::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z,
     }
 }
 
+bool LiquidTile::checkSponge(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {
+    if (liquid == Liquid::water) {
+        for (int32_t ix = x - 2; ix <= x + 2; ix++) {
+            for (int32_t iy = y - 2; iy <= y + 2; iy++) {
+                for (int32_t iz = z - 2; iz <= z + 2; iz++) {
+                    if (level->getTile(ix, iy, iz) == Tile::sponge->id) {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
 bool LiquidTile::checkWater(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {
     int32_t var5 = level->getTile(x, y, z);
     if (var5 == 0) {
+        if (!checkSponge(level, x, y, z)) {
+            return false;
+        }
+
         bool var6 = level->setTile(x, y, z, tileId);
         if (var6) {
             level->addToTickNextTick(x, y, z, tileId);

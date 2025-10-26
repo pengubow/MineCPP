@@ -158,7 +158,7 @@ shared_ptr<Level> LevelIO::loadDat(gzFile file) {
     try {
         const size_t CHUNK = 8192;
         vector<uint8_t> buf;
-        buf.reserve(1 << 20);
+        buf.resize(1 << 20);
         uint8_t tmp[CHUNK];
         int r;
         while ((r = gzread(file, tmp, CHUNK)) > 0) {
@@ -681,7 +681,7 @@ shared_ptr<Level> LevelIO::load(gzFile file) {
         int32_t xSpawn = 0, ySpawn = 0, zSpawn = 0;
         float rotSpawn = 0.0f;
         int32_t unprocessed = 0, tickCount = 0;
-        vector<shared_ptr<Entity>> entities;
+        vector<shared_ptr<Entity>> entities = vector<shared_ptr<Entity>>();
         
         shared_ptr<Level> level = make_shared<Level>();
 
@@ -755,6 +755,8 @@ shared_ptr<Level> LevelIO::load(gzFile file) {
                         }
                         else {
                             shared_ptr<Zombie> zombie = dynamic_pointer_cast<Zombie>(entity);
+
+                            // zombie
                             if (zombie && eHeader.name == "rot") {
                                 zombie->rot = gzip::gzreadFloatValue(file);
                             }
@@ -767,6 +769,8 @@ shared_ptr<Level> LevelIO::load(gzFile file) {
                             else if (zombie && eHeader.name == "rotA") {
                                 zombie->rotA = gzip::gzreadFloatValue(file);
                             }
+
+                            // entity
                             else if (eHeader.name == "x") {
                                 entity->x = gzip::gzreadFloatValue(file);
                             }
@@ -882,6 +886,10 @@ shared_ptr<Level> LevelIO::load(gzFile file) {
 
 void LevelIO::save(shared_ptr<Level>& level, gzFile file) {
     try {
+        for (size_t i = 0; i < level->entities.size(); ++i) {
+            auto& e = level->entities[i];
+            shared_ptr<Zombie> zombie = dynamic_pointer_cast<Zombie>(e);
+        }
         string magic = "MINE";
         
         gzip::gzwriteString(file, magic);
@@ -952,7 +960,6 @@ void LevelIO::save(shared_ptr<Level>& level, gzFile file) {
             gzip::gzwriteFieldFloat(file, "bbmaxX", e->bb.maxX);
             gzip::gzwriteFieldFloat(file, "bbmaxY", e->bb.maxY);
             gzip::gzwriteFieldFloat(file, "bbmaxZ", e->bb.maxZ);
-
             gzip::gzwriteFieldEnd(file);
         }
         gzip::gzwriteFieldEnd(file);

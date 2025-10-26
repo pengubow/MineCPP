@@ -47,7 +47,15 @@ void gzip::gzwriteString(gzFile file, const string& str) {
 FileFieldHeader gzip::gzreadFieldHeader(gzFile file) {
     FileFieldHeader header;
     uint8_t firstByte;
-    if (gzread(file, &firstByte, 1) != 1) {
+    int r = gzread(file, &firstByte, 1);
+    
+    if (r == 0) {
+        header.type = FileFieldType::END;
+        header.name = "";
+        return header;
+    }
+    
+    if (r != 1) {
         throw runtime_error("Failed to read field header");
     }
     

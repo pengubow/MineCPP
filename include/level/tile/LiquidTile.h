@@ -14,6 +14,7 @@ public:
     void onBlockAdded(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) override;
     void tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random random) override;
 private:
+    bool checkSponge(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z);    
     bool checkWater(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z);
 protected:
     float getBrightness(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) override;

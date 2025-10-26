@@ -60,7 +60,7 @@ void Cube::render() {
         glNewList(this->list, GL_COMPILE);
         glBegin(GL_QUADS);
         for (int32_t i = 0; i < this->polygons.size(); i++) {
-            for (int32_t i2 = 3; i2 >= 0; --i2) {
+            for (int32_t i2 = 0; i2 < 4; i2++) {
                 Vertex v = this->polygons[i].vertices[i2];
                 glTexCoord2f(v.u / 64.0f, v.v / 32.0f);
                 glVertex3f(v.pos->x, v.pos->y, v.pos->z);

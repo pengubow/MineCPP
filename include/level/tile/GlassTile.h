@@ -1,9 +1,10 @@
 #include "level/tile/Tile.h"
+#include "level/Level.h"
 
-class LeafTile : public Tile {
-    bool renderAdjacentFaces = true;
+class GlassTile : public Tile {
+    bool renderAdjacentFaces = false;
 public:
-    LeafTile(int32_t id, int32_t tex, bool var3);
+    GlassTile(int32_t id, int32_t tex, bool var3);
 
     bool isSolid() override;
 protected:

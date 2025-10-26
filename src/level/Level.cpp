@@ -158,15 +158,21 @@ vector<AABB> Level::getCubes(AABB& aABB) {
 }
 
 void Level::swap(int32_t minX, int32_t minY, int32_t minZ, int32_t maxX, int32_t maxY, int32_t maxZ) {
-    int32_t var7 = getTile(minX, minY, minZ);
-    int32_t var8 = getTile(maxX, maxY, maxZ);
-    setTileNoNeighborChange(minX, minY, minZ, var8);
-    setTileNoNeighborChange(maxX, maxY, maxZ, var7);
-    updateNeighborAt(minX, minY, minZ, var8);
-    updateNeighborAt(maxX, maxY, maxZ, var7);
+    if (!networkMode) {
+        int32_t var7 = getTile(minX, minY, minZ);
+        int32_t var8 = getTile(maxX, maxY, maxZ);
+        setTileNoNeighborChange(minX, minY, minZ, var8);
+        setTileNoNeighborChange(maxX, maxY, maxZ, var7);
+        updateNeighborAt(minX, minY, minZ, var8);
+        updateNeighborAt(maxX, maxY, maxZ, var7);
+    }
 }
 
 bool Level::setTileNoNeighborChange(int32_t x, int32_t y, int32_t z, int32_t type) {
+    return networkMode ? false : netSetTileNoNeighborChange(x, y, z, type);
+}
+
+bool Level::netSetTileNoNeighborChange(int32_t x, int32_t y, int32_t z, int32_t type) {
     if (x >= 0 && y >= 0 && z >= 0 && x < width && y < depth && z < height) {
         if (type == blocks[(y * height + z) * width + x]) {
             return false;
@@ -176,7 +182,18 @@ bool Level::setTileNoNeighborChange(int32_t x, int32_t y, int32_t z, int32_t typ
                 type = Tile::water->id;
             }
 
+            uint8_t block = blocks[(y * height + z) * width + x];
             blocks[(y * height + z) * width + x] = (uint8_t)type;
+            if (block != 0) {
+                shared_ptr<Level> level = shared_from_this();
+                Tile::tiles[block]->onTileRemoved(level, x, y, z);
+            }
+
+            if (type != 0) {
+                shared_ptr<Level> level = shared_from_this();
+                Tile::tiles[type]->onTileAdded(level, x, y, z);
+            }
+
             calcLightDepths(x, z, 1, 1);
 
             for(int32_t var4 = 0; var4 < levelListeners.size(); ++var4) {
@@ -192,8 +209,11 @@ bool Level::setTileNoNeighborChange(int32_t x, int32_t y, int32_t z, int32_t typ
 }
 
 bool Level::setTile(int32_t x, int32_t y, int32_t z, int32_t type) {
-    if (setTileNoNeighborChange(x, y, z, type)) {
-        updateNeighborAt(x, y, z, type);
+    if (networkMode) {
+        return false;
+    }
+    else if (setTileNoNeighborChange(x, y, z, type)) {
+        updateNeighborsAt(x, y, z, type);
         return true;
     }
     else {
@@ -201,13 +221,23 @@ bool Level::setTile(int32_t x, int32_t y, int32_t z, int32_t type) {
     }
 }
 
-void Level::updateNeighborAt(int32_t x, int32_t y, int32_t z, int32_t type) {
-    neighborChanged(x - 1, y, z, type);
-    neighborChanged(x + 1, y, z, type);
-    neighborChanged(x, y - 1, z, type);
-    neighborChanged(x, y + 1, z, type);
-    neighborChanged(x, y, z - 1, type);
-    neighborChanged(x, y, z + 1, type);
+bool Level::netSetTile(int32_t x, int32_t y, int32_t z, int32_t type) {
+    if (netSetTileNoNeighborChange(x, y, z, type)) {
+        updateNeighborsAt(x, y, z, type);
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+void Level::updateNeighborsAt(int32_t x, int32_t y, int32_t z, int32_t type) {
+    updateNeighborAt(x - 1, y, z, type);
+    updateNeighborAt(x + 1, y, z, type);
+    updateNeighborAt(x, y - 1, z, type);
+    updateNeighborAt(x, y + 1, z, type);
+    updateNeighborAt(x, y, z - 1, type);
+    updateNeighborAt(x, y, z + 1, type);
 }
 
 bool Level::setTileNoUpdate(int32_t x, int32_t y, int32_t z, int32_t type) {
@@ -223,7 +253,7 @@ bool Level::setTileNoUpdate(int32_t x, int32_t y, int32_t z, int32_t type) {
     }
 }
 
-void Level::neighborChanged(int32_t x, int32_t y, int32_t z, int32_t type) {
+void Level::updateNeighborAt(int32_t x, int32_t y, int32_t z, int32_t type) {
     if (x >= 0 && y >= 0 && z >= 0 && x < width && y < depth && z < height) {
         Tile* tile = Tile::tiles[blocks[(y * height + z) * width + x]];
         if (tile != nullptr) {
@@ -238,7 +268,7 @@ bool Level::isLit(int32_t x, int32_t y, int32_t z) {
 }
 
 int32_t Level::getTile(int32_t x, int32_t y, int32_t z) {
-    return x >= 0 && y >= 0 && z >= 0 && x < width && y < depth && z < height ? blocks[(y * height + z) * width + x] : 0;
+    return x >= 0 && y >= 0 && z >= 0 && x < width && y < depth && z < height ? blocks[(y * height + z) * width + x] & 255 : 0;
 }
 
 bool Level::isSolidTile(int32_t x, int32_t y, int32_t z) {
@@ -436,13 +466,15 @@ bool Level::containsLiquid(AABB& aabb, Liquid* liquidId) {
 }
 
 void Level::addToTickNextTick(int32_t x, int32_t y, int32_t z, int32_t id) {
-    shared_ptr<Coord> coord = make_shared<Coord>(x, y, z, id);
-    if(id > 0) {
-        int32_t tickDelay = Tile::tiles[id]->getTickDelay();
-        coord->scheduledTime = tickDelay;
-    }
+    if (!networkMode) {
+        shared_ptr<Coord> coord = make_shared<Coord>(x, y, z, id);
+        if(id > 0) {
+            int32_t tickDelay = Tile::tiles[id]->getTickDelay();
+            coord->scheduledTime = tickDelay;
+        }
 
-    tickList.push_back(coord);
+        tickList.push_back(coord);
+    }
 }
 
 bool Level::isFree(AABB& aabb) {
@@ -587,4 +619,13 @@ float Level::getCaveness(shared_ptr<Entity>& entity) {
 
 vector<uint8_t> Level::copyBlocks() {
     return blocks;
+}
+
+bool Level::isWater(int32_t x, int32_t y, int32_t z) {
+    int32_t tile = getTile(x, y, z);
+    return tile > 0 && Tile::tiles[tile]->getLiquidType() == Liquid::water;
+}
+
+void Level::setNetworkMode(bool networkMode) {
+    this->networkMode = networkMode;
 }

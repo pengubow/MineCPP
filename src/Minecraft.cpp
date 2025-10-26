@@ -16,6 +16,9 @@
 #include "net/Packet.h"
 #include "net/NetworkPlayer.h"
 #include "StopGameException.h"
+#include "renderer/texture/TextureLavaFX.h"
+#include "renderer/texture/TextureWaterFX.h"
+#include "gui/InGameHud.h"
 
 static int32_t scrollWheel = 0;
 
@@ -29,6 +32,8 @@ shared_ptr<Textures> Minecraft::textures;
 Minecraft::Minecraft(int32_t width, int32_t height, bool fullscreen) 
     : width(width), height(height), fullscreen(fullscreen) {
     textures = make_shared<Textures>();
+    textures->registerTextureFX(make_shared<TextureLavaFX>());
+    textures->registerTextureFX(make_shared<TextureWaterFX>());
 }
 
 void Minecraft::setScreen(shared_ptr<Screen> screen) {
@@ -99,7 +104,7 @@ void Minecraft::run() {
         }
 
         glfwMakeContextCurrent(window);
-        glfwSetWindowTitle(window, "Minecraft 0.0.18a_02");
+        glfwSetWindowTitle(window, "Minecraft 0.0.19a_04");
         glfwSwapInterval(0);
 
         glfwSetScrollCallback(window, scroll_callback);
@@ -132,7 +137,7 @@ void Minecraft::run() {
             try {
                 if (!loadMapUser.empty()) {
                     cerr << "no" << endl;
-                    // var9 = loadLevel(loadMapUser, loadMapID);
+                    // var9 = loadLevel(loadMapUser, loadMapId);
                 }
 
                 shared_ptr<Level> level;
@@ -174,6 +179,7 @@ void Minecraft::run() {
         }
 
         checkGlError("Post startup");
+        hud = make_shared<InGameHud>(mcshared, width, height);
     } catch (const exception& e) {
         cerr << e.what() << endl;
         tinyfd_messageBox("Failed to start Minecraft", e.what(), "ok", "error", 1);
@@ -195,18 +201,33 @@ void Minecraft::run() {
                 }
 
                 try {
-                    int64_t now = Timer::nanoTime();
-                    int64_t passedNS = now - timer.lastTime;
-                    timer.lastTime = now;
-                    if (passedNS < 0) {
-                        passedNS = 0;
+                    int64_t now = Timer::nanoTime() / 1000000;
+                    int64_t passedMS = now - timer.lastSyncSysClock;
+                    if (passedMS > 1000) {
+                        long var11 = Timer::nanoTime() / 1000000;
+                        long var13 = var11 - timer.lastSyncHRClock;
+                        timer.timeSyncAdjustment = (double)passedMS / (double)var13;
+                        timer.lastSyncSysClock = now;
+                        timer.lastSyncHRClock = var11;
                     }
 
-                    if (passedNS > 1000000000) {
-                        passedNS = 1000000000;
+                    if (passedMS < 0) {
+                        timer.lastSyncHRClock = passedMS;
                     }
 
-                    timer.fps += (float)passedNS * timer.timeScale * timer.ticksPerSecond / 1.0E9f;
+                    double var40 = (double)Timer::nanoTime() / 1.0e9;
+                    double var45 = (var40 - timer.lastHRTime) * timer.timeSyncAdjustment;
+                    timer.lastHRTime = var40;
+
+                    if (var45 < 0.0) {
+                        var45 = 0.0;
+                    }
+
+                    if (var45 > 1.0) {
+                        var45 = 1.0;
+                    }
+                    
+                    timer.fps = (float)((double)timer.fps + var45 * (double)timer.timeScale * (double)timer.ticksPerSecond);
                     timer.ticks = (int32_t)timer.fps;
                     if (timer.ticks > 100) {
                         timer.ticks = 100;
@@ -239,7 +260,7 @@ void Minecraft::run() {
                     if (!hideGui) {
                         if (level != nullptr) {
                             render(timer.partialTicks);
-                            renderGui();
+                            hud->render();
                             checkGlError("Rendered gui");
                         }
                         else {
@@ -344,7 +365,7 @@ void Minecraft::clickMouse() {
 
         Tile* tile = Tile::tiles[level->getTile(x, y, z)];
         if (editMode == 0) {
-            bool changed = level->setTile(x, y, z, 0);
+            bool changed = level->netSetTile(x, y, z, 0);
             if (tile != nullptr && changed) {
                 if (isMultiplayer()) {
                     connectionManager->sendBlockChange(x, y, z, editMode, paintTexture);
@@ -361,7 +382,7 @@ void Minecraft::clickMouse() {
                     if (isMultiplayer()) {
                         connectionManager->sendBlockChange(x, y, z, editMode, paintTexture);
                     }
-                    level->setTile(x, y, z, paintTexture);
+                    level->netSetTile(x, y, z, paintTexture);
                     Tile::tiles[paintTexture]->onBlockAdded(level, x, y, z);
                 }
             }
@@ -370,8 +391,18 @@ void Minecraft::clickMouse() {
 }
 
 void Minecraft::tick() {
-    for (int32_t i = 0; i < chatMessages.size(); ++i) {
-        chatMessages[i].counter++;
+    for (int32_t i = 0; i < hud->messages.size(); ++i) {
+        hud->messages[i].counter++;
+    }
+
+    glBindTexture(GL_TEXTURE_2D, this->textures->getTextureId("terrain.png"));
+
+    for(int32_t i = 0; i < textures->textureList.size(); i++) {
+        shared_ptr<TextureFX> textureFx = textures->textureList[i];
+        textureFx->onTick();
+        textures->textureBuffer.clear();
+        this->textures->textureBuffer.insert(this->textures->textureBuffer.end(), textureFx->imageData.data(), textureFx->imageData.data() + textureFx->imageData.size());
+        glTexSubImage2D(GL_TEXTURE_2D, 0, textureFx->iconIndex % 16 << 4, textureFx->iconIndex / 16 << 4, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, textures->textureBuffer.data());
     }
 
     if (connectionManager != nullptr) {
@@ -393,7 +424,7 @@ void Minecraft::tick() {
                     }
                 }
             }
-            if (connectionManager && connectionManager->connection) {
+            if (connectionManager && connectionManager->connection && connectionManager->connected) {
                 int32_t x = (int32_t)(player->x * 32.0F);
                 int32_t y = (int32_t)(player->y * 32.0F);
                 int32_t z = (int32_t)(player->z * 32.0F);
@@ -601,7 +632,7 @@ void Minecraft::render(float a) {
     glLoadIdentity();
     glGetIntegerv(GL_VIEWPORT, viewportBuffer.data());
     gluPickMatrix((float)(width / 2), (float)(height / 2), 5.0f, 5.0f, viewportBuffer.data());
-    gluPerspective(70.0f, (float)width / height, 0.05f, 1024.0f);
+    gluPerspective(70.0f, (float)width / height, 0.2f, 10.0f);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     orientCamera(a);
@@ -768,6 +799,7 @@ void Minecraft::render(float a) {
         glDisable(GL_TEXTURE_2D);
     }
     
+    glDepthMask(true);
     glDisable(GL_BLEND);
     glDisable(GL_LIGHTING);
     glDisable(GL_FOG);
@@ -792,88 +824,6 @@ void Minecraft::initGui() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glTranslatef(0.0f, 0.0f, -200.0f);
-}
-
-void Minecraft::renderGui() {
-    int32_t width = this->width * 240 / this->height;
-    int32_t height = this->height * 240 / this->height;
-    initGui();
-    checkGlError("GUI: Init");
-    glPushMatrix();
-    glTranslatef((float)(width - 16), 16.0f, -50.0f);
-    shared_ptr<Tesselator> t = Tesselator::instance;
-    glScalef(16.0f, 16.0f, 16.0f);
-    glRotatef(-30.0f, 1.0f, 0.0f, 0.0f);
-    glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
-    glTranslatef(-1.5f, 0.5f, 0.5f);
-    glScalef(-1.0f, -1.0f, -1.0f);
-    int32_t tex = textures->getTextureId("terrain.png");
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glEnable(GL_TEXTURE_2D);
-    t->begin();
-    Tile::tiles[paintTexture]->render(t, level, 0, -2, 0, 0);
-    t->end();
-    glDisable(GL_TEXTURE_2D);
-    glPopMatrix();
-    checkGlError("GUI: Draw selected");
-    font->drawShadow("0.0.18a_02", 2, 2, 16777215);
-    font->drawShadow(fpsString, 2, 12, 16777215);
-    uint8_t maxMessageAmount = 10;
-    bool chatOpen = false;
-    if (dynamic_pointer_cast<ChatScreen>(screen)) {
-        maxMessageAmount = 20;
-        chatOpen = true;
-    }
-
-    for(int32_t i = 0; i < chatMessages.size() && i < maxMessageAmount; ++i) {
-        if (chatMessages[i].counter < 200 || chatOpen) {
-            font->drawShadow(chatMessages[i].message, 2, height - 8 - (i << 3) - 16, 16777215);
-        }
-	}
-
-    checkGlError("GUI: Draw text");
-    width /= 2;
-    height /= 2;
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    t->begin();
-    t->vertex((float)(width + 1), (float)(height - 4), 0.0f);
-    t->vertex((float)width, (float)(height - 4), 0.0f);
-    t->vertex((float)width, (float)(height + 5), 0.0f);
-    t->vertex((float)(width + 1), (float)(height + 5), 0.0f);
-    t->vertex((float)(width + 5), (float)height, 0.0f);
-    t->vertex((float)(width - 4), (float)height, 0.0f);
-    t->vertex((float)(width - 4), (float)(height + 1), 0.0f);
-    t->vertex((float)(width + 5), (float)(height + 1), 0.0f);
-    t->end();
-    checkGlError("GUI: Draw crosshair");
-    if (Util::isKeyDown(GLFW_KEY_TAB) && connectionManager != nullptr && connectionManager->isConnected()) {
-        vector<string> playerNames;
-        playerNames.push_back(user->name);
-        for (auto& pair : connectionManager->players) {
-            auto var14 = pair.second;
-            playerNames.push_back(var14->name);
-        }
-
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glBegin(GL_QUADS);
-        glColor4f(0.0f, 0.0f, 0.0f, 0.7f);
-        glVertex2f((float)(width + 128), (float)(height - 68 - 12));
-        glVertex2f((float)(width - 128), (float)(height - 68 - 12));
-        glColor4f(0.2f, 0.2f, 0.2f, 0.8f);
-        glVertex2f((float)(width - 128), (float)(height + 68));
-        glVertex2f((float)(width + 128), (float)(height + 68));
-        glEnd();
-        glDisable(GL_BLEND);
-        string var11 = "Connected players:";
-        font->drawShadow(var11, width - font->width(var11) / 2, height - 64 - 12, 16777215);
-
-        for (int32_t i = 0; i < playerNames.size(); i++) {
-            int32_t x = width + i % 2 * 120 - 120;
-            int32_t y = height - 64 + (i / 2 << 3);
-            font->draw(playerNames[i], x, y, 16777215);
-        }
-    }
 }
 
 void Minecraft::setupFog() {
@@ -1006,10 +956,6 @@ bool Minecraft::loadLevel(string var1, int32_t var2) {
 }
 
 void Minecraft::setLevel(shared_ptr<Level> level) {
-    if (this->level) {
-        this->level->entities.clear();
-    }
-
     this->level = level;
     if (levelRenderer != nullptr) {
         shared_ptr<Level> rendererLevel = levelRenderer->level.lock();
@@ -1035,9 +981,9 @@ void Minecraft::setLevel(shared_ptr<Level> level) {
 }
 
 void Minecraft::addChatMessage(string message) {
-    chatMessages.push_front(ChatLine(message));
+    hud->messages.push_front(ChatLine(message));
 
-    while (chatMessages.size() > 50) {
-        chatMessages.pop_back();
+    while (hud->messages.size() > 50) {
+        hud->messages.pop_back();
     }
 }

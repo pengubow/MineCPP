@@ -6,6 +6,8 @@
 LevelGen::LevelGen(shared_ptr<Minecraft> minecraft)
     : minecraft(minecraft) {}
 
+
+// thank you chatgpt for assigning variable names
 shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t height, int32_t depth) {
     shared_ptr<Minecraft> minecraft = this->minecraft.lock();
     if (!minecraft) {
@@ -16,136 +18,136 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
     this->width = width;
     this->height = height;
     this->depth = depth;
-    this->blocks = vector<uint8_t>(width * height << 6);
+    this->blocks = vector<uint8_t>(width * height * depth);
     minecraft->levelLoadUpdate("Raising..");
-    shared_ptr<Distort> var8 = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
-    shared_ptr<Distort> var9 = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
-    shared_ptr<PerlinNoise> var10 = make_shared<PerlinNoise>(random, 8);
-    vector<int32_t> var11 = vector<int32_t>(this->width * this->height);
-    float var6 = 1.3f;
+    shared_ptr<Distort> mountainNoise = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
+    shared_ptr<Distort> hillNoise = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
+    shared_ptr<PerlinNoise> scaleNoise = make_shared<PerlinNoise>(random, 8);
+    vector<int32_t> heightMap = vector<int32_t>(this->width * this->height);
+    float noiseScale = 1.3f;
 
-    int32_t var13;
-    int32_t var14;
-    for (var13 = 0; var13 < this->width; ++var13) {
-        this->setNextPhase(var13 * 100 / (this->width - 1));
+    int32_t x;
+    int32_t z;
+    for (x = 0; x < this->width; ++x) {
+        this->setNextPhase(x * 100 / (this->width - 1));
 
-        for (var14 = 0; var14 < this->height; ++var14) {
-            double var15 = var8->getValue((double)((float)var13 * var6), (double)((float)var14 * var6)) / 8.0 - 8.0;
-            double var17 = var9->getValue((double)((float)var13 * var6), (double)((float)var14 * var6)) / 6.0 + 6.0;
-            double var19 = var10->getValue((double)var13, (double)var14) / 8.0;
-            if (var19 > 0.0) {
-                var17 = var15;
+        for (z = 0; z < this->height; ++z) {
+            double mountainHeight = mountainNoise->getValue((double)((float)x * noiseScale), (double)((float)z * noiseScale)) / 8.0 - 8.0;
+            double hillHeight = hillNoise->getValue((double)((float)x * noiseScale), (double)((float)z * noiseScale)) / 6.0 + 6.0;
+            double scale = scaleNoise->getValue((double)x, (double)z) / 8.0;
+            if (scale > 0.0) {
+                hillHeight = mountainHeight;
             }
 
-            double var21 = max(var15, var17) / 2.0;
-            if (var21 < 0.0) {
-                var21 /= 2.0;
+            double finalHeight = max(mountainHeight, hillHeight) / 2.0;
+            if (finalHeight < 0.0) {
+                finalHeight *= 0.8;
             }
 
-            var11[var13 + var14 * this->width] = (int32_t)var21;
+            heightMap[x + z * this->width] = (int32_t)finalHeight;
         }
     }
 
     minecraft->levelLoadUpdate("Eroding..");
-    vector<int32_t>& var31 = var11;
-    var9 = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
-    shared_ptr<Distort> var37 = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
+    vector<int32_t>& heightMapRef = heightMap;
+    hillNoise = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
+    shared_ptr<Distort> erosionNoise = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
 
-    int32_t var16;
-    int32_t var29;
-    int32_t var39;
-    int32_t var42;
-    for (var39 = 0; var39 < this->width; ++var39) {
-        this->setNextPhase(var39 * 100 / (this->width - 1));
+    int32_t y;
+    int32_t erosionValue;
+    int32_t erosionCheck;
+    for (x = 0; x < this->width; ++x) {
+        this->setNextPhase(x * 100 / (this->width - 1));
 
-        for (var29 = 0; var29 < this->height; ++var29) {
-            double var41 = var9->getValue((double)(var39 << 1), (double)(var29 << 1)) / 8.0;
-            var42 = var37->getValue((double)(var39 << 1), (double)(var29 << 1)) > 0.0 ? 1 : 0;
-            if (var41 > 2.0) {
-                var16 = var31[var39 + var29 * this->width];
-                var16 = ((var16 - var42) / 2 << 1) + var42;
-                var31[var39 + var29 * this->width] = var16;
+        for (z = 0; z < this->height; ++z) {
+            double erosionStrength = hillNoise->getValue((double)(x << 1), (double)(z << 1)) / 8.0;
+            erosionCheck = erosionNoise->getValue((double)(x << 1), (double)(z << 1)) > 0.0 ? 1 : 0;
+            if (erosionStrength > 2.0) {
+                y = heightMapRef[x + z * this->width];
+                y = ((y - erosionCheck) / 2 << 1) + erosionCheck;
+                heightMapRef[x + z * this->width] = y;
             }
         }
     }
 
     minecraft->levelLoadUpdate("Soiling..");
-    var31 = var11;
-    int32_t var34 = this->width;
-    int32_t var38 = this->height;
-    var39 = this->depth;
-    shared_ptr<PerlinNoise> var30 = make_shared<PerlinNoise>(random, 8);
+    heightMapRef = heightMap;
+    int32_t levelWidth = this->width;
+    int32_t levelHeight = this->height;
+    int32_t levelDepth = this->depth;
+    shared_ptr<PerlinNoise> soilNoise = make_shared<PerlinNoise>(random, 8);
 
-    int32_t var18;
-    int32_t var46;
-    for (var13 = 0; var13 < var34; ++var13) {
-        this->setNextPhase(var13 * 100 / (this->width - 1));
+    int32_t dirtHeight;
+    int32_t rockHeight;
+    for (x = 0; x < levelWidth; ++x) {
+        this->setNextPhase(x * 100 / (this->width - 1));
 
-        for (var14 = 0; var14 < var38; ++var14) {
-            var42 = (int32_t)(var30->getValue((double)var13, (double)var14) / 24.0) - 4;
-            var16 = var31[var13 + var14 * var34] + var39 / 2;
-            var46 = var16 + var42;
-            var31[var13 + var14 * var34] = max(var16, var46);
+        for (z = 0; z < levelHeight; ++z) {
+            erosionCheck = (int32_t)(soilNoise->getValue((double)x, (double)z) / 24.0) - 4;
+            y = heightMapRef[x + z * levelWidth] + levelDepth / 2;
+            rockHeight = y + erosionCheck;
+            heightMapRef[x + z * levelWidth] = max(y, rockHeight);
 
-            for(var18 = 0; var18 < var39; ++var18) {
-                int32_t var48 = (var18 * this->height + var14) * this->width + var13;
-                int32_t var20 = 0;
-                if(var18 <= var16) {
-                    var20 = Tile::dirt->id;
+            for(dirtHeight = 0; dirtHeight < levelDepth; ++dirtHeight) {
+                int32_t blockIndex = (dirtHeight * this->height + z) * this->width + x;
+                int32_t blockId = 0;
+                if(dirtHeight <= y) {
+                    blockId = Tile::dirt->id;
                 }
 
-                if(var18 <= var46) {
-                    var20 = Tile::rock->id;
+                if(dirtHeight <= rockHeight) {
+                    blockId = Tile::rock->id;
                 }
 
-                this->blocks[var48] = (uint8_t)var20;
+                this->blocks[blockIndex] = (uint8_t)blockId;
             }
         }
     }
 
     minecraft->levelLoadUpdate("Carving..");
-    bool var36 = true;
-    bool var32 = false;
-    var38 = this->width;
-    var39 = this->height;
-    var29 = this->depth;
-    var13 = var38 * var39 * var29 / 256 / 64;
+    int32_t caveCount = this->width * this->height * this->depth / 256 / 64;
 
-    for (var14 = 0; var14 < var13; ++var14) {
-        this->setNextPhase(var14 * 100 / (var13 - 1) / 4);
-        float var43 = random.nextFloat() * (float)var38;
-        float var44 = random.nextFloat() * (float)var29;
-        float var47 = random.nextFloat() * (float)var39;
-        var18 = (int32_t)((random.nextFloat() + random.nextFloat()) * 75.0f);
-        float var49 = (float)((double)random.nextFloat() * M_PI * 2.0);
-        float this0 = 0.0F;
-        float this1 = (float)((double)random.nextFloat() * M_PI * 2.0);
-        float var22 = 0.0F;
+    for (z = 0; z < caveCount; ++z) {
+        this->setNextPhase(z * 100 / (caveCount - 1) / 4);
+        float caveX = random.nextFloat() * (float)this->width;
+        float caveY = random.nextFloat() * (float)this->depth;
+        float caveZ = random.nextFloat() * (float)this->height;
+        int32_t caveLength = (int32_t)((random.nextFloat() + random.nextFloat()) * 75.0f);
+        float pitchAngle = (float)((double)random.nextFloat() * M_PI * 2.0);
+        float pitchVelocity = 0.0F;
+        float yawAngle = (float)((double)random.nextFloat() * M_PI * 2.0);
+        float yawVelocity = 0.0F;
 
-        for (int32_t var7 = 0; var7 < var18; ++var7) {
-            var43 = (float)((double)var43 + sin((double)var49) * cos((double)this1));
-            var47 = (float)((double)var47 + cos((double)var49) * cos((double)this1));
-            var44 = (float)((double)var44 + sin((double)this1));
-            var49 += this0 * 0.2F;
-            this0 *= 0.9F;
-            this0 += random.nextFloat() - random.nextFloat();
-            this1 += var22 * 0.5F;
-            this1 *= 0.5F;
-            var22 *= 0.9F;
-            var22 += random.nextFloat() - random.nextFloat();
-            float var33 = (float)(sin((double)var7 * M_PI / (double)var18) * 2.5 + 1.0);
+        for (int32_t caveStep = 0; caveStep < caveLength; ++caveStep) {
+            caveX = (float)((double)caveX + sin((double)pitchAngle) * cos((double)yawAngle));
+            caveZ = (float)((double)caveZ + cos((double)pitchAngle) * cos((double)yawAngle));
+            caveY = (float)((double)caveY + sin((double)yawAngle));
+            pitchAngle += pitchVelocity * 0.2F;
+            pitchVelocity *= 0.9F;
+            pitchVelocity += random.nextFloat() - random.nextFloat();
+            yawAngle += yawVelocity * 0.5F;
+            yawAngle *= 0.5F;
+            yawVelocity *= 0.9F;
+            yawVelocity += random.nextFloat() - random.nextFloat();
+            
+            if (random.nextFloat() >= 0.3F) {
+                float caveRadiusX = caveX + random.nextFloat() * 4.0f - 2.0f;
+                float caveRadiusY = caveY + random.nextFloat() * 4.0f - 2.0f;
+                float caveRadiusZ = caveZ + random.nextFloat() * 4.0f - 2.0f;
+                float caveRadius = (float)(sin((double)caveStep * M_PI / (double)caveLength) * 2.5 + 1.0);
 
-            for (var34 = (int32_t)(var43 - var33); var34 <= (int32_t)(var43 + var33); ++var34) {
-                for (int32_t var12 = (int32_t)(var44 - var33); var12 <= (int32_t)(var44 + var33); ++var12) {
-                    for (int32_t var23 = (int32_t)(var47 - var33); var23 <= (int32_t)(var47 + var33); ++var23) {
-                        float var24 = (float)var34 - var43;
-                        float var25 = (float)var12 - var44;
-                        float var26 = (float)var23 - var47;
-                        var24 = var24 * var24 + var25 * var25 * 2.0F + var26 * var26;
-                        if (var24 < var33 * var33 && var34 >= 1 && var12 >= 1 && var23 >= 1 && var34 < this->width - 1 && var12 < this->depth - 1 && var23 < this->height - 1) {
-                            int32_t this2 = (var12 * this->height + var23) * this->width + var34;
-                            if(this->blocks[this2] == Tile::rock->id) {
-                                this->blocks[this2] = 0;
+                for (int32_t ix = (int32_t)(caveRadiusX - caveRadius); ix <= (int32_t)(caveRadiusX + caveRadius); ++ix) {
+                    for (int32_t iy = (int32_t)(caveRadiusY - caveRadius); iy <= (int32_t)(caveRadiusY + caveRadius); ++iy) {
+                        for (int32_t iz = (int32_t)(caveRadiusZ - caveRadius); iz <= (int32_t)(caveRadiusZ + caveRadius); ++iz) {
+                            float dx = (float)ix - caveRadiusX;
+                            float dy = (float)iy - caveRadiusY;
+                            float dz = (float)iz - caveRadiusZ;
+                            float distSq = dx * dx + dy * dy * 2.0F + dz * dz;
+                            if (distSq < caveRadius * caveRadius && ix >= 1 && iy >= 1 && iz >= 1 && ix < this->width - 1 && iy < this->depth - 1 && iz < this->height - 1) {
+                                int32_t blockIdx = (iy * this->height + iz) * this->width + ix;
+                                if (this->blocks[blockIdx] == Tile::rock->id) {
+                                    this->blocks[blockIdx] = 0;
+                                }
                             }
                         }
                     }
@@ -158,157 +160,156 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
     this->carveTunnels(Tile::oreIron->id, 70, 2, 4);
     this->carveTunnels(Tile::oreGold->id, 50, 3, 4);
     minecraft->levelLoadUpdate("Watering..");
-    int64_t var35 = Timer::nanoTime();
-    int64_t var40 = 0;
-    var13 = Tile::calmWater->id;
+    int64_t startTime = Timer::nanoTime();
+    int64_t filledBlocks = 0;
+    int32_t waterTileId = Tile::calmWater->id;
     this->setNextPhase(0);
 
-    for (var14 = 0; var14 < this->width; ++var14) {
-        var40 += this->floodFillLiquid(var14, this->depth / 2 - 1, 0, 0, var13);
-        var40 += this->floodFillLiquid(var14, this->depth / 2 - 1, this->height - 1, 0, var13);
+    for (z = 0; z < this->width; ++z) {
+        filledBlocks += this->floodFillLiquid(z, this->depth / 2 - 1, 0, 0, waterTileId);
+        filledBlocks += this->floodFillLiquid(z, this->depth / 2 - 1, this->height - 1, 0, waterTileId);
     }
 
-    for (var14 = 0; var14 < this->height; ++var14) {
-        var40 += this->floodFillLiquid(0, this->depth / 2 - 1, var14, 0, var13);
-        var40 += this->floodFillLiquid(this->width - 1, this->depth / 2 - 1, var14, 0, var13);
+    for (z = 0; z < this->height; ++z) {
+        filledBlocks += this->floodFillLiquid(0, this->depth / 2 - 1, z, 0, waterTileId);
+        filledBlocks += this->floodFillLiquid(this->width - 1, this->depth / 2 - 1, z, 0, waterTileId);
     }
 
-    var14 = this->width * this->height / 200;
+    int32_t waterSpots = this->width * this->height / 200;
 
-    for (var42 = 0; var42 < var14; ++var42) {
-        if(var42 % 100 == 0) {
-            this->setNextPhase(var42 * 100 / (var14 - 1));
+    for (int32_t i = 0; i < waterSpots; ++i) {
+        if(i % 100 == 0) {
+            this->setNextPhase(i * 100 / (waterSpots - 1));
         }
 
-        var16 = random.nextInt(this->width);
-        var46 = this->depth / 2 - 1 - random.nextInt(3);
-        var18 = random.nextInt(this->height);
-        if (this->blocks[(var46 * this->height + var18) * this->width + var16] == 0) {
-            var40 += this->floodFillLiquid(var16, var46, var18, 0, var13);
+        int32_t spotX = random.nextInt(this->width);
+        int32_t spotY = this->depth / 2 - 1 - random.nextInt(3);
+        int32_t spotZ = random.nextInt(this->height);
+        if (this->blocks[(spotY * this->height + spotZ) * this->width + spotX] == 0) {
+            filledBlocks += this->floodFillLiquid(spotX, spotY, spotZ, 0, waterTileId);
         }
     }
 
     this->setNextPhase(100);
-    int64_t var45 = Timer::nanoTime();
-    cout << "Flood filled " + to_string(var40) + " tiles in " + to_string((double)(var45 - var35) / 1000000.0) + " ms" << endl;
+    int64_t endTime = Timer::nanoTime();
+    cout << "Flood filled " + to_string(filledBlocks) + " tiles in " + to_string((double)(endTime - startTime) / 1000000.0) + " ms" << endl;
     minecraft->levelLoadUpdate("Melting..");
     this->addLava();
     minecraft->levelLoadUpdate("Growing..");
-    this->addBeaches(var11);
+    this->addBeaches(heightMap);
     minecraft->levelLoadUpdate("Planting..");
-    this->plantTrees(var11);
-    shared_ptr<Level> var28 = make_shared<Level>();
-    var28->setData(width, 64, height, this->blocks);
-    var28->createTime = Timer::nanoTime() / 1000000;
-    var28->creator = name;
-    var28->name = "A Nice World";
-    return var28;
+    this->plantTrees(heightMap);
+    shared_ptr<Level> level = make_shared<Level>();
+    level->setData(width, 64, height, this->blocks);
+    level->createTime = Timer::nanoTime() / 1000000;
+    level->creator = name;
+    level->name = "A Nice World";
+    return level;
 }
 
-void LevelGen::addBeaches(vector<int32_t>& var1) {
-    int32_t width = this->width;
-    int32_t height = this->height;
-    int32_t depth = this->depth;
-    shared_ptr<PerlinNoise> var5 = make_shared<PerlinNoise>(random, 8);
-    shared_ptr<PerlinNoise> var6 = make_shared<PerlinNoise>(random, 8);
+void LevelGen::addBeaches(vector<int32_t>& heightMap) {
+    int32_t levelWidth = this->width;
+    int32_t levelHeight = this->height;
+    int32_t levelDepth = this->depth;
+    shared_ptr<PerlinNoise> beachNoise1 = make_shared<PerlinNoise>(random, 8);
+    shared_ptr<PerlinNoise> beachNoise2 = make_shared<PerlinNoise>(random, 8);
 
-    for (int32_t var7 = 0; var7 < width; ++var7) {
-        setNextPhase(var7 * 100 / (this->width - 1));
+    for (int32_t x = 0; x < levelWidth; ++x) {
+        setNextPhase(x * 100 / (this->width - 1));
 
-        for (int32_t var8 = 0; var8 < height; ++var8) {
-            bool var9 = var5->getValue((double)var7, (double)var8) > 8.0;
-            bool var10 = var6->getValue((double)var7, (double)var8) > 12.0;
-            int32_t var11 = var1[var7 + var8 * width];
-            int32_t var12 = (var11 * height + var8) * this->width + var7;
-            int32_t var13 = blocks[((var11 + 1) * height + var8) * this->width + var7] & 255;
+        for (int32_t z = 0; z < levelHeight; ++z) {
+            bool isSandBeach = beachNoise1->getValue((double)x, (double)z) > 8.0;
+            bool isGravelBeach = beachNoise2->getValue((double)x, (double)z) > 12.0;
+            int32_t surfaceHeight = heightMap[x + z * levelWidth];
+            int32_t surfaceBlockIdx = (surfaceHeight * levelHeight + z) * this->width + x;
+            int32_t aboveBlockId = blocks[((surfaceHeight + 1) * levelHeight + z) * this->width + x] & 255;
             
-            if ((var13 == Tile::water->id || var13 == Tile::calmWater->id) && var11 <= depth / 2 - 1 && var10) {
-                blocks[var12] = (uint8_t)Tile::gravel->id;
+            if ((aboveBlockId == Tile::water->id || aboveBlockId == Tile::calmWater->id) && surfaceHeight <= levelDepth / 2 - 1 && isGravelBeach) {
+                blocks[surfaceBlockIdx] = (uint8_t)Tile::gravel->id;
             }
             
-            if (var13 == 0) {
-                int var14 = Tile::grass->id;
-                if (var11 <= depth / 2 - 1 && var9) {
-                    var14 = Tile::sand->id;
+            if (aboveBlockId == 0) {
+                int32_t topBlockId = Tile::grass->id;
+                if (surfaceHeight <= levelDepth / 2 - 1 && isSandBeach) {
+                    topBlockId = Tile::sand->id;
                 }
 
-                blocks[var12] = (uint8_t)var14;
+                blocks[surfaceBlockIdx] = (uint8_t)topBlockId;
             }
         }
     }
-
 }
 
-void LevelGen::plantTrees(vector<int32_t>& var1) {
-    int32_t var2 = this->width;
-    int32_t var3 = this->width * this->height / 4000;
+void LevelGen::plantTrees(vector<int32_t>& heightMap) {
+    int32_t levelWidth = this->width;
+    int32_t treeCount = this->width * this->height / 4000;
 
-    for (int32_t var4 = 0; var4 < var3; ++var4) {
-        setNextPhase(var4 * 100 / (var3 - 1));
-        int32_t var5 = random.nextInt(this->width);
-        int32_t var6 = random.nextInt(this->height);
+    for (int32_t treeIdx = 0; treeIdx < treeCount; ++treeIdx) {
+        setNextPhase(treeIdx * 100 / (treeCount - 1));
+        int32_t startX = random.nextInt(this->width);
+        int32_t startZ = random.nextInt(this->height);
 
-        for (int32_t var7 = 0; var7 < 20; ++var7) {
-            int32_t var8 = var5;
-            int32_t var9 = var6;
+        for (int32_t attempt = 0; attempt < 20; ++attempt) {
+            int32_t searchX = startX;
+            int32_t searchZ = startZ;
 
-            for (int32_t var10 = 0; var10 < 20; ++var10) {
-                var8 += random.nextInt(6) - random.nextInt(6);
-                var9 += random.nextInt(6) - random.nextInt(6);
-                if (var8 >= 0 && var9 >= 0 && var8 < this->width && var9 < this->height) {
-                    int32_t var11 = var1[var8 + var9 * var2] + 1;
-                    int32_t var12 = random.nextInt(3) + 4;
-                    bool var13 = true;
+            for (int32_t step = 0; step < 20; ++step) {
+                searchX += random.nextInt(6) - random.nextInt(6);
+                searchZ += random.nextInt(6) - random.nextInt(6);
+                if (searchX >= 0 && searchZ >= 0 && searchX < this->width && searchZ < this->height) {
+                    int32_t trunkBaseHeight = heightMap[searchX + searchZ * levelWidth] + 1;
+                    int32_t trunkLength = random.nextInt(3) + 4;
+                    bool canPlaceTree = true;
 
-                    int32_t var14;
-                    int32_t var16;
-                    int32_t var17;
-                    int32_t var18;
-                    for (var14 = var11; var14 <= var11 + 1 + var12; ++var14) {
-                        uint8_t var15 = 1;
-                        if (var14 >= var11 + 1 + var12 - 2) {
-                            var15 = 2;
+                    int32_t checkY;
+                    int32_t checkX;
+                    int32_t checkZ;
+                    int32_t blockType;
+                    for (checkY = trunkBaseHeight; checkY <= trunkBaseHeight + 1 + trunkLength; ++checkY) {
+                        uint8_t checkRadius = 1;
+                        if (checkY >= trunkBaseHeight + 1 + trunkLength - 2) {
+                            checkRadius = 2;
                         }
 
-                        for (var16 = var8 - var15; var16 <= var8 + var15 && var13; ++var16) {
-                            for (var17 = var9 - var15; var17 <= var9 + var15 && var13; ++var17) {
-                                if (var16 >= 0 && var14 >= 0 && var17 >= 0 && var16 < this->width && var14 < this->depth && var17 < this->height) {
-                                    var18 = blocks[(var14 * this->height + var17) * this->width + var16] & 255;
-                                    if (var18 != 0) {
-                                        var13 = false;
+                        for (checkX = searchX - checkRadius; checkX <= searchX + checkRadius && canPlaceTree; ++checkX) {
+                            for (checkZ = searchZ - checkRadius; checkZ <= searchZ + checkRadius && canPlaceTree; ++checkZ) {
+                                if (checkX >= 0 && checkY >= 0 && checkZ >= 0 && checkX < this->width && checkY < this->depth && checkZ < this->height) {
+                                    blockType = blocks[(checkY * this->height + checkZ) * this->width + checkX] & 255;
+                                    if (blockType != 0) {
+                                        canPlaceTree = false;
                                     }
                                 }
                                 else {
-                                    var13 = false;
+                                    canPlaceTree = false;
                                 }
                             }
                         }
                     }
 
-                    if (var13) {
-                        var14 = (var11 * this->height + var9) * this->width + var8;
-                        int32_t var22 = this->blocks[((var11 - 1) * this->height + var9) * this->width + var8] & 255;
-                        if (var22 == Tile::grass->id && var11 < this->depth - var12 - 1) {
-                            blocks[var14 - 1 * this->width * this->height] = (uint8_t)Tile::dirt->id;
+                    if (canPlaceTree) {
+                        checkY = (trunkBaseHeight * this->height + searchZ) * this->width + searchX;
+                        int32_t groundBlockId = this->blocks[((trunkBaseHeight - 1) * this->height + searchZ) * this->width + searchX] & 255;
+                        if (groundBlockId == Tile::grass->id && trunkBaseHeight < this->depth - trunkLength - 1) {
+                            blocks[checkY - 1 * this->width * this->height] = (uint8_t)Tile::dirt->id;
 
-                            for (var16 = var11 - 3 + var12; var16 <= var11 + var12; ++var16) {
-                                var17 = var16 - (var11 + var12);
-                                var18 = 1 - var17 / 2;
+                            for (checkX = trunkBaseHeight - 3 + trunkLength; checkX <= trunkBaseHeight + trunkLength; ++checkX) {
+                                checkZ = checkX - (trunkBaseHeight + trunkLength);
+                                blockType = 1 - checkZ / 2;
 
-                                for (int32_t var21 = var8 - var18; var21 <= var8 + var18; ++var21) {
-                                    var22 = var21 - var8;
+                                for (int32_t leafX = searchX - blockType; leafX <= searchX + blockType; ++leafX) {
+                                    int32_t relX = leafX - searchX;
 
-                                    for(int32_t var19 = var9 - var18; var19 <= var9 + var18; ++var19) {
-                                        int32_t var20 = var19 - var9;
-                                        if(abs(var22) != var18 || abs(var20) != var18 || random.nextInt(2) != 0 && var17 != 0) {
-                                            blocks[(var16 * height + var19) * width + var21] = (uint8_t)Tile::leaf->id;
+                                    for(int32_t leafZ = searchZ - blockType; leafZ <= searchZ + blockType; ++leafZ) {
+                                        int32_t relZ = leafZ - searchZ;
+                                        if(abs(relX) != blockType || abs(relZ) != blockType || random.nextInt(2) != 0 && checkZ != 0) {
+                                            blocks[(checkX * this->height + leafZ) * this->width + leafX] = (uint8_t)Tile::leaf->id;
                                         }
                                     }
                                 }
                             }
 
-                            for (var16 = 0; var16 < var12; ++var16) {
-                                this->blocks[var14 + var16 * this->width * this->height] = (uint8_t)Tile::log->id;
+                            for (checkX = 0; checkX < trunkLength; ++checkX) {
+                                this->blocks[checkY + checkX * this->width * this->height] = (uint8_t)Tile::log->id;
                             }
                         }
                     }
@@ -316,51 +317,50 @@ void LevelGen::plantTrees(vector<int32_t>& var1) {
             }
         }
     }
-
 }
 
-void LevelGen::carveTunnels(int32_t var1, int32_t var2, int32_t var3, int32_t var4) {
-    uint8_t var25 = (uint8_t)var1;
-    var4 = this->width;
-    int32_t var5 = this->height;
-    int32_t var6 = this->depth;
-    int32_t var7 = var4 * var5 * var6 / 256 / 64 * var2 / 100;
+void LevelGen::carveTunnels(int32_t oreId, int32_t frequency, int32_t index, int32_t maxIndex) {
+    uint8_t oreBlockId = (uint8_t)oreId;
+    int32_t levelWidth = this->width;
+    int32_t levelHeight = this->height;
+    int32_t levelDepth = this->depth;
+    int32_t tunnelCount = levelWidth * levelHeight * levelDepth / 256 / 64 * frequency / 100;
 
-    for (int32_t var8 = 0; var8 < var7; var8++) {
-        this->setNextPhase(var8 * 100 / (var7 - 1) / 4 + var3 * 100 / 4);
-        float var9 = random.nextFloat() * (float)var4;
-        float var10 = random.nextFloat() * (float)var6;
-        float var11 = random.nextFloat() * (float)var5;
-        int var12 = (int32_t)((random.nextFloat() + random.nextFloat()) * 75.0F * (float)var2 / 100.0F);
-        float var13 = (float)((double)random.nextFloat() * M_PI * 2.0);
-        float var14 = 0.0F;
-        float var15 = (float)((double)random.nextFloat() * M_PI * 2.0);
-        float var16 = 0.0F;
+    for (int32_t i = 0; i < tunnelCount; i++) {
+        this->setNextPhase(i * 100 / (tunnelCount - 1) / 4 + index * 100 / maxIndex);
+        float tunnelX = random.nextFloat() * (float)levelWidth;
+        float tunnelY = random.nextFloat() * (float)levelDepth;
+        float tunnelZ = random.nextFloat() * (float)levelHeight;
+        int tunnelLength = (int32_t)((random.nextFloat() + random.nextFloat()) * 75.0F * (float)frequency / 100.0F);
+        float pitchAngle = (float)((double)random.nextFloat() * M_PI * 2.0);
+        float pitchVelocity = 0.0F;
+        float yawAngle = (float)((double)random.nextFloat() * M_PI * 2.0);
+        float yawVelocity = 0.0F;
 
-        for (int32_t var17 = 0; var17 < var12; var17++) {
-            var9 = (float)((double)var9 + sin((double)var13) * cos((double)var15));
-            var11 = (float)((double)var11 + cos((double)var13) * cos((double)var15));
-            var10 = (float)((double)var10 + sin((double)var15));
-            var13 += var14 * 0.2F;
-            var14 *= 0.9F;
-            var14 += random.nextFloat() - random.nextFloat();
-            var15 += var16 * 0.5F;
-            var15 *= 0.5F;
-            var16 *= 0.9F;
-            var16 += random.nextFloat() - random.nextFloat();
-            float var18 = (float)(sin((double)var17 * M_PI / (double)var12) * (double)var2 / 100.0 + 1.0);
+        for (int32_t step = 0; step < tunnelLength; step++) {
+            tunnelX = (float)((double)tunnelX + sin((double)pitchAngle) * cos((double)yawAngle));
+            tunnelZ = (float)((double)tunnelZ + cos((double)pitchAngle) * cos((double)yawAngle));
+            tunnelY = (float)((double)tunnelY + sin((double)yawAngle));
+            pitchAngle += pitchVelocity * 0.2F;
+            pitchVelocity *= 0.9F;
+            pitchVelocity += random.nextFloat() - random.nextFloat();
+            yawAngle += yawVelocity * 0.5F;
+            yawAngle *= 0.5F;
+            yawVelocity *= 0.9F;
+            yawVelocity += random.nextFloat() - random.nextFloat();
+            float radius = (float)(sin((double)step * M_PI / (double)tunnelLength) * (double)frequency / 100.0 + 1.0);
 
-            for (int32_t var19 = (int32_t)(var9 - var18); var19 <= (int32_t)(var9 + var18); var19++) {
-                for (int32_t var20 = (int32_t)(var10 - var18); var20 <= (int32_t)(var10 + var18); var20++) {
-                    for (int32_t var21 = (int32_t)(var11 - var18); var21 <= (int32_t)(var11 + var18); var21++) {
-                        float var22 = (float)var19 - var9;
-                        float var23 = (float)var20 - var10;
-                        float var24 = (float)var21 - var11;
-                        var22 = var22 * var22 + var23 * var23 * 2.0F + var24 * var24;
-                        if (var22 < var18 * var18 && var19 >= 1 && var20 >= 1 && var21 >= 1 && var19 < this->width - 1 && var20 < this->depth - 1 && var21 < this->height - 1) {
-                            int32_t var26 = (var20 * this->height + var21) * this->width + var19;
-                            if (this->blocks[var26] == Tile::rock->id) {
-                                this->blocks[var26] = var25;
+            for (int32_t ix = (int32_t)(tunnelX - radius); ix <= (int32_t)(tunnelX + radius); ix++) {
+                for (int32_t iy = (int32_t)(tunnelY - radius); iy <= (int32_t)(tunnelY + radius); iy++) {
+                    for (int32_t iz = (int32_t)(tunnelZ - radius); iz <= (int32_t)(tunnelZ + radius); iz++) {
+                        float dx = (float)ix - tunnelX;
+                        float dy = (float)iy - tunnelY;
+                        float dz = (float)iz - tunnelZ;
+                        float distSq = dx * dx + dy * dy * 2.0F + dz * dz;
+                        if (distSq < radius * radius && ix >= 1 && iy >= 1 && iz >= 1 && ix < this->width - 1 && iy < this->depth - 1 && iz < this->height - 1) {
+                            int32_t blockIdx = (iy * this->height + iz) * this->width + ix;
+                            if (this->blocks[blockIdx] == Tile::rock->id) {
+                                this->blocks[blockIdx] = oreBlockId;
                             }
                         }
                     }
@@ -380,138 +380,138 @@ void LevelGen::setNextPhase(int32_t phase) {
 }
 
 void LevelGen::addLava() {
-    int32_t var1 = 0;
-    int32_t var2 = this->width * this->height * this->depth / 10000;
+    int32_t lavaCount = 0;
+    int32_t lavaSpots = this->width * this->height * this->depth / 10000;
 
-    for (int32_t var3 = 0; var3 < var2; ++var3) {
-        if (var3 % 100 == 0) {
-            this->setNextPhase(var3 * 100 / (var2 - 1));
+    for (int32_t i = 0; i < lavaSpots; ++i) {
+        if (i % 100 == 0) {
+            this->setNextPhase(i * 100 / (lavaSpots - 1));
         }
 
-        int32_t var4 = random.nextInt(this->width);
-        int32_t var5 = random.nextInt(this->depth / 2 - 4);
-        int32_t var6 = random.nextInt(this->height);
-        if (this->blocks[(var5 * this->height + var6) * this->width + var4] == 0) {
-            var1++;
-            this->floodFillLiquid(var4, var5, var6, 0, Tile::calmLava->id);
+        int32_t spotX = random.nextInt(this->width);
+        int32_t spotY = random.nextInt(this->depth / 2 - 4);
+        int32_t spotZ = random.nextInt(this->height);
+        if (this->blocks[(spotY * this->height + spotZ) * this->width + spotX] == 0) {
+            lavaCount++;
+            this->floodFillLiquid(spotX, spotY, spotZ, 0, Tile::calmLava->id);
         }
     }
 
     this->setNextPhase(100);
-    cout << "LavaCount: " + to_string(var1) << endl;
+    cout << "LavaCount: " + to_string(lavaCount) << endl;
 }
 
-int64_t LevelGen::floodFillLiquid(int32_t var1, int32_t var2, int32_t var3, int32_t var4, int32_t var5) {
-    uint8_t var20 = (uint8_t)var5;
-    vector<vector<int32_t>> var21 = vector<vector<int32_t>>();
-    uint8_t var6 = 0;
-    int32_t var7 = 1;
+int64_t LevelGen::floodFillLiquid(int32_t x, int32_t y, int32_t z, int32_t var4, int32_t liquidId) {
+    uint8_t liquidBlockId = (uint8_t)liquidId;
+    vector<vector<int32_t>> stackBackup = vector<vector<int32_t>>();
+    uint8_t stackPtr = 0;
+    int32_t xBits = 1;
 
-    int32_t var8;
-    for (var8 = 1; 1 << var7 < this->width; ++var7) {
+    int32_t zBits;
+    for (zBits = 1; 1 << xBits < this->width; ++xBits) {
     }
 
-    while (1 << var8 < this->height) {
-        var8++;
+    while (1 << zBits < this->height) {
+        zBits++;
     }
 
-    int32_t var9 = this->height - 1;
-    int32_t var10 = this->width - 1;
-    int32_t var22 = var6 + 1;
-    this->coords[0] = ((var2 << var8) + var3 << var7) + var1;
-    int64_t var13 = 0L;
-    var1 = this->width * this->height;
+    int32_t yMask = this->height - 1;
+    int32_t xMask = this->width - 1;
+    int32_t stackSize = stackPtr + 1;
+    this->coords[0] = ((y << zBits) + z << xBits) + x;
+    int64_t filledCount = 0L;
+    x = this->width * this->height;
 
-    while (var22 > 0) {
-        var22--;
-        var2 = this->coords[var22];
-        if (var22 == 0 && var21.size() > 0) {
+    while (stackSize > 0) {
+        stackSize--;
+        y = this->coords[stackSize];
+        if (stackSize == 0 && stackBackup.size() > 0) {
             cout << "IT HAPPENED!" << endl;
-            this->coords = move(var21.back());
-            var21.pop_back();
-            var22 = this->coords.size();
+            this->coords = move(stackBackup.back());
+            stackBackup.pop_back();
+            stackSize = this->coords.size();
         }
 
-        var3 = var2 >> var7 & var9;
-        int32_t var11 = var2 >> var7 + var8;
-        int32_t var12 = var2 & var10;
+        z = y >> xBits & yMask;
+        int32_t yCoord = y >> xBits + zBits;
+        int32_t xCoord = y & xMask;
 
-        int32_t var15;
-        for (var15 = var12; var12 > 0 && this->blocks[var2 - 1] == 0; var2--) {
-            var12--;
+        int32_t endX;
+        for (endX = xCoord; xCoord > 0 && this->blocks[y - 1] == 0; y--) {
+            xCoord--;
         }
 
-        while (var15 < this->width && this->blocks[var2 + var15 - var12] == 0) {
-            var15++;
+        while (endX < this->width && this->blocks[y + endX - xCoord] == 0) {
+            endX++;
         }
 
-        int32_t var16 = var2 >> var7 & var9;
-        int32_t var17 = var2 >> var7 + var8;
-        if(var16 != var3 || var17 != var11) {
+        int32_t checkZ = y >> xBits & yMask;
+        int32_t checkY = y >> xBits + zBits;
+        if(checkZ != z || checkY != yCoord) {
             cout << "hoooly fuck";
         }
 
-        bool var23 = false;
-        bool var24 = false;
-        bool var18 = false;
-        var13 += (int64_t)(var15 - var12);
+        bool aboveEmpty = false;
+        bool belowEmpty = false;
+        bool upstairEmpty = false;
+        filledCount += (int64_t)(endX - xCoord);
 
-        for (var12 = var12; var12 < var15; ++var12) {
-            this->blocks[var2] = var20;
-            bool var19;
-            if (var3 > 0) {
-                var19 = this->blocks[var2 - this->width] == 0;
-                if (var19 && !var23) {
-                    if (var22 == this->coords.size()) {
-                        var21.push_back(this->coords);
+        for (xCoord = xCoord; xCoord < endX; ++xCoord) {
+            this->blocks[y] = liquidBlockId;
+            bool isEmpty;
+            if (z > 0) {
+                isEmpty = this->blocks[y - this->width] == 0;
+                if (isEmpty && !aboveEmpty) {
+                    if (stackSize == this->coords.size()) {
+                        stackBackup.push_back(this->coords);
                         this->coords = vector<int32_t>(1048576);
-                        var22 = 0;
+                        stackSize = 0;
                     }
 
-                    this->coords[var22++] = var2 - this->width;
+                    this->coords[stackSize++] = y - this->width;
                 }
 
-                var23 = var19;
+                aboveEmpty = isEmpty;
             }
 
-            if (var3 < this->height - 1) {
-                var19 = this->blocks[var2 + this->width] == 0;
-                if (var19 && !var24) {
-                    if (var22 == this->coords.size()) {
-                        var21.push_back(this->coords);
+            if (z < this->height - 1) {
+                isEmpty = this->blocks[y + this->width] == 0;
+                if (isEmpty && !belowEmpty) {
+                    if (stackSize == this->coords.size()) {
+                        stackBackup.push_back(this->coords);
                         this->coords = vector<int32_t>(1048576);
-                        var22 = 0;
+                        stackSize = 0;
                     }
 
-                    this->coords[var22++] = var2 + this->width;
+                    this->coords[stackSize++] = y + this->width;
                 }
 
-                var24 = var19;
+                belowEmpty = isEmpty;
             }
 
-            if (var11 > 0) {
-                uint8_t var25 = this->blocks[var2 - var1];
-                if ((var20 == Tile::lava->id || var20 == Tile::calmLava->id) && (var25 == Tile::water->id || var25 == Tile::calmWater->id)) {
-                    this->blocks[var2 - var1] = (uint8_t)Tile::rock->id;
+            if (yCoord > 0) {
+                uint8_t upBlock = this->blocks[y - x];
+                if ((liquidBlockId == Tile::lava->id || liquidBlockId == Tile::calmLava->id) && (upBlock == Tile::water->id || upBlock == Tile::calmWater->id)) {
+                    this->blocks[y - x] = (uint8_t)Tile::rock->id;
                 }
 
-                var19 = var25 == 0;
-                if (var19 && !var18) {
-                    if (var22 == this->coords.size()) {
-                        var21.push_back(this->coords);
+                isEmpty = upBlock == 0;
+                if (isEmpty && !upstairEmpty) {
+                    if (stackSize == this->coords.size()) {
+                        stackBackup.push_back(this->coords);
                         this->coords = vector<int32_t>(1048576);
-                        var22 = 0;
+                        stackSize = 0;
                     }
 
-                    this->coords[var22++] = var2 - var1;
+                    this->coords[stackSize++] = y - x;
                 }
 
-                var18 = var19;
+                upstairEmpty = isEmpty;
             }
 
-            ++var2;
+            ++y;
         }
     }
 
-    return var13;
+    return filledCount;
 }

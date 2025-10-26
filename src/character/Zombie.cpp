@@ -58,7 +58,7 @@ void Zombie::render(shared_ptr<Textures>& textures, float a) {
     glTranslatef(0.0f, yy, 0.0f);
     float c = 57.29578f;
     glRotatef(rot * c + 180.0f, 0.0f, 1.0f, 0.0f);
-    zombieModel.render(time, 0.0f, 0.0f);
+    zombieModel.render(time, 1.0f, 0.0f, 0.0f, 0.0f);
     glPopMatrix();
     glDisable(GL_TEXTURE_2D);
 }

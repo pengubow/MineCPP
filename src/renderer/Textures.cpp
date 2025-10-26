@@ -29,12 +29,20 @@ int32_t Textures::getTextureId(string resourceName) {
 
 int32_t Textures::addTexture(uint8_t* image, int32_t width, int32_t height) {
     idBuffer.clear();
-    idBuffer.resize(1);
+    idBuffer.reserve(1);
     glGenTextures(1, idBuffer.data());
     int32_t id = idBuffer[0];
     glBindTexture(GL_TEXTURE_2D, id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA8, width, height, GL_RGBA, GL_UNSIGNED_BYTE, image);
+    int32_t dataSize = width * height * 4;
+    textureBuffer.clear();
+    textureBuffer.insert(textureBuffer.end(), image, image + dataSize);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureBuffer.data());
     return id;
+}
+
+void Textures::registerTextureFX(shared_ptr<TextureFX> textureFx) {
+    textureList.push_back(textureFx);
+    textureFx->onTick();
 }
