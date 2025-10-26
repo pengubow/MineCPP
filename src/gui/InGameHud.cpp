@@ -57,7 +57,7 @@ void InGameHud::render() {
         glPopMatrix();
     }
 
-    font->drawShadow("0.0.19a_04", 2, 2, 16777215);
+    font->drawShadow("0.0.19a_06", 2, 2, 16777215);
     font->drawShadow(minecraft->fpsString, 2, 12, 16777215);
     uint8_t var14 = 10;
     bool var15 = false;

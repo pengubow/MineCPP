@@ -104,7 +104,7 @@ void Minecraft::run() {
         }
 
         glfwMakeContextCurrent(window);
-        glfwSetWindowTitle(window, "Minecraft 0.0.19a_04");
+        glfwSetWindowTitle(window, "Minecraft 0.0.19a_06");
         glfwSwapInterval(0);
 
         glfwSetScrollCallback(window, scroll_callback);
@@ -203,31 +203,33 @@ void Minecraft::run() {
                 try {
                     int64_t now = Timer::nanoTime() / 1000000;
                     int64_t passedMS = now - timer.lastSyncSysClock;
+                    int64_t var11 = Timer::nanoTime() / 1000000L;
                     if (passedMS > 1000) {
-                        long var11 = Timer::nanoTime() / 1000000;
-                        long var13 = var11 - timer.lastSyncHRClock;
-                        timer.timeSyncAdjustment = (double)passedMS / (double)var13;
+                        int64_t var13 = var11 - timer.lastSyncHRClock;
+                        double var15 = (double)passedMS / (double)var13;
+                        timer.timeSyncAdjustment += (var15 - timer.timeSyncAdjustment) * 0.2;
                         timer.lastSyncSysClock = now;
                         timer.lastSyncHRClock = var11;
                     }
 
                     if (passedMS < 0) {
-                        timer.lastSyncHRClock = passedMS;
+                        timer.lastSyncSysClock = now;
+                        timer.lastSyncHRClock = var11;
                     }
 
-                    double var40 = (double)Timer::nanoTime() / 1.0e9;
-                    double var45 = (var40 - timer.lastHRTime) * timer.timeSyncAdjustment;
-                    timer.lastHRTime = var40;
+                    double var48 = (double)(var11) / 1000.0;
+                    double var15 = (var48 - timer.lastHRTime) * timer.timeSyncAdjustment;
+                    timer.lastHRTime = var48;
 
-                    if (var45 < 0.0) {
-                        var45 = 0.0;
+                    if (var15 < 0.0) {
+                        var15 = 0.0;
                     }
 
-                    if (var45 > 1.0) {
-                        var45 = 1.0;
+                    if (var15 > 1.0) {
+                        var15 = 1.0;
                     }
                     
-                    timer.fps = (float)((double)timer.fps + var45 * (double)timer.timeScale * (double)timer.ticksPerSecond);
+                    timer.fps = (float)((double)timer.fps + var15 * (double)timer.timeScale * (double)timer.ticksPerSecond);
                     timer.ticks = (int32_t)timer.fps;
                     if (timer.ticks > 100) {
                         timer.ticks = 100;
@@ -283,6 +285,12 @@ void Minecraft::run() {
                             int32_t mouseX1 = mouseX * width / this->width;
                             int32_t mouseY1 = mouseY * height / this->height;
                             screen->render(mouseX1, mouseY1);
+                        }
+
+                        try {
+                            // this_thread::sleep_for(chrono::milliseconds(3)); fixes the fps to 300
+                        } catch (const exception& e) {
+                            cout << e.what() << endl;
                         }
 
                         glfwSwapBuffers(window);
