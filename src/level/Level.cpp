@@ -325,14 +325,14 @@ void Level::tick() {
     var6 = unprocessed / 200;
     unprocessed -= var6 * 200;
 
-    for(var7 = 0; var7 < var6; ++var7) {
+    for (var7 = 0; var7 < var6; ++var7) {
         randValue = randValue * 3 + 1013904223;
         int32_t var12 = randValue >> 2;
         int32_t var13 = var12 & var4;
         int32_t var10 = var12 >> var1 & var3;
         var12 = var12 >> var1 + var2 & var5;
         uint8_t var11 = blocks[(var12 * height + var10) * width + var13];
-        if(Tile::shouldTick[var11]) {
+        if (Tile::shouldTick[var11]) {
             Tile::tiles[var11]->tick(shared, var13, var12, var10, random);
         }
     }

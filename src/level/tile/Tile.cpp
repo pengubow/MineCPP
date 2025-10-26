@@ -17,9 +17,9 @@ vector<int32_t> Tile::tickSpeed = vector<int32_t>(256);
 Tile* Tile::rock = new Tile(1, 1);
 Tile* Tile::grass = new GrassTile(2);
 Tile* Tile::dirt = new DirtTile(3, 2);
-Tile* Tile::stoneBrick = new Tile(4, 16);
-Tile* Tile::wood = new Tile(5, 4);
-Tile* Tile::bush = new Bush(6);
+Tile* Tile::wood = new Tile(4, 16);
+Tile* Tile::stoneBrick = new Tile(5, 4);
+Tile* Tile::bush = new Bush(6, 15);
 Tile* Tile::unbreakable = new Tile(7, 17);
 Tile* Tile::water = new LiquidTile(8, Liquid::water);
 Tile* Tile::calmWater = new CalmLiquidTile(9, Liquid::water);
@@ -34,6 +34,27 @@ Tile* Tile::log = new LogTile(17);
 Tile* Tile::leaf = new LeafTile(18, 22, false);
 Tile* Tile::sponge = new SpongeTile(19);
 Tile* Tile::glass = new GlassTile(20, 49, false);
+Tile* Tile::clothRed = new Tile(21, 64);
+Tile* Tile::clothOrange = new Tile(22, 65);
+Tile* Tile::clothYellow = new Tile(23, 66);
+Tile* Tile::clothChartreuse = new Tile(24, 67);
+Tile* Tile::clothGreen = new Tile(25, 68);
+Tile* Tile::clothSpringGreen = new Tile(26, 69);
+Tile* Tile::clothCyan = new Tile(27, 70);
+Tile* Tile::clothCapri = new Tile(28, 71);
+Tile* Tile::clothUltramarine = new Tile(29, 72);
+Tile* Tile::clothViolet = new Tile(30, 73);
+Tile* Tile::clothPurple = new Tile(31, 74);
+Tile* Tile::clothMagenta = new Tile(32, 75);
+Tile* Tile::clothRose = new Tile(33, 76);
+Tile* Tile::clothDarkGray = new Tile(34, 77);
+Tile* Tile::clothGray = new Tile(35, 78);
+Tile* Tile::clothWhite = new Tile(36, 79);
+Tile* Tile::plantYellow = new Bush(37, 13);
+Tile* Tile::plantRed = new Bush(38, 12);
+Tile* Tile::mushroomBrown = new Bush(39, 29);
+Tile* Tile::mushroomRed = new Bush(40, 28);
+Tile* Tile::blockGold = new Tile(41, 40);
 
 Tile::Tile(int32_t id) : id(id) {
     tiles[id] = this;
@@ -329,7 +350,7 @@ bool Tile::mayPick() {
     return true;
 }
 
-void Tile::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random random) {}
+void Tile::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random& random) {}
 
 void Tile::destroy(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, shared_ptr<ParticleEngine>& particleEngine) {
     int32_t SD = 4;

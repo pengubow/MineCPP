@@ -168,6 +168,7 @@ void SocketConnection::processDataFunc() {
             if (var3 == Packet::LOGIN) {
                 minecraft->beginLevelLoading(catch_get<string>(var11[1]));
                 minecraft->levelLoadUpdate(catch_get<string>(var11[2]));
+                minecraft->player->userType = catch_get<int8_t>(var11[3]);
             } else if (var3 == Packet::LEVEL_INITIALIZE) {
                 minecraft->setLevel(nullptr);
                 var12->levelBuffer.clear();

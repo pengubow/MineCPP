@@ -1,6 +1,6 @@
 #include "level/tile/GrassTile.h"
 #include "Util/Util.h"
-
+#include <iostream>
 GrassTile::GrassTile(int32_t id) 
     : Tile(id) {
     this->tex = 3;
@@ -11,8 +11,8 @@ int32_t GrassTile::getTexture(int32_t face) {
     return face == 1 ? 0 : (face == 0 ? 2 : 3);
 }
 
-void GrassTile::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random random) {
-    if(random.nextInt(4) == 0) {
+void GrassTile::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random& random) {
+    if (random.nextInt(4) == 0) {
         if (!level->isLit(x, y + 1, z)) {
             level->setTile(x, y, z, Tile::dirt->id);
         }

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include "level/tile/Tile.h"
 
 using namespace std;
 
@@ -13,5 +14,5 @@ public:
 
     User(string name, string sessionId);
 
-    static vector<int32_t>& getCreativeTiles();
+    static vector<Tile*> getCreativeTiles();
 };

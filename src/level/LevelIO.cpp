@@ -158,7 +158,7 @@ shared_ptr<Level> LevelIO::loadDat(gzFile file) {
     try {
         const size_t CHUNK = 8192;
         vector<uint8_t> buf;
-        buf.resize(1 << 20);
+        buf.reserve(1 << 20);
         uint8_t tmp[CHUNK];
         int r;
         while ((r = gzread(file, tmp, CHUNK)) > 0) {

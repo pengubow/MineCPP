@@ -3,8 +3,6 @@
 #include <memory>
 #include "character/Vec3.h"
 
-using namespace std;
-
 class Vertex {
 public:
     shared_ptr<Vec3> pos;

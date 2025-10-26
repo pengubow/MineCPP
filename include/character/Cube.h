@@ -24,5 +24,5 @@ public:
     void setTexOffs(int32_t xTexOffs, int32_t yTexOffs);
     void addBox(float minX, float minY, float minZ, int32_t w, int32_t h, int32_t d);
     void setPos(float x, float y, float z);
-    void render();
+    void render(float size);
 };

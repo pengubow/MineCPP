@@ -39,6 +39,17 @@ void Screen::keyPressed(char var1, int32_t key) {
 
 }
 
+void Screen::mousePressed(int32_t x, int32_t y, int32_t clickType) {
+    if (clickType == 0) {
+        for (int32_t i = 0; i < buttons.size(); i++) {
+            shared_ptr<Button> button = buttons[i];
+            if (button->enabled && x >= button->x && y >= button->y && x < button->x + button->w && y < button->y + button->h) {
+                buttonClicked(button);
+            }
+        }
+    }
+}
+
 void Screen::buttonClicked(shared_ptr<Button>& var1) {}
 
 void Screen::init(shared_ptr<Minecraft>& minecraft, int32_t width, int32_t height) {
@@ -159,48 +170,34 @@ void Screen::updateEvents() {
     }
     vector<shared_ptr<Button>> buttonsSnapshot = this->buttons;
 
-    while (true) {
-        while (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_LEFT)) {
-            double mouseX;
-            double mouseY;
-            glfwGetCursorPos(window, &mouseX, &mouseY);
+    double mouseX;
+    double mouseY;
+    glfwGetCursorPos(window, &mouseX, &mouseY);
 
-            int32_t var1 = (int32_t)(mouseX * this->width / minecraft->width);
-            int32_t var2 = (int32_t)(mouseY * this->height / minecraft->height);
+    int32_t var1 = (int32_t)(mouseX * this->width / minecraft->width);
+    int32_t var2 = (int32_t)(mouseY * this->height / minecraft->height);
 
-            int32_t var4 = 0;
-            int32_t var3 = var2;
-            var2 = var1;
+    int32_t clickType = -1;
+    if (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_LEFT)) {
+        clickType = 0;
+    }
 
-            if (var4 != 0) {
-                continue;
-            }
+    if (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_RIGHT)) {
+        clickType = 1;
+    }
 
-            var4 = 0;
-            while (var4 < buttonsSnapshot.size()) {
-                shared_ptr<Button> var5 = buttonsSnapshot[var4];
-                
-                if (!var5) {
-                    var4++;
-                    continue;
-                }
-                if (var5->enabled && var2 >= var5->x && var3 >= var5->y &&
-                    var2 < var5->x + var5->w && var3 < var5->y + var5->h) {
-                    this->buttonClicked(var5);
-                }
-                ++var4;
-            }
+    if (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_MIDDLE)) {
+        clickType = 2;
+    }
 
-            break;
+    if (clickType != -1) {
+        mousePressed(var1, var2, clickType);
+    }
+
+    for (int32_t key = 0; key <= GLFW_KEY_LAST; ++key) {
+        if (Util::isKeyDownPrev(key)) {
+            keyPressed(getCharFromKey(key, Util::isKeyDown(GLFW_MOD_SHIFT)), key);
         }
-
-        for (int32_t key = 0; key <= GLFW_KEY_LAST; ++key) {
-            while (Util::isKeyDownPrev(key)) {
-                keyPressed(getCharFromKey(key, Util::isKeyDown(GLFW_MOD_SHIFT)), key);
-            }
-        }
-
-        return;
     }
 }
 

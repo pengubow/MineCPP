@@ -19,6 +19,7 @@
 #include "renderer/texture/TextureLavaFX.h"
 #include "renderer/texture/TextureWaterFX.h"
 #include "gui/InGameHud.h"
+#include "gui/InventoryScreen.h"
 
 static int32_t scrollWheel = 0;
 
@@ -104,7 +105,7 @@ void Minecraft::run() {
         }
 
         glfwMakeContextCurrent(window);
-        glfwSetWindowTitle(window, "Minecraft 0.0.19a_06");
+        glfwSetWindowTitle(window, "Minecraft 0.0.20a_01");
         glfwSwapInterval(0);
 
         glfwSetScrollCallback(window, scroll_callback);
@@ -287,12 +288,6 @@ void Minecraft::run() {
                             screen->render(mouseX1, mouseY1);
                         }
 
-                        try {
-                            // this_thread::sleep_for(chrono::milliseconds(3)); fixes the fps to 300
-                        } catch (const exception& e) {
-                            cout << e.what() << endl;
-                        }
-
                         glfwSwapBuffers(window);
                     }
                     
@@ -336,7 +331,9 @@ void Minecraft::grabMouse() {
 }
 
 void Minecraft::pauseGame() {
-    setScreen(make_shared<PauseScreen>());
+    if (!dynamic_pointer_cast<PauseScreen>(screen)) {
+        setScreen(make_shared<PauseScreen>());
+    }
 }
 
 void Minecraft::clickMouse() {
@@ -373,25 +370,30 @@ void Minecraft::clickMouse() {
 
         Tile* tile = Tile::tiles[level->getTile(x, y, z)];
         if (editMode == 0) {
-            bool changed = level->netSetTile(x, y, z, 0);
-            if (tile != nullptr && changed) {
-                if (isMultiplayer()) {
-                    connectionManager->sendBlockChange(x, y, z, editMode, paintTexture);
+            if (tile != Tile::unbreakable || player->userType >= 100) {
+                bool changed = level->netSetTile(x, y, z, 0);
+                if (tile != nullptr && changed) {
+                    if (isMultiplayer()) {
+                        connectionManager->sendBlockChange(x, y, z, editMode, player->inventory->getSelected());
+                    }
+
+                    tile->destroy(level, x, y, z, particleEngine);
                 }
 
-                tile->destroy(level, x, y, z, particleEngine);
+                return;
             }
         }
         else {
+            int32_t selectedTile = player->inventory->getSelected();
             Tile* tile = Tile::tiles[level->getTile(x, y, z)];
             if (tile == nullptr || tile == Tile::water || tile == Tile::calmWater || tile == Tile::lava || tile == Tile::calmLava) {
-                optional<AABB> aabb = Tile::tiles[paintTexture]->getAABB(x, y, z);
+                optional<AABB> aabb = Tile::tiles[selectedTile]->getAABB(x, y, z);
                 if(!aabb.has_value() || (player->bb.intersects(aabb.value()) ? false : level->isFree(aabb.value()))) {
                     if (isMultiplayer()) {
-                        connectionManager->sendBlockChange(x, y, z, editMode, paintTexture);
+                        connectionManager->sendBlockChange(x, y, z, editMode, selectedTile);
                     }
-                    level->netSetTile(x, y, z, paintTexture);
-                    Tile::tiles[paintTexture]->onBlockAdded(level, x, y, z);
+                    level->netSetTile(x, y, z, player->inventory->getSelected());
+                    Tile::tiles[selectedTile]->onBlockAdded(level, x, y, z);
                 }
             }
         }
@@ -454,9 +456,9 @@ void Minecraft::tick() {
             var1 = scrollWheel;
             scrollWheel = 0;
             
-            int32_t var3;
             if (var1 != 0) {
                 var2 = var1;
+                shared_ptr<Inventory> inventory = player->inventory;
                 if (var1 > 0) {
                     var2 = 1;
                 }
@@ -465,21 +467,11 @@ void Minecraft::tick() {
                     var2 = -1;
                 }
 
-                var3 = 0;
+                for(inventory->selectedSlot -= var2; inventory->selectedSlot < 0; inventory->selectedSlot += inventory->slots.size()) {}
 
-                for (int32_t var4 = 0; var4 < User::getCreativeTiles().size(); ++var4) {
-                    if (User::getCreativeTiles()[var4] == paintTexture) {
-                        var3 = var4;
-                    }
+                while (inventory->selectedSlot >= inventory->slots.size()) {
+                    inventory->selectedSlot -= inventory->slots.size();
                 }
-
-                for (var3 += var2; var3 < 0; var3 += User::getCreativeTiles().size()) {}
-
-                while (var3 >= User::getCreativeTiles().size()) {
-                    var3 -= User::getCreativeTiles().size();
-                }
-
-                paintTexture = User::getCreativeTiles()[var3];
             }
 
             if (!mouseGrabbed) {
@@ -495,18 +487,19 @@ void Minecraft::tick() {
                     editMode = (editMode + 1) % 2;
                 }
 
-                if (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_MIDDLE)) {
-                    if (hitResult.has_value()) {
-                        var2 = level->getTile(hitResult->x, hitResult->y, hitResult->z);
-                        if (var2 == Tile::grass->id) {
-                            var2 = Tile::dirt->id;
-                        }
+                if (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_MIDDLE) && hitResult.has_value()) {
+                    int32_t tile = level->getTile(hitResult->x, hitResult->y, hitResult->z);
+                    if (tile == Tile::grass->id) {
+                        tile = Tile::dirt->id;
+                    }
 
-                        for (var3 = 0; var3 < User::getCreativeTiles().size(); ++var3) {
-                            if (var2 == User::getCreativeTiles()[var3]) {
-                                paintTexture = User::getCreativeTiles()[var3];
-                            }
-                        }
+                    shared_ptr<Inventory> inventory = player->inventory;
+                    int32_t slot = inventory->getSlotContainsID(tile);
+                    if (slot >= 0) {
+                        inventory->selectedSlot = slot;
+                    }
+                    else if (tile > 0 && find(User::getCreativeTiles().begin(), User::getCreativeTiles().end(), Tile::tiles[tile]) != User::getCreativeTiles().end()) {
+                        inventory->getSlotContainsTile(Tile::tiles[tile]);
                     }
                 }
             }
@@ -533,9 +526,9 @@ void Minecraft::tick() {
                 player->resetPos();
             }
 
-            for (int var1 = 0; var1 < 9; ++var1) {
-                if (Util::isKeyDownPrev(GLFW_KEY_1 + var1)) {
-                    paintTexture = User::getCreativeTiles()[var1];
+            for (int32_t i = 0; i < 9; i++) {
+                if (Util::isKeyDownPrev(GLFW_KEY_1 + i)) {
+                    player->inventory->selectedSlot = i;
                 }
             }
 
@@ -551,6 +544,10 @@ void Minecraft::tick() {
             if (Util::isKeyDownPrev(GLFW_KEY_F)) {
                 bool isShiftDown = Util::isKeyDown(GLFW_KEY_LEFT_SHIFT) || Util::isKeyDown(GLFW_KEY_RIGHT_SHIFT);
                 levelRenderer->drawDistance = levelRenderer->drawDistance + (isShiftDown ? -1 : 1) & 3;
+            }
+
+            if (Util::isKeyDownPrev(GLFW_KEY_B)) {
+                setScreen(make_shared<InventoryScreen>());
             }
 
             if (Util::isKeyDownPrev(GLFW_KEY_T) && connectionManager && connectionManager->isConnected()) {
@@ -771,7 +768,10 @@ void Minecraft::render(float a) {
     }
 
     checkGlError("Rendered level");
+    toggleLight(true);
     levelRenderer->renderEntities(frustum, a);
+    toggleLight(false);
+    setupFog();
     checkGlError("Rendered entities");
     particleEngine->render(player.get(), a);
     checkGlError("Rendered particles");
@@ -784,7 +784,7 @@ void Minecraft::render(float a) {
     if (hitResult.has_value()) {
         glDisable(GL_LIGHTING);
         glDisable(GL_ALPHA_TEST);
-        levelRenderer->renderHit(player, hitResult, editMode, paintTexture);
+        levelRenderer->renderHit(player, hitResult, editMode, player->inventory->getSelected());
         levelRenderer->renderHitOutline(hitResult, editMode);
         glEnable(GL_ALPHA_TEST);
         glEnable(GL_LIGHTING);
@@ -812,10 +812,30 @@ void Minecraft::render(float a) {
     if (hitResult.has_value()) {
         glDepthFunc(GL_LESS);
         glDisable(GL_ALPHA_TEST);
-        levelRenderer->renderHit(player, hitResult, editMode, paintTexture);
+        levelRenderer->renderHit(player, hitResult, editMode, player->inventory->getSelected());
         levelRenderer->renderHitOutline(hitResult, editMode);
         glEnable(GL_ALPHA_TEST);
         glDepthFunc(GL_LEQUAL);
+    }
+}
+
+void Minecraft::toggleLight(bool toggleLight) {
+    if (!toggleLight) {
+        glDisable(GL_LIGHTING);
+        glDisable(GL_LIGHT0);
+    }
+    else {
+        glEnable(GL_LIGHTING);
+        glEnable(GL_LIGHT0);
+        glEnable(GL_COLOR_MATERIAL);
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+        float var4 = 0.7f;
+        float var2 = 0.3f;
+        Vec3 var3 = Vec3(0.0f, -1.0f, 0.5f).normalize();
+        glLightfv(GL_LIGHT0, GL_POSITION, getBuffer(var3.x, var3.y, var3.z, 0.0f).data());
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, getBuffer(var2, var2, var2, 1.0f).data());
+        glLightfv(GL_LIGHT0, GL_AMBIENT, getBuffer(0.0f, 0.0f, 0.0f, 1.0f).data());
+        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, getBuffer(var4, var4, var4, 1.0f).data());
     }
 }
 

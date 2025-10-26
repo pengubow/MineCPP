@@ -4,6 +4,6 @@ class CalmLiquidTile : public LiquidTile {
 public:
     CalmLiquidTile(int32_t id, Liquid* type);
 protected:
-    void tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random random) override;
+    void tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random& random) override;
     void neighborChanged(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, int32_t type) override;
 };

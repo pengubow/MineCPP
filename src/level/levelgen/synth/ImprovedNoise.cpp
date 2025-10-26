@@ -3,10 +3,23 @@
 #include "level/levelgen/synth/ImprovedNoise.h"
 #include "Util/Util.h"
 
-ImprovedNoise::ImprovedNoise() 
-    : ImprovedNoise(Random()) {}
+ImprovedNoise::ImprovedNoise() {
+    Random random = Random();
+    p = vector<int32_t>(512);
 
-ImprovedNoise::ImprovedNoise(Random random) {
+    int32_t i;
+    for(i = 0; i < 256; p[i] = i++) {}
+
+    for(i = 0; i < 256; i++) {
+        int32_t var3 = random.nextInt(256 - i) + i;
+        int32_t var4 = p[i];
+        p[i] = p[var3];
+        p[var3] = var4;
+        p[i + 256] = p[i];
+    }
+}
+
+ImprovedNoise::ImprovedNoise(Random& random) {
     p = vector<int32_t>(512);
 
     int32_t i;

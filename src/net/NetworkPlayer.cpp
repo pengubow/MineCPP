@@ -160,12 +160,11 @@ void NetworkPlayer::render(shared_ptr<Textures>& textures, float a) {
     glTranslatef(xo + (x - xo) * a, yo + (y - yo) * a - heightOffset, 
         zo + (z - zo) * a);
     glScalef(1.0f, -1.0f, 1.0f);
-    glScalef(var7, var7, var7);
-    glTranslatef(0.0f, var8, 0.0f);
+    glTranslatef(0.0f, var8 * var7, 0.0f);
     glRotatef(var9, 0.0f, 1.0f, 0.0f);
     glDisable(GL_ALPHA_TEST);
     glScalef(-1.0f, 1.0f, 1.0f);
-    zombieModel.render(var6, var3, (float)tickCount + a, var4, var5);
+    zombieModel.render(var6, var3, (float)tickCount + a, var4, var5, var7);
     glEnable(GL_ALPHA_TEST);
     glPopMatrix();
     glPushMatrix();

@@ -33,7 +33,6 @@ public:
 	shared_ptr<Level> level;
 	shared_ptr<LevelRenderer> levelRenderer;
 	shared_ptr<Player> player;
-	int32_t paintTexture = 1;
 private:
 	shared_ptr<ParticleEngine> particleEngine;
 public:
@@ -103,6 +102,7 @@ private:
 	bool isMultiplayer();
     void orientCamera(float a);
     void render(float a);
+	void toggleLight(bool toggleLight);
 public:
 	void initGui();
 private:

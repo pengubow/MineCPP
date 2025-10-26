@@ -13,5 +13,5 @@ class ZombieModel {
 public:
     ZombieModel();
 
-    void render(double time, float var2, float var3, float var4, float var5);
+    void render(double time, float var2, float var3, float var4, float var5, float size);
 };

@@ -1,13 +1,13 @@
 #include <cmath>
 #include "level/tile/Bush.h"
 
-Bush::Bush(int32_t id) 
+Bush::Bush(int32_t id, int32_t tex) 
     : Tile(id) {
-    this->tex = 15;
+    this->tex = tex;
     setTicking(true);
 }
 
-void Bush::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random random) {
+void Bush::tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random& random) {
     int32_t below = level->getTile(x, y - 1, z);
     if (!level->isLit(x, y, z) || below != Tile::dirt->id && below != Tile::grass->id) {
         level->setTile(x, y, z, 0);

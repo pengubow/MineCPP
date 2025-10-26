@@ -54,28 +54,42 @@ void Cube::setPos(float x, float y, float z) {
     this->z = z;
 }
 
-void Cube::render() {
-    if (!this->compiled) {
+void Cube::render(float size) {
+    if (!compiled) {
         this->list = glGenLists(1);
         glNewList(this->list, GL_COMPILE);
         glBegin(GL_QUADS);
+        
         for (int32_t i = 0; i < this->polygons.size(); i++) {
+            Quad& poly = this->polygons[i];
+            
+            Vec3 edge1 = poly.vertices[1].pos->subtract(poly.vertices[0].pos).normalize();
+            Vec3 edge2 = poly.vertices[1].pos->subtract(poly.vertices[2].pos).normalize();
+            Vec3 normal = Vec3(
+                edge1.y * edge2.z - edge1.z * edge2.y,
+                edge1.z * edge2.x - edge1.x * edge2.z,
+                edge1.x * edge2.y - edge1.y * edge2.x
+            ).normalize();
+            
+            glNormal3f(normal.x, normal.y, normal.z);
+            
             for (int32_t i2 = 0; i2 < 4; i2++) {
-                Vertex v = this->polygons[i].vertices[i2];
+                Vertex& v = poly.vertices[i2];
                 glTexCoord2f(v.u / 64.0f, v.v / 32.0f);
-                glVertex3f(v.pos->x, v.pos->y, v.pos->z);
+                glVertex3f(v.pos->x * size, v.pos->y * size, v.pos->z * size);
             }
         }
         glEnd();
         glEndList();
-        this->compiled = true;
+        compiled = true;
     }
-    float c = 57.29578f;
+
+    float var9 = 57.29578F;
     glPushMatrix();
-    glTranslatef(this->x, this->y, this->z);
-    glRotatef(this->zRot * c, 0.0f, 0.0f, 1.0f);
-    glRotatef(this->yRot * c, 0.0f, 1.0f, 0.0f);
-    glRotatef(this->xRot * c, 1.0f, 0.0f, 0.0f);
+    glTranslatef(this->x * size, this->y * size, this->z * size);
+    glRotatef(this->zRot * var9, 0.0f, 0.0f, 1.0f);
+    glRotatef(this->yRot * var9, 0.0f, 1.0f, 0.0f);
+    glRotatef(this->xRot * var9, 1.0f, 0.0f, 0.0f);
     glCallList(this->list);
     glPopMatrix();
 }

@@ -2,7 +2,7 @@
 
 Packet* Packet::PACKETS[256] = {nullptr};
 int Packet::nextId = 0;
-Packet* Packet::LOGIN = new Packet(vector<FieldType>{FieldType::BYTE, FieldType::STRING, FieldType::STRING});
+Packet* Packet::LOGIN = new Packet(vector<FieldType>{FieldType::BYTE, FieldType::STRING, FieldType::STRING, FieldType::BYTE});
 Packet* Packet::DUMMY = new Packet(vector<FieldType>{});
 Packet* Packet::LEVEL_INITIALIZE = new Packet(vector<FieldType>{});
 Packet* Packet::LEVEL_DATA_CHUNK = new Packet(vector<FieldType>{FieldType::SHORT, FieldType::BYTE_ARRAY, FieldType::BYTE});

@@ -34,6 +34,27 @@ public:
     static Tile* leaf;
     static Tile* sponge;
     static Tile* glass;
+    static Tile* clothRed;
+    static Tile* clothOrange;
+    static Tile* clothYellow;
+    static Tile* clothChartreuse;
+    static Tile* clothGreen;
+    static Tile* clothSpringGreen;
+    static Tile* clothCyan;
+    static Tile* clothCapri;
+    static Tile* clothUltramarine;
+    static Tile* clothViolet;
+    static Tile* clothPurple;
+    static Tile* clothMagenta;
+    static Tile* clothRose;
+    static Tile* clothDarkGray;
+    static Tile* clothGray;
+    static Tile* clothWhite;
+    static Tile* plantYellow;
+    static Tile* plantRed;
+    static Tile* mushroomBrown;
+    static Tile* mushroomRed;
+    static Tile* blockGold;
     int32_t tex;
     int32_t id;
 private:
@@ -74,7 +95,7 @@ public:
     virtual bool blocksLight();
     virtual bool isSolid();
     virtual bool mayPick();
-    virtual void tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random random);
+    virtual void tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random& random);
     void destroy(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, shared_ptr<ParticleEngine>& particleEngine);
     virtual Liquid* getLiquidType();
     virtual void neighborChanged(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, int32_t type);

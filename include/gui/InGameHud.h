@@ -9,7 +9,7 @@ class InGameHud {
 public:
     deque<ChatLine> messages;
 private:
-	shared_ptr<Minecraft> minecraft;
+	weak_ptr<Minecraft> minecraft;
 	int32_t scaledWidth;
 	int32_t scaledHeight;
 public:

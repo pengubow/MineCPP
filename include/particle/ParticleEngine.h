@@ -1,7 +1,10 @@
+#pragma once
+
 #include "level/Level.h"
 #include "particle/Particle.h"
 #include "renderer/Textures.h"
-#include "player/Player.h"
+
+class Player;
 
 class ParticleEngine {
 public:

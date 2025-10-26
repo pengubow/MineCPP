@@ -7,6 +7,11 @@ InGameHud::InGameHud(shared_ptr<Minecraft>& minecraft, int32_t scaledWidth, int3
 }
 
 void InGameHud::render() {
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (!minecraft) {
+        return;
+    }
+
     shared_ptr<Font> font = minecraft->font;
     minecraft->initGui();
     shared_ptr<Textures> textures = minecraft->textures;
@@ -15,49 +20,34 @@ void InGameHud::render() {
     shared_ptr<Tesselator> t = Tesselator::instance;
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     glEnable(GL_BLEND);
+    shared_ptr<Inventory> inventory = minecraft->player->inventory;
     blit(scaledWidth / 2 - 91, scaledHeight - 22, 0, 0, 182, 22);
-    int32_t var5 = 0;
-
-    int32_t var10001;
-    while (true) {
-        if (var5 >= User::getCreativeTiles().size()) {
-            var10001 = 0;
-            break;
-        }
-
-        if (User::getCreativeTiles()[var5] == minecraft->paintTexture) {
-            var10001 = var5;
-            break;
-        }
-
-        var5++;
-    }
-
-    blit((scaledWidth / 2 - 91 - 1) + var10001 * 20, scaledHeight - 22 - 1, 0, 22, 24, 22);
+    blit(scaledWidth / 2 - 91 - 1 + inventory->selectedSlot * 20, scaledHeight - 22 - 1, 0, 22, 24, 22);
     glDisable(GL_BLEND);
 
-    int var13;
-    for (var13 = 0; var13 < 9; ++var13) {
-        var5 = User::getCreativeTiles()[var13];
-        glPushMatrix();
-        glTranslatef((float)(scaledWidth / 2 - 90 + var13 * 20), (float)(scaledHeight - 16), -50.0F);
-        glScalef(10.0f, 10.0f, 10.0f);
-        glTranslatef(1.0f, 0.5f, 0.0f);
-        glRotatef(-30.0f, 1.0f, 0.0f, 0.0f);
-        glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
-        glTranslatef(-1.5f, 0.5f, 0.5f);
-        glScalef(-1.0f, -1.0f, -1.0f);
-        int32_t id = textures->getTextureId("terrain.png");
-        glBindTexture(GL_TEXTURE_2D, id);
-        glEnable(GL_TEXTURE_2D);
-        t->begin();
-        Tile::tiles[var5]->render(t, minecraft->level, 0, -2, 0, 0);
-        t->end();
-        glDisable(GL_TEXTURE_2D);
-        glPopMatrix();
+    for (int32_t i = 0; i < inventory->slots.size(); i++) {
+        int32_t slot = inventory->slots[i];
+        if (slot > 0) {
+            glPushMatrix();
+            glTranslatef((float)(scaledWidth / 2 - 90 + i * 20), (float)(scaledHeight - 16), -50.0F);
+            glScalef(10.0f, 10.0f, 10.0f);
+            glTranslatef(1.0f, 0.5f, 0.0f);
+            glRotatef(-30.0f, 1.0f, 0.0f, 0.0f);
+            glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
+            glTranslatef(-1.5f, 0.5f, 0.5f);
+            glScalef(-1.0f, -1.0f, -1.0f);
+            int32_t id = textures->getTextureId("terrain.png");
+            glBindTexture(GL_TEXTURE_2D, id);
+            glEnable(GL_TEXTURE_2D);
+            t->begin();
+            Tile::tiles[slot]->render(t, minecraft->level, 0, -2, 0, 0);
+            t->end();
+            glDisable(GL_TEXTURE_2D);
+            glPopMatrix();
+        }
     }
 
-    font->drawShadow("0.0.19a_06", 2, 2, 16777215);
+    font->drawShadow("0.0.20a_01", 2, 2, 16777215);
     font->drawShadow(minecraft->fpsString, 2, 12, 16777215);
     uint8_t var14 = 10;
     bool var15 = false;
@@ -109,8 +99,8 @@ void InGameHud::render() {
         font->drawShadow(var11, var6 - font->width(var11) / 2, var9 - 64 - 12, 16777215);
 
         for(int32_t var12 = 0; var12 < playerNames.size(); ++var12) {
-            var13 = var6 + var12 % 2 * 120 - 120;
-            var5 = var9 - 64 + (var12 / 2 << 3);
+            int32_t var13 = var6 + var12 % 2 * 120 - 120;
+            int32_t var5 = var9 - 64 + (var12 / 2 << 3);
             font->draw(playerNames[var12], var13, var5, 16777215);
         }
     }

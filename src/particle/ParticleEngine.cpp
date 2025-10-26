@@ -3,6 +3,7 @@
 #include "GL_compat.h"
 #include "particle/ParticleEngine.h"
 #include "renderer/Textures.h"
+#include "player/Player.h"
 
 ParticleEngine::ParticleEngine(shared_ptr<Level>& level, shared_ptr<Textures>& textures) : textures(textures) {};
 
