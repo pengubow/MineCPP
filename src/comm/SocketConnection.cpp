@@ -190,7 +190,7 @@ void SocketConnection::processDataFunc() {
                 level->setData(width, depth, height, blocks);
                 minecraft->setLevel(level);
                 minecraft->hideGui = false;
-                connected = true;
+                manager->connected = true;
             } else if (var3 == Packet::SET_TILE) {
                 if (minecraft->level != nullptr) {
                     minecraft->level->netSetTile(
