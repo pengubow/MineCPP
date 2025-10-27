@@ -11,6 +11,10 @@ GLFWwindow* Util::getGLFWWindow() {
     return win;
 }
 
+bool Util::windowIsActive() {
+    return glfwGetWindowAttrib(getGLFWWindow(), GLFW_FOCUSED);
+}
+
 bool Util::isKeyDown(int32_t key) {
     win = getGLFWWindow();
     if (!win) 

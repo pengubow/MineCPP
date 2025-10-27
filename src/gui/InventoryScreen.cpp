@@ -2,10 +2,14 @@
 #include "User.h"
 #include "Minecraft.h"
 
+InventoryScreen::InventoryScreen() {
+    allowUserInput = true;
+}
+
 int32_t InventoryScreen::getTileAtSlot(int32_t var1, int32_t var2) {
     for (int32_t i = 0; i < User::getCreativeTiles().size(); i++) {
-        int32_t var4 = width / 2 + i % 8 * 24 - 96;
-        int32_t var5 = height / 2 + i / 8 * 24 - 48;
+        int32_t var4 = width / 2 + i % 8 * 24 - 96 - 3;
+        int32_t var5 = height / 2 + i / 8 * 24 - 48 + 3;
         if (var1 >= var4 && var1 <= var4 + 24 && var2 >= var5 - 12 && var2 <= var5 + 12) {
             return i;
         }
@@ -19,11 +23,16 @@ void InventoryScreen::render(int32_t var1, int32_t var2) {
         return;
     }
 
-    fillGradient(0, 0, width, height, 1610941696, -1607454624);
+    int32_t tile = getTileAtSlot(var1, var2);
+    fillGradient(width / 2 - 120, 30, width / 2 + 120, 180, -1878719232, -1070583712);
+    if (tile >= 0) {
+        var2 = width / 2 + tile % 8 * 24 - 96;
+        int32_t var3 = height / 2 + tile / 8 * 24 - 48;
+        fillGradient(var2 - 3, var3 - 8, var2 + 23, var3 + 24 - 6, -1862270977, -1056964609);
+    }
     drawCenteredString("Select block", width / 2, 40, 16777215);
     shared_ptr<Textures> textures = minecraft->textures;
     shared_ptr<Tesselator> t = Tesselator::instance;
-    int32_t tile = getTileAtSlot(var1, var2);
     int32_t id = textures->getTextureId("terrain.png");
     glBindTexture(GL_TEXTURE_2D, id);
     glEnable(GL_TEXTURE_2D);

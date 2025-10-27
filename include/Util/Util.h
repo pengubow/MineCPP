@@ -11,6 +11,7 @@ namespace Util {
     static GLFWwindow* win;
 
     GLFWwindow* getGLFWWindow();
+    bool windowIsActive();
     bool isKeyDown(int32_t key);
     bool isKeyDownPrev(int32_t key);
     bool isMouseKeyDown(int32_t key);

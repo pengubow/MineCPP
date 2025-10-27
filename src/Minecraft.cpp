@@ -105,7 +105,7 @@ void Minecraft::run() {
         }
 
         glfwMakeContextCurrent(window);
-        glfwSetWindowTitle(window, "Minecraft 0.0.20a_02");
+        glfwSetWindowTitle(window, "Minecraft 0.0.21a");
         glfwSwapInterval(0);
 
         glfwSetScrollCallback(window, scroll_callback);
@@ -246,10 +246,11 @@ void Minecraft::run() {
 
                     checkGlError("Pre render");
                     float partialTicks = timer.partialTicks;
-                    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED)) {
+                    if (displayActive && !Util::windowIsActive()) {
                         pauseGame();
                     }
 
+                    displayActive = Util::windowIsActive();
                     if (mouseGrabbed) {
                         double xo = 0.0f;
                         double yo = 0.0f;
@@ -321,10 +322,9 @@ void Minecraft::run() {
 }
 
 void Minecraft::grabMouse() {
-    if(!mouseGrabbed) {
+    if (!mouseGrabbed) {
         mouseGrabbed = true;
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-
         setScreen(nullptr);
         prevFrameTime = ticksRan + 10000;
     }
@@ -387,7 +387,7 @@ void Minecraft::clickMouse() {
             int32_t selectedTile = player->inventory->getSelected();
             Tile* tile = Tile::tiles[level->getTile(x, y, z)];
             if (tile == nullptr || tile == Tile::water || tile == Tile::calmWater || tile == Tile::lava || tile == Tile::calmLava) {
-                optional<AABB> aabb = Tile::tiles[selectedTile]->getAABB(x, y, z);
+                optional<AABB> aabb = Tile::tiles[selectedTile]->getTileAABB(x, y, z);
                 if(!aabb.has_value() || (player->bb.intersects(aabb.value()) ? false : level->isFree(aabb.value()))) {
                     if (isMultiplayer()) {
                         connectionManager->sendBlockChange(x, y, z, editMode, selectedTile);
@@ -446,12 +446,70 @@ void Minecraft::tick() {
     }
 
     int32_t var2;
-    if (screen != nullptr) {
-        prevFrameTime = ticksRan + 10000;
-    }
-    else {
+    if (!screen || screen->allowUserInput) {
         while (true) {
             int32_t var1;
+            if (!screen && Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_LEFT) && (float)(ticksRan - prevFrameTime) >= timer.ticksPerSecond / 4.0f && mouseGrabbed) {
+                clickMouse();
+                prevFrameTime = ticksRan;
+            }
+
+            static vector<bool> lastState(348);
+            for (int32_t k = 0; k < 348; ++k) {
+                bool state = Util::isKeyDown(k);
+                if (state != lastState[k]) {
+                    lastState[k] = state;
+                    player->setKey(k, state);
+                }
+            }
+
+            if (screen) {
+                screen->updateKeyboardEvents();
+            }
+
+            if (!screen) {
+                if (Util::isKeyDownPrev(GLFW_KEY_ESCAPE)) {
+                    pauseGame();
+                }
+
+                if (Util::isKeyDownPrev(GLFW_KEY_R)) {
+                    player->resetPos();
+                }
+
+                if (Util::isKeyDownPrev(GLFW_KEY_ENTER)) {
+                    level->setSpawnPos((int32_t)player->x, (int32_t)player->y, (int32_t)player->z, player->yRot);
+                    player->resetPos();
+                }
+
+                for (int32_t i = 0; i < 9; i++) {
+                    if (Util::isKeyDownPrev(GLFW_KEY_1 + i)) {
+                        player->inventory->selectedSlot = i;
+                    }
+                }
+
+                if (Util::isKeyDownPrev(GLFW_KEY_Y)) {
+                    yMouseAxis = -yMouseAxis;
+                }
+
+                if (Util::isKeyDownPrev(GLFW_KEY_G) && connectionManager == nullptr && level->entities.size() < 256) {
+                    shared_ptr<Zombie> zombie = make_shared<Zombie>(level, player->x, player->y, player->z);
+                    level->entities.push_back(zombie);
+                }
+
+                if (Util::isKeyDownPrev(GLFW_KEY_F)) {
+                    bool isShiftDown = Util::isKeyDown(GLFW_KEY_LEFT_SHIFT) || Util::isKeyDown(GLFW_KEY_RIGHT_SHIFT);
+                    levelRenderer->drawDistance = levelRenderer->drawDistance + (isShiftDown ? -1 : 1) & 3;
+                }
+
+                if (Util::isKeyDownPrev(GLFW_KEY_B)) {
+                    setScreen(make_shared<InventoryScreen>());
+                }
+
+                if (Util::isKeyDownPrev(GLFW_KEY_T) && connectionManager && connectionManager->isConnected()) {
+                    player->releaseAllKeys();
+                    setScreen(make_shared<ChatScreen>());
+                }
+            }
             
             var1 = scrollWheel;
             scrollWheel = 0;
@@ -467,108 +525,62 @@ void Minecraft::tick() {
                     var2 = -1;
                 }
 
-                for(inventory->selectedSlot -= var2; inventory->selectedSlot < 0; inventory->selectedSlot += inventory->slots.size()) {}
+                for (inventory->selectedSlot -= var2; inventory->selectedSlot < 0; inventory->selectedSlot += inventory->slots.size()) {}
 
                 while (inventory->selectedSlot >= inventory->slots.size()) {
                     inventory->selectedSlot -= inventory->slots.size();
                 }
             }
 
-            if (!mouseGrabbed) {
-                grabMouse();
-            }
-            else {
-                if (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_LEFT)) {
-                    clickMouse();
-                    prevFrameTime = ticksRan;
+            if (!screen) {
+                if (!mouseGrabbed) {
+                    grabMouse();
                 }
-
-                if (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_RIGHT)) {
-                    editMode = (editMode + 1) % 2;
-                }
-
-                if (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_MIDDLE) && hitResult.has_value()) {
-                    int32_t tile = level->getTile(hitResult->x, hitResult->y, hitResult->z);
-                    if (tile == Tile::grass->id) {
-                        tile = Tile::dirt->id;
+                else {
+                    if (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_LEFT) && (float)(ticksRan - prevFrameTime) >= timer.ticksPerSecond / 4.0f && mouseGrabbed) {
+                        clickMouse();
+                        prevFrameTime = ticksRan;
                     }
 
-                    shared_ptr<Inventory> inventory = player->inventory;
-                    int32_t slot = inventory->getSlotContainsID(tile);
-                    if (slot >= 0) {
-                        inventory->selectedSlot = slot;
+                    if (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_RIGHT)) {
+                        editMode = (editMode + 1) % 2;
                     }
-                    else if (tile > 0 && find(User::getCreativeTiles().begin(), User::getCreativeTiles().end(), Tile::tiles[tile]) != User::getCreativeTiles().end()) {
-                        inventory->getSlotContainsTile(Tile::tiles[tile]);
+
+                    if (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_MIDDLE) && hitResult.has_value()) {
+                        int32_t tile = level->getTile(hitResult->x, hitResult->y, hitResult->z);
+                        if (tile == Tile::grass->id) {
+                            tile = Tile::dirt->id;
+                        }
+
+                        shared_ptr<Inventory> inventory = player->inventory;
+                        int32_t slot = inventory->getSlotContainsID(tile);
+                        if (slot >= 0) {
+                            inventory->selectedSlot = slot;
+                        }
+                        else if (tile > 0 && find(User::getCreativeTiles().begin(), User::getCreativeTiles().end(), Tile::tiles[tile]) != User::getCreativeTiles().end()) {
+                            inventory->getSlotContainsTile(Tile::tiles[tile]);
+                        }
                     }
                 }
             }
 
-            static vector<bool> lastState(348);
-            for (int32_t k = 0; k < 348; ++k) {
-                bool state = Util::isKeyDown(k);
-                if (state != lastState[k]) {
-                    lastState[k] = state;
-                    player->setKey(k, state);
-                }
+            if (screen) {
+                screen->updateMouseEvents();
             }
 
-            if (Util::isKeyDownPrev(GLFW_KEY_ESCAPE)) {
-                pauseGame();
-            }
-
-            if (Util::isKeyDownPrev(GLFW_KEY_R)) {
-                player->resetPos();
-            }
-
-            if (Util::isKeyDownPrev(GLFW_KEY_ENTER)) {
-                level->setSpawnPos((int32_t)player->x, (int32_t)player->y, (int32_t)player->z, player->yRot);
-                player->resetPos();
-            }
-
-            for (int32_t i = 0; i < 9; i++) {
-                if (Util::isKeyDownPrev(GLFW_KEY_1 + i)) {
-                    player->inventory->selectedSlot = i;
-                }
-            }
-
-            if (Util::isKeyDownPrev(GLFW_KEY_Y)) {
-                yMouseAxis = -yMouseAxis;
-            }
-
-            if (Util::isKeyDownPrev(GLFW_KEY_G) && connectionManager == nullptr && level->entities.size() < 256) {
-                shared_ptr<Zombie> zombie = make_shared<Zombie>(level, player->x, player->y, player->z);
-                level->entities.push_back(zombie);
-            }
-
-            if (Util::isKeyDownPrev(GLFW_KEY_F)) {
-                bool isShiftDown = Util::isKeyDown(GLFW_KEY_LEFT_SHIFT) || Util::isKeyDown(GLFW_KEY_RIGHT_SHIFT);
-                levelRenderer->drawDistance = levelRenderer->drawDistance + (isShiftDown ? -1 : 1) & 3;
-            }
-
-            if (Util::isKeyDownPrev(GLFW_KEY_B)) {
-                setScreen(make_shared<InventoryScreen>());
-            }
-
-            if (Util::isKeyDownPrev(GLFW_KEY_T) && connectionManager && connectionManager->isConnected()) {
-                player->releaseAllKeys();
-                setScreen(make_shared<ChatScreen>());
-            }
-
-            if (Util::isMouseKeyDown(GLFW_MOUSE_BUTTON_LEFT) && (float)(ticksRan - prevFrameTime) >= timer.ticksPerSecond / 4.0F && mouseGrabbed) {
-                clickMouse();
-                prevFrameTime = ticksRan;
-            }
             break;
         }
     }
 
-    if (screen != nullptr) {
-        screen->updateEvents();
-        if (screen != nullptr) {
+    if (screen) {
+        prevFrameTime = ticksRan + 10000;
+        screen->updateMouseEvents();
+        screen->updateKeyboardEvents();
+        if (screen) {
             screen->tick();
         }
     }
+    
     if(level != nullptr) {
         levelRenderer->cloudTickCounter++;
         level->tickEntities();
@@ -590,16 +602,6 @@ void Minecraft::tick() {
 
 bool Minecraft::isMultiplayer() {
     return connectionManager != nullptr;
-}
-
-void Minecraft::orientCamera(float a) {
-    glTranslatef(0.0F, 0.0F, -0.3F);
-	glRotatef(player->xRotO + (player->xRot - player->xRotO) * a, 1.0f, 0.0f, 0.0f);
-    glRotatef(player->yRotO + (player->yRot - player->yRotO) * a, 0.0f, 1.0f, 0.0f);
-	float var2 = player->xo + (player->x - player->xo) * a;
-	float var3 = player->yo + (player->y - player->yo) * a;
-	float var4 = player->zo + (player->z - player->zo) * a;
-	glTranslatef(-var2, -var3, -var4);
 }
 
 void Minecraft::render(float a) {    
@@ -630,96 +632,24 @@ void Minecraft::render(float a) {
     glClearColor(fogColorRed, fogColorGreen, fogColorBlue, 0.0f);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     checkGlError("Set viewport");
-    fill(selectBuffer.begin(), selectBuffer.end(), 0);
-    glSelectBuffer((GLsizei)selectBuffer.size(), selectBuffer.data());
-    glRenderMode(GL_SELECT);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glGetIntegerv(GL_VIEWPORT, viewportBuffer.data());
-    gluPickMatrix((float)(width / 2), (float)(height / 2), 5.0f, 5.0f, viewportBuffer.data());
-    gluPerspective(70.0f, (float)width / height, 0.2f, 10.0f);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    orientCamera(a);
-    Frustum& frustum = Frustum::getFrustum();
-    shared_ptr<Tesselator> t = Tesselator::instance;
-    float expand = 2.5f;
-    AABB aabb = player->bb.grow(expand, expand, expand);
-    int32_t x0 = (int32_t)(aabb.minX);
-    int32_t x1 = (int32_t)(aabb.maxX + 1.0f);
-    int32_t y0 = (int32_t)(aabb.minY);
-    int32_t y1 = (int32_t)(aabb.maxY + 1.0f);
-    int32_t z0 = (int32_t)(aabb.minZ);
-    int32_t z1 = (int32_t)(aabb.maxZ + 1.0f);
-    shared_ptr<Level> lRlevel = levelRenderer->level.lock();
-    if (!lRlevel) {
-        return;
-    }
-    glInitNames();
-    glPushName(0);
-    glPushName(0);
-
-    for (int32_t x = x0; x < x1; x++) {
-        glLoadName(x);
-        glPushName(0);
-
-        for (int32_t y = y0; y < y1; y++) {
-            glLoadName(y);
-            glPushName(0);
-
-            for (int32_t z = z0; z < z1; ++z) {
-                Tile* tile = Tile::tiles[lRlevel->getTile(x, y, z)];
-                optional<AABB> aabb = Tile::getTileAABB(x, y, z);
-                if (tile && tile->mayPick() && aabb.has_value() && frustum.isVisible(aabb.value())) {
-                    glLoadName(z);
-                    glPushName(0);
-
-                    for (int32_t face = 0; face < 6; ++face) {
-                        if (Tile::cullFace(lRlevel, x, y, z, face)) {
-                            glLoadName(face);
-                            t->begin();
-                            Tile::renderFaceNoTexture(player, t, x, y, z, face);
-                            t->end();
-                        }
-                    }
-                    glPopName();
-                }
-            }
-            glPopName();
-        }
-        glPopName();
-    }
-
-    glPopName();
-    glPopName();
-    
-    GLint hits = glRenderMode(GL_RENDER);
-
-    array<int32_t, 10> names;
-    optional<HitResult> closestHit = nullopt;
-    int32_t readPos = 0;
-    for (int32_t i = 0; i < hits; ++i) {
-        GLuint numNames = selectBuffer[readPos++];
-        readPos++;
-        readPos++;
-
-        for (int32_t n = 0; n < numNames; ++n) {
-            names[n] = static_cast<int32_t>(selectBuffer[readPos++]);
-        }
-
-        hitResult = HitResult(names[0], names[1], names[2], names[3], names[4]);
-
-        if (closestHit.has_value()) {
-            float distNew = hitResult->distanceTo(player.get(), editMode);
-            float distOld = closestHit->distanceTo(player.get(), editMode);
-            if (distNew >= distOld) {
-                continue;
-            }
-        }
-        closestHit = hitResult;
-    }
-
-    hitResult = closestHit;
+    float interpolatedPitchRot = player->xRotO + (player->xRot - player->xRotO) * a;
+    float interpolatedYawRot = player->yRotO + (player->yRot - player->yRotO) * a;
+    float interpolatedX = player->xo + (player->x - player->xo) * a;
+    float interpolatedY = player->yo + (player->y - player->yo) * a;
+    float interpolatedZ = player->zo + (player->z - player->zo) * a;
+    Vec3 playerPos = Vec3(interpolatedX, interpolatedY, interpolatedZ);
+    float yawCos = (float)cos((double)(-interpolatedYawRot) * M_PI / 180.0 + M_PI);
+    float yawSin = (float)sin((double)(-interpolatedYawRot) * M_PI / 180.0 + M_PI);
+    float pitchCos = (float)cos((double)(-interpolatedPitchRot) * M_PI / 180.0);
+    float pitchSin = (float)sin((double)(-interpolatedPitchRot) * M_PI / 180.0);
+    yawSin *= pitchCos;
+    yawCos *= pitchCos;
+    float raycastDistance = 5.0F;
+    float dirX = yawSin * raycastDistance;
+    float dirY = pitchSin * raycastDistance;
+    float dirZ = yawCos * raycastDistance;
+    Vec3 var14 = Vec3(playerPos.x + dirX, playerPos.y + dirY, playerPos.z + dirZ);
+    hitResult = level->clip(playerPos, var14);
     checkGlError("Picked");
     fogColorMultiplier = 1.0F;
     renderDistance = float(512 >> (levelRenderer->drawDistance << 1));
@@ -728,10 +658,16 @@ void Minecraft::render(float a) {
     gluPerspective(70.0f, float(width) / height, 0.05f, renderDistance);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    orientCamera(a);
+    glTranslatef(0.0f, 0.0f, -0.3f);
+	glRotatef(player->xRotO + (player->xRot - player->xRotO) * a, 1.0f, 0.0f, 0.0f);
+    glRotatef(player->yRotO + (player->yRot - player->yRotO) * a, 0.0f, 1.0f, 0.0f);
+	float var2 = player->xo + (player->x - player->xo) * a;
+	float var3 = player->yo + (player->y - player->yo) * a;
+	float var4 = player->zo + (player->z - player->zo) * a;
+	glTranslatef(-var2, -var3, -var4);
     checkGlError("Set up camera");
     glEnable(GL_CULL_FACE);
-    frustum = Frustum::getFrustum();
+    Frustum& frustum = Frustum::getFrustum();
     for (shared_ptr<Chunk> c : levelRenderer->sortedChunks) {
         c->isInFrustumFunc(frustum);
     }

@@ -21,8 +21,7 @@ protected:
     bool shouldRenderFace(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, int32_t layer, int32_t var6) override;
 public:
     void renderFace(shared_ptr<Tesselator>& t, int32_t x, int32_t y, int32_t z, int32_t face) override;
-    bool mayPick() override;
-    optional<AABB> getAABB(int32_t x, int32_t y, int32_t z) override;
+    optional<AABB> getTileAABB(int32_t x, int32_t y, int32_t z) override;
     bool blocksLight() override;
     bool isSolid() override;
     Liquid* getLiquidType() override;

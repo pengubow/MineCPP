@@ -139,13 +139,13 @@ vector<AABB> Level::getCubes(AABB& aABB) {
                 if(x >= 0 && y >= 0 && z >= 0 && x < width && y < depth && z < height) {
                     Tile* tile = Tile::tiles[this->getTile(x, y, z)];
                     if(tile != nullptr) {
-                        aabb = tile->getAABB(x, y, z);
+                        aabb = tile->getTileAABB(x, y, z);
                         if(aabb.has_value()) {
                             aABBs.push_back(aabb.value());
                         }
                     }
                 } else if(x < 0 || y < 0 || z < 0 || x >= width || z >= height) {
-                    aabb = Tile::unbreakable->getAABB(x, y, z);
+                    aabb = Tile::unbreakable->getTileAABB(x, y, z);
                     if(aabb.has_value()) {
                         aABBs.push_back(aabb.value());
                     }
@@ -628,4 +628,135 @@ bool Level::isWater(int32_t x, int32_t y, int32_t z) {
 
 void Level::setNetworkMode(bool networkMode) {
     this->networkMode = networkMode;
+}
+
+optional<HitResult> Level::clip(Vec3& var1, Vec3& var2) {
+    if(!isnan(var1.x) && !isnan(var1.y) && !isnan(var1.z)) {
+        if(!isnan(var2.x) && !isnan(var2.y) && !isnan(var2.z)) {
+            int32_t var3 = (int32_t)floor((double)var2.x);
+            int32_t var4 = (int32_t)floor((double)var2.y);
+            int32_t var5 = (int32_t)floor((double)var2.z);
+            int32_t var6 = (int32_t)floor((double)var1.x);
+            int32_t var7 = (int32_t)floor((double)var1.y);
+            int32_t var8 = (int32_t)floor((double)var1.z);
+
+            while (!isnan(var1.x) && !isnan(var1.y) && !isnan(var1.z)) {
+                if (var6 == var3 && var7 == var4 && var8 == var5) {
+                    return nullopt;
+                }
+
+                float var9 = 999.0f;
+                float var10 = 999.0f;
+                float var11 = 999.0f;
+                if (var3 > var6) {
+                    var9 = (float)var6 + 1.0f;
+                }
+
+                if (var3 < var6) {
+                    var9 = (float)var6;
+                }
+
+                if (var4 > var7) {
+                    var10 = (float)var7 + 1.0f;
+                }
+
+                if (var4 < var7) {
+                    var10 = (float)var7;
+                }
+
+                if (var5 > var8) {
+                    var11 = (float)var8 + 1.0f;
+                }
+
+                if (var5 < var8) {
+                    var11 = (float)var8;
+                }
+
+                float var12 = 999.0f;
+                float var13 = 999.0f;
+                float var14 = 999.0f;
+                float var15 = var2.x - var1.x;
+                float var16 = var2.y - var1.y;
+                float var17 = var2.z - var1.z;
+                if (var9 != 999.0f) {
+                    var12 = (var9 - var1.x) / var15;
+                }
+
+                if (var10 != 999.0f) {
+                    var13 = (var10 - var1.y) / var16;
+                }
+
+                if (var11 != 999.0f) {
+                    var14 = (var11 - var1.z) / var17;
+                }
+
+                bool var18 = false;
+                uint8_t var20;
+                if (var12 < var13 && var12 < var14) {
+                    if (var3 > var6) {
+                        var20 = 4;
+                    }
+                    else {
+                        var20 = 5;
+                    }
+
+                    var1.x = var9;
+                    var1.y += var16 * var12;
+                    var1.z += var17 * var12;
+                }
+                else if (var13 < var14) {
+                    if (var4 > var7) {
+                        var20 = 0;
+                    }
+                    else {
+                        var20 = 1;
+                    }
+
+                    var1.x += var15 * var13;
+                    var1.y = var10;
+                    var1.z += var17 * var13;
+                }
+                else {
+                    if (var5 > var8) {
+                        var20 = 2;
+                    }
+                    else {
+                        var20 = 3;
+                    }
+
+                    var1.x += var15 * var14;
+                    var1.y += var16 * var14;
+                    var1.z = var11;
+                }
+
+                var6 = (int32_t)floor((double)var1.x);
+                if (var20 == 5) {
+                    --var6;
+                }
+
+                var7 = (int32_t)floor((double)var1.y);
+                if (var20 == 1) {
+                    --var7;
+                }
+
+                var8 = (int32_t)floor((double)var1.z);
+                if (var20 == 3) {
+                    --var8;
+                }
+
+                int32_t var19 = getTile(var6, var7, var8);
+                if (var19 > 0 && Tile::tiles[var19]->getLiquidType() == Liquid::none) {
+                    return HitResult(0, var6, var7, var8, var20);
+                }
+            }
+
+            return nullopt;
+        }
+        else {
+            return nullopt;
+        }
+    }
+    else {
+        return nullopt;
+    }
 }

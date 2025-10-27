@@ -47,7 +47,7 @@ void InGameHud::render() {
         }
     }
 
-    font->drawShadow("0.0.20a_02", 2, 2, 16777215);
+    font->drawShadow("0.0.21a", 2, 2, 16777215);
     font->drawShadow(minecraft->fpsString, 2, 12, 16777215);
     uint8_t var14 = 10;
     bool var15 = false;

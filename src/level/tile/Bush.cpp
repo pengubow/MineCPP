@@ -48,7 +48,7 @@ bool Bush::render(shared_ptr<Tesselator>& t, shared_ptr<Level>& level, int32_t l
     }
 }
 
-optional<AABB> Bush::getAABB(int32_t x, int32_t y, int32_t z) {
+optional<AABB> Bush::getTileAABB(int32_t x, int32_t y, int32_t z) {
     return nullopt;
 }
 

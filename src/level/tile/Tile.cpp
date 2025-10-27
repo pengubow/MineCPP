@@ -136,34 +136,6 @@ float Tile::getBrightness(shared_ptr<Level>& level, int32_t x, int32_t y, int32_
     return level->getBrightness(x, y, z);
 }
 
-bool Tile::cullFace(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, int32_t face) {
-    if(face == 0) {
-        y--;
-    }
-
-    if(face == 1) {
-        y++;
-    }
-
-    if(face == 2) {
-        z--;
-    }
-
-    if(face == 3) {
-        z++;
-    }
-
-    if(face == 4) {
-        x--;
-    }
-
-    if(face == 5) {
-        x++;
-    }
-
-    return !level->isSolidTile(x, y, z);
-}
-
 bool Tile::shouldRenderFace(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, int32_t layer, int32_t var6) {
     return layer == 1 ? false : !level->isSolidTile(x, y, z);
 }
@@ -334,19 +306,11 @@ optional<AABB> Tile::getTileAABB(int32_t x, int32_t y, int32_t z) {
     return AABB(x, y, z, x + 1, y + 1, z + 1);
 }
 
-optional<AABB> Tile::getAABB(int32_t x, int32_t y, int32_t z) {
-    return AABB(x, y, z, x + 1, y + 1, z + 1);
-}
-
 bool Tile::blocksLight() {
     return true;
 }
 
 bool Tile::isSolid() {
-    return true;
-}
-
-bool Tile::mayPick() {
     return true;
 }
 

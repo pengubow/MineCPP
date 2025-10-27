@@ -112,11 +112,7 @@ void LiquidTile::renderFace(shared_ptr<Tesselator>& t, int32_t x, int32_t y, int
     renderBackFace(t, x, y, z, face);
 }
 
-bool LiquidTile::mayPick() {
-    return false;
-}
-
-optional<AABB> LiquidTile::getAABB(int32_t x, int32_t y, int32_t z) {
+optional<AABB> LiquidTile::getTileAABB(int32_t x, int32_t y, int32_t z) {
     return nullopt;
 }
 

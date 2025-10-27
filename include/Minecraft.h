@@ -74,6 +74,7 @@ private:
 	vector<GLuint> selectBuffer = vector<GLuint>(2000);
 	optional<HitResult> hitResult;
 	float fogColorMultiplier = 1.0f;
+	bool displayActive = false;
 	atomic<int32_t> unusedInt1 = 0;
     atomic<int32_t> unusedInt2 = 0;
 	vector<float> lb = vector<float>(16);
@@ -100,7 +101,6 @@ public:
     void tick();
 private:
 	bool isMultiplayer();
-    void orientCamera(float a);
     void render(float a);
 	void toggleLight(bool toggleLight);
 public:

@@ -92,10 +92,10 @@ void Screen::fillGradient(int32_t var0, int32_t var1, int32_t x, int32_t y, int3
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBegin(GL_QUADS);
     glColor4f(var11, var6, var12, var10);
-    glVertex2f((float)x, 0.0F);
-    glVertex2f(0.0F, 0.0F);
+    glVertex2f((float)x, (float)var1);
+    glVertex2f((float)var0, (float)var1);
     glColor4f(var8, var9, var13, var7);
-    glVertex2f(0.0F, (float)y);
+    glVertex2f((float)var0, (float)y);
     glVertex2f((float)x, (float)y);
     glEnd();
     glDisable(GL_BLEND);
@@ -162,7 +162,7 @@ char getCharFromKey(int key, bool shift) {
     return 0;
 }
 
-void Screen::updateEvents() {
+void Screen::updateMouseEvents() {
     GLFWwindow* window = Util::getGLFWWindow();
     shared_ptr<Minecraft> minecraft = this->minecraft.lock();
     if (!minecraft) {
@@ -193,7 +193,9 @@ void Screen::updateEvents() {
     if (clickType != -1) {
         mousePressed(var1, var2, clickType);
     }
+}
 
+void Screen::updateKeyboardEvents() {
     for (int32_t key = 0; key <= GLFW_KEY_LAST; ++key) {
         if (Util::isKeyDownPrev(key)) {
             keyPressed(getCharFromKey(key, Util::isKeyDown(GLFW_MOD_SHIFT)), key);

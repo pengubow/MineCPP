@@ -11,6 +11,7 @@ protected:
 	int32_t width;
 	int32_t height;
 public:
+	bool allowUserInput = false;
     vector<shared_ptr<Button>> buttons;
 	virtual void render(int32_t var1, int32_t var2);
 protected:
@@ -26,7 +27,8 @@ protected:
 public:
 	void drawCenteredString(string msg, int32_t x, int32_t y, int32_t var4);
 	void drawString(string var1, int32_t var2, int32_t var3, int32_t var4);
-	void updateEvents();
+	void updateMouseEvents();
+	void updateKeyboardEvents();
 	virtual void tick();
 	virtual void closeScreen();
 };

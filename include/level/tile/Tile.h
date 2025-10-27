@@ -80,8 +80,6 @@ public:
     virtual void onTileRemoved(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z);
     protected:
     virtual float getBrightness(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z);
-public:
-    static bool cullFace(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, int32_t face);
 protected:
     virtual bool shouldRenderFace(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, int32_t layer, int32_t var6);
 protected:
@@ -90,11 +88,9 @@ public:
     virtual void renderFace(shared_ptr<Tesselator>& t, int32_t x, int32_t y, int32_t z, int32_t face);
     virtual void renderBackFace(shared_ptr<Tesselator>& t, int32_t x, int32_t y, int32_t z, int32_t face);
     static void renderFaceNoTexture(shared_ptr<Entity> entity, shared_ptr<Tesselator>& t, int32_t x, int32_t y, int32_t z, int32_t var5);
-    static optional<AABB> getTileAABB(int32_t x, int32_t y, int32_t z);
-    virtual optional<AABB> getAABB(int32_t x, int32_t y, int32_t z);
+    virtual optional<AABB> getTileAABB(int32_t x, int32_t y, int32_t z);
     virtual bool blocksLight();
     virtual bool isSolid();
-    virtual bool mayPick();
     virtual void tick(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, Random& random);
     void destroy(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z, shared_ptr<ParticleEngine>& particleEngine);
     virtual Liquid* getLiquidType();

@@ -4,7 +4,7 @@
 #include <string>
 #include <cstdint>
 #include <memory>
-#include <GL/gl.h>
+#include "GL_compat.h"
 #include "renderer/texture/TextureFX.h"
 
 using namespace std;

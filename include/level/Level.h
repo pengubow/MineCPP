@@ -3,9 +3,12 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
+#include <optional>
+#include "character/Vec3.h"
 #include "phys/AABB.h"
 #include "level/Coord.h"
 #include "level/liquid/Liquid.h"
+#include "HitResult.h"
 #include "Util/Util.h"
 #include "Util/Random.h"
 
@@ -86,4 +89,5 @@ public:
     vector<uint8_t> copyBlocks();
     bool isWater(int32_t x, int32_t y, int32_t z);
     void setNetworkMode(bool networkMode);
+    optional<HitResult> clip(Vec3& var1, Vec3& var2);
 };
