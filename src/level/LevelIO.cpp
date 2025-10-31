@@ -13,20 +13,18 @@
 
 using namespace std;
 
-LevelIO::LevelIO(shared_ptr<Minecraft>& minecraft)
-    : minecraft(minecraft) {}
+LevelIO::LevelIO(shared_ptr<ProgressListener>& progress)
+    : progress(progress) {}
 
 // quite a bit of LevelIO is chatgpt'd btw
-shared_ptr<Level> LevelIO::load(const string& minecraftUri, const string& username, int levelId) {
-    shared_ptr<Minecraft> mc = minecraft.lock();
-    
-    if (mc != nullptr) {
-        mc->beginLevelLoading("Loading level");
+shared_ptr<Level> LevelIO::load(const string& minecraftUri, const string& username, int levelId) {    
+    if (progress != nullptr) {
+        progress->beginLevelLoading("Loading level");
     }
     
     try {
-        if (mc != nullptr) {
-            mc->levelLoadUpdate("Connecting..");
+        if (progress != nullptr) {
+            progress->levelLoadUpdate("Connecting..");
         }
         
         // Parse host and port
@@ -44,15 +42,15 @@ shared_ptr<Level> LevelIO::load(const string& minecraftUri, const string& userna
         
         string path = "/level/load.html?id=" + to_string(levelId) + "&user=" + username;
 
-        if (mc != nullptr) {
-            mc->levelLoadUpdate("Loading..");
+        if (progress != nullptr) {
+            progress->levelLoadUpdate("Loading..");
         }
         
         auto res = cli.Get(path);
         
         if (!res || res->status != 200) {
-            if (mc != nullptr) {
-                mc->levelLoadUpdate("Failed to connect!");
+            if (progress != nullptr) {
+                progress->levelLoadUpdate("Failed to connect!");
             }
             this_thread::sleep_for(chrono::seconds(1));
             return nullptr;
@@ -60,8 +58,8 @@ shared_ptr<Level> LevelIO::load(const string& minecraftUri, const string& userna
 
         if (res->body.size() < 10) {
             cerr << "Response too short to be valid level data" << endl;
-            if (mc != nullptr) {
-                mc->levelLoadUpdate("No level data received");
+            if (progress != nullptr) {
+                progress->levelLoadUpdate("No level data received");
             }
             this_thread::sleep_for(chrono::seconds(1));
             return nullptr;
@@ -90,8 +88,8 @@ shared_ptr<Level> LevelIO::load(const string& minecraftUri, const string& userna
                 errorMsg = "Unknown error";
             }
             cerr << "Server returned error: " << errorMsg << endl;
-            if (mc != nullptr) {
-                mc->levelLoadUpdate("Failed: " + errorMsg);
+            if (progress != nullptr) {
+                progress->levelLoadUpdate("Failed: " + errorMsg);
             }
             this_thread::sleep_for(chrono::seconds(1));
             return nullptr;
@@ -101,8 +99,8 @@ shared_ptr<Level> LevelIO::load(const string& minecraftUri, const string& userna
         
         if (gzData.size() < 10) {
             cerr << "Gzip data too small" << endl;
-            if (mc != nullptr) {
-                mc->levelLoadUpdate("Invalid level data");
+            if (progress != nullptr) {
+                progress->levelLoadUpdate("Invalid level data");
             }
             return nullptr;
         }
@@ -129,16 +127,16 @@ shared_ptr<Level> LevelIO::load(const string& minecraftUri, const string& userna
         
         remove(tempFile);
         
-        if (!level && mc != nullptr) {
-            mc->levelLoadUpdate("Failed to parse level data");
+        if (!level && progress != nullptr) {
+            progress->levelLoadUpdate("Failed to parse level data");
         }
         
         return level;
         
     } catch (const exception& e) {
         cerr << "Load level exception: " << e.what() << endl;
-        if (mc != nullptr) {
-            mc->levelLoadUpdate("Failed!");
+        if (progress != nullptr) {
+            progress->levelLoadUpdate("Failed!");
         }
         this_thread::sleep_for(chrono::seconds(3));
         return nullptr;
@@ -147,12 +145,11 @@ shared_ptr<Level> LevelIO::load(const string& minecraftUri, const string& userna
 
 // this was made by fucking AI
 shared_ptr<Level> LevelIO::loadDat(gzFile file) {
-    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
-    if (minecraft != nullptr) {
-        minecraft->beginLevelLoading("Loading level");
+    if (progress != nullptr) {
+        progress->beginLevelLoading("Loading level");
     }
-    if (minecraft != nullptr) {
-        minecraft->levelLoadUpdate("Reading..");
+    if (progress != nullptr) {
+        progress->levelLoadUpdate("Reading..");
     }
 
     try {
@@ -617,12 +614,11 @@ shared_ptr<Level> LevelIO::loadDat(gzFile file) {
 }
 
 shared_ptr<Level> LevelIO::loadLegacy(gzFile file) {
-    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
-    if (minecraft != nullptr) {
-        minecraft->beginLevelLoading("Loading level");
+    if (progress != nullptr) {
+        progress->beginLevelLoading("Loading level");
     }
-    if (minecraft != nullptr) {
-        minecraft->levelLoadUpdate("Reading...");
+    if (progress != nullptr) {
+        progress->levelLoadUpdate("Reading...");
     }
 
     try {
@@ -651,17 +647,22 @@ shared_ptr<Level> LevelIO::loadLegacy(gzFile file) {
 }
 
 bool LevelIO::save(shared_ptr<Level>& level, string minecraftUri, string username, string sessionId, string levelName, int32_t levelId) {
-    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
-    
-    if (minecraft != nullptr) {
-        minecraft->beginLevelLoading("Saving level");
-        minecraft->levelLoadUpdate("Not implemented");
+    if (progress != nullptr) {
+        progress->beginLevelLoading("Saving level");
+        progress->levelLoadUpdate("Not implemented");
     }
     this_thread::sleep_for(chrono::milliseconds(3000));
     return false;
 }
 
 shared_ptr<Level> LevelIO::load(gzFile file) {
+    if (progress != nullptr) {
+        progress->beginLevelLoading("Loading level");
+    }
+    if (progress != nullptr) {
+        progress->levelLoadUpdate("Reading..");
+    }
+    
     try {
         string magic = gzip::gzreadString(file);
         if (magic != "MINE") {

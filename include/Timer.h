@@ -10,7 +10,7 @@ public:
     float ticksPerSecond;
     double lastHRTime;
     int32_t ticks;
-    float partialTicks;
+    float a;
     float timeScale = 1.0f;
     float fps = 0.0f;
     int64_t lastSyncSysClock;

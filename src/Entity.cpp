@@ -1,6 +1,8 @@
 #include <cmath>
 #include "Entity.h"
+#include "level/tile/Tile.h"
 #include "Util/Util.h"
+#include <iostream>
 
 Entity::Entity(shared_ptr<Level>& level) {
     this->level = level;
@@ -122,6 +124,8 @@ void Entity::move(float xa, float ya, float za) {
         return;
     }
 
+    float var4 = x;
+    float var5 = z;
     float xaOrg = xa;
     float yaOrg = ya;
     float zaOrg = za;
@@ -162,6 +166,23 @@ void Entity::move(float xa, float ya, float za) {
     this->x = (bb.minX + bb.maxX) / 2.0f;
     this->y = bb.minY + heightOffset;
     this->z = (bb.minZ + bb.maxZ) / 2.0f;
+    float var13 = x - var4;
+    float var1 = z - var5;
+    walkDist = (float)((double)walkDist + sqrt((double)(var13 * var13 + var1 * var1)) * 0.6);
+    if (makeStepSound) {
+        int var11 = level->getTile((int32_t)x, (int32_t)(y - 0.2f - heightOffset), (int32_t)z);
+        if (walkDist > 1.0f && var11 > 0) {
+            Tile::SoundType var12 = Tile::tiles[var11]->soundType;
+            auto it = Tile::soundTypeMap.find(var12);
+            if (it != Tile::soundTypeMap.end()) {
+                if(var12 != Tile::SoundType::NONE) {
+                    const auto& soundData = it->second;
+                    walkDist -= (float)((int32_t)walkDist);
+                    playSound("step." + soundData.name, soundData.getVolume() * (12.0f / 16.0f), soundData.getPitch());
+                }
+            }
+        }
+    }
 }
 
 bool Entity::isInWater() {
@@ -230,6 +251,11 @@ void Entity::setLevel(shared_ptr<Level>& level) {
     this->level = level;
 }
 
+void Entity::playSound(string var1, float var2, float var3) {
+    shared_ptr<Level> level = this->level.lock();
+    level->playSound(var1, shared_from_this(), var2, var3);
+}
+
 void Entity::moveTo(float x, float y, float z, float yRot, float xRot) {
     this->xo = this->x = x;
     this->yo = this->y = y;
@@ -237,4 +263,11 @@ void Entity::moveTo(float x, float y, float z, float yRot, float xRot) {
     this->yRot = yRot;
     this->xRot = xRot;
     setPos(x, y, z);
+}
+
+float Entity::distanceTo(shared_ptr<Entity>& entity) {
+    float var2 = x - entity->x;
+    float var3 = y - entity->y;
+    float var4 = z - entity->z;
+    return (float)sqrt((double)(var2 * var2 + var3 * var3 + var4 * var4));
 }

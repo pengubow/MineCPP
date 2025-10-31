@@ -14,5 +14,6 @@ private:
 public:
     ParticleEngine(shared_ptr<Level>& level, shared_ptr<Textures>& textures);
 
+    void tick();
     void render(Player* player, float a);
 };

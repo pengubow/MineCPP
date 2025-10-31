@@ -119,7 +119,7 @@ void NetworkPlayer::render(shared_ptr<Textures>& textures, float a) {
     }
 
     if (skin < 0) {
-        glBindTexture(GL_TEXTURE_2D, textures->getTextureId("char.png"));
+        glBindTexture(GL_TEXTURE_2D, textures->getTextureId("resources/textures/char.png"));
     }
     else {
         glBindTexture(GL_TEXTURE_2D, skin);

@@ -19,6 +19,7 @@ void ConnectionThread::run() {
         minecraft->hideGui = false;
         minecraft->connectionManager = nullptr;
         minecraft->setScreen(make_shared<ErrorScreen>("Failed to connect", "You failed to connect to the server. It's probably down!"));
+        connectionManager->processData = false;
     }
 }
 

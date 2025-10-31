@@ -11,54 +11,72 @@
 #include "level/tile/SpongeTile.h"
 #include "level/tile/GlassTile.h"
 
+Random Tile::random = Random();
+
+const map<Tile::SoundType, Tile::SoundTypeData> Tile::soundTypeMap = {
+    {SoundType::NONE,    {"-",       0.0f, 0.0f}},
+    {SoundType::GRASS,   {"grass",   0.6f, 1.0f}},
+    {SoundType::CLOTH,   {"grass",   0.7f, 1.2f}},
+    {SoundType::GRAVEL,  {"gravel",  1.0f, 1.0f}},
+    {SoundType::STONE,   {"stone",   1.0f, 1.0f}},
+    {SoundType::METAL,   {"stone",   1.0f, 2.0f}},
+    {SoundType::WOOD,    {"wood",    1.0f, 1.0f}}
+};
+
 vector<Tile*> Tile::tiles = vector<Tile*>(256);
 vector<bool> Tile::shouldTick = vector<bool>(256);
 vector<int32_t> Tile::tickSpeed = vector<int32_t>(256);
-Tile* Tile::rock = new Tile(1, 1);
-Tile* Tile::grass = new GrassTile(2);
-Tile* Tile::dirt = new DirtTile(3, 2);
-Tile* Tile::wood = new Tile(4, 16);
-Tile* Tile::stoneBrick = new Tile(5, 4);
-Tile* Tile::bush = new Bush(6, 15);
-Tile* Tile::unbreakable = new Tile(7, 17);
-Tile* Tile::water = new LiquidTile(8, Liquid::water);
-Tile* Tile::calmWater = new CalmLiquidTile(9, Liquid::water);
-Tile* Tile::lava = new LiquidTile(10, Liquid::lava);
-Tile* Tile::calmLava = new CalmLiquidTile(11, Liquid::lava);
-Tile* Tile::sand = new FallingTile(12, 18);
-Tile* Tile::gravel = new FallingTile(13, 19);
-Tile* Tile::oreGold = new Tile(14, 32);
-Tile* Tile::oreIron = new Tile(15, 33);
-Tile* Tile::oreCoal = new Tile(16, 34);
-Tile* Tile::log = new LogTile(17);
-Tile* Tile::leaf = new LeafTile(18, 22, false);
-Tile* Tile::sponge = new SpongeTile(19);
-Tile* Tile::glass = new GlassTile(20, 49, false);
-Tile* Tile::clothRed = new Tile(21, 64);
-Tile* Tile::clothOrange = new Tile(22, 65);
-Tile* Tile::clothYellow = new Tile(23, 66);
-Tile* Tile::clothChartreuse = new Tile(24, 67);
-Tile* Tile::clothGreen = new Tile(25, 68);
-Tile* Tile::clothSpringGreen = new Tile(26, 69);
-Tile* Tile::clothCyan = new Tile(27, 70);
-Tile* Tile::clothCapri = new Tile(28, 71);
-Tile* Tile::clothUltramarine = new Tile(29, 72);
-Tile* Tile::clothViolet = new Tile(30, 73);
-Tile* Tile::clothPurple = new Tile(31, 74);
-Tile* Tile::clothMagenta = new Tile(32, 75);
-Tile* Tile::clothRose = new Tile(33, 76);
-Tile* Tile::clothDarkGray = new Tile(34, 77);
-Tile* Tile::clothGray = new Tile(35, 78);
-Tile* Tile::clothWhite = new Tile(36, 79);
-Tile* Tile::plantYellow = new Bush(37, 13);
-Tile* Tile::plantRed = new Bush(38, 12);
-Tile* Tile::mushroomBrown = new Bush(39, 29);
-Tile* Tile::mushroomRed = new Bush(40, 28);
-Tile* Tile::blockGold = new Tile(41, 40);
+Tile* Tile::rock = (new Tile(1, 1))->setSoundAndGravity(SoundType::STONE, 1.0f, 1.0f);
+Tile* Tile::grass = (new GrassTile(2))->setSoundAndGravity(SoundType::GRASS, 0.9f, 1.0f);
+Tile* Tile::dirt = (new DirtTile(3, 2))->setSoundAndGravity(SoundType::GRASS, 0.8f, 1.0f);
+Tile* Tile::wood = (new Tile(4, 16))->setSoundAndGravity(SoundType::STONE, 1.0f, 1.0f);
+Tile* Tile::stoneBrick = (new Tile(5, 4))->setSoundAndGravity(SoundType::WOOD, 1.0f, 1.0f);
+Tile* Tile::bush = (new Bush(6, 15))->setSoundAndGravity(SoundType::NONE, 0.7f, 1.0f);
+Tile* Tile::unbreakable = (new Tile(7, 17))->setSoundAndGravity(SoundType::STONE, 1.0f, 1.0f);
+Tile* Tile::water = (new LiquidTile(8, Liquid::water))->setSoundAndGravity(SoundType::NONE, 1.0f, 1.0f);
+Tile* Tile::calmWater = (new CalmLiquidTile(9, Liquid::water))->setSoundAndGravity(SoundType::NONE, 1.0f, 1.0f);
+Tile* Tile::lava = (new LiquidTile(10, Liquid::lava))->setSoundAndGravity(SoundType::NONE, 1.0f, 1.0f);
+Tile* Tile::calmLava = (new CalmLiquidTile(11, Liquid::lava))->setSoundAndGravity(SoundType::NONE, 1.0f, 1.0f);
+Tile* Tile::sand = (new FallingTile(12, 18))->setSoundAndGravity(SoundType::GRAVEL, 0.8f, 1.0f);
+Tile* Tile::gravel = (new FallingTile(13, 19))->setSoundAndGravity(SoundType::GRAVEL, 0.8f, 1.0f);
+Tile* Tile::oreGold = (new Tile(14, 32))->setSoundAndGravity(SoundType::STONE, 1.0f, 1.0f);
+Tile* Tile::oreIron = (new Tile(15, 33))->setSoundAndGravity(SoundType::STONE, 1.0f, 1.0f);
+Tile* Tile::oreCoal = (new Tile(16, 34))->setSoundAndGravity(SoundType::STONE, 1.0f, 1.0f);
+Tile* Tile::log = (new LogTile(17))->setSoundAndGravity(SoundType::WOOD, 1.0f, 1.0f);
+Tile* Tile::leaf = (new LeafTile(18, 22, true))->setSoundAndGravity(SoundType::GRASS, 1.0f, 0.4f);
+Tile* Tile::sponge = (new SpongeTile(19))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 0.9f);
+Tile* Tile::glass = (new GlassTile(20, 49, false))->setSoundAndGravity(SoundType::METAL, 1.0f, 1.0f);
+Tile* Tile::clothRed = (new Tile(21, 64))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothOrange = (new Tile(22, 65))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothYellow = (new Tile(23, 66))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothChartreuse = (new Tile(24, 67))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothGreen = (new Tile(25, 68))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothSpringGreen = (new Tile(26, 69))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothCyan = (new Tile(27, 70))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothCapri = (new Tile(28, 71))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothUltramarine = (new Tile(29, 72))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothViolet = (new Tile(30, 73))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothPurple = (new Tile(31, 74))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothMagenta = (new Tile(32, 75))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothRose = (new Tile(33, 76))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothDarkGray = (new Tile(34, 77))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothGray = (new Tile(35, 78))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::clothWhite = (new Tile(36, 79))->setSoundAndGravity(SoundType::CLOTH, 1.0f, 1.0f);
+Tile* Tile::plantYellow = (new Bush(37, 13))->setSoundAndGravity(SoundType::NONE, 0.7f, 1.0f);
+Tile* Tile::plantRed = (new Bush(38, 12))->setSoundAndGravity(SoundType::NONE, 0.7f, 1.0f);
+Tile* Tile::mushroomBrown = (new Bush(39, 29))->setSoundAndGravity(SoundType::NONE, 0.7f, 1.0f);
+Tile* Tile::mushroomRed = (new Bush(40, 28))->setSoundAndGravity(SoundType::NONE, 0.7f, 1.0f);
+Tile* Tile::blockGold = (new Tile(41, 40))->setSoundAndGravity(SoundType::METAL, 0.7f, 1.0f);
 
 Tile::Tile(int32_t id) : id(id) {
     tiles[id] = this;
     setShape(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+}
+
+Tile* Tile::setSoundAndGravity(SoundType soundType, float var2, float particleGravity) {
+    this->particleGravity = particleGravity;
+    this->soundType = soundType;
+    return this;
 }
 
 void Tile::setTickSpeed(int32_t tickSpeed) {

@@ -3,23 +3,18 @@
 #include "level/levelgen/LevelGen.h"
 #include "Minecraft.h"
 
-LevelGen::LevelGen(shared_ptr<Minecraft> minecraft)
-    : minecraft(minecraft) {}
+LevelGen::LevelGen(shared_ptr<ProgressListener>& loadingScreen)
+    : loadingScreen(loadingScreen) {}
 
 
 // thank you chatgpt for assigning variable names
 shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t height, int32_t depth) {
-    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
-    if (!minecraft) {
-        return nullptr;
-    }
-
-    minecraft->beginLevelLoading("Generating level");
+    loadingScreen->beginLevelLoading("Generating level");
     this->width = width;
     this->height = height;
     this->depth = depth;
     this->blocks = vector<uint8_t>(width * height * depth);
-    minecraft->levelLoadUpdate("Raising..");
+    loadingScreen->levelLoadUpdate("Raising..");
     shared_ptr<Distort> mountainNoise = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
     shared_ptr<Distort> hillNoise = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
     shared_ptr<PerlinNoise> scaleNoise = make_shared<PerlinNoise>(random, 8);
@@ -48,7 +43,7 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
         }
     }
 
-    minecraft->levelLoadUpdate("Eroding..");
+    loadingScreen->levelLoadUpdate("Eroding..");
     vector<int32_t>& heightMapRef = heightMap;
     hillNoise = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
     shared_ptr<Distort> erosionNoise = make_shared<Distort>(make_shared<PerlinNoise>(random, 8), make_shared<PerlinNoise>(random, 8));
@@ -70,7 +65,7 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
         }
     }
 
-    minecraft->levelLoadUpdate("Soiling..");
+    loadingScreen->levelLoadUpdate("Soiling..");
     heightMapRef = heightMap;
     int32_t levelWidth = this->width;
     int32_t levelHeight = this->height;
@@ -104,7 +99,7 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
         }
     }
 
-    minecraft->levelLoadUpdate("Carving..");
+    loadingScreen->levelLoadUpdate("Carving..");
     int32_t caveCount = this->width * this->height * this->depth / 256 / 64;
 
     for (z = 0; z < caveCount; ++z) {
@@ -159,7 +154,7 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
     this->carveTunnels(Tile::oreCoal->id, 90, 1, 4);
     this->carveTunnels(Tile::oreIron->id, 70, 2, 4);
     this->carveTunnels(Tile::oreGold->id, 50, 3, 4);
-    minecraft->levelLoadUpdate("Watering..");
+    loadingScreen->levelLoadUpdate("Watering..");
     int64_t startTime = Timer::nanoTime();
     int64_t filledBlocks = 0;
     int32_t waterTileId = Tile::calmWater->id;
@@ -193,11 +188,11 @@ shared_ptr<Level> LevelGen::generateLevel(string name, int32_t width, int32_t he
     this->setNextPhase(100);
     int64_t endTime = Timer::nanoTime();
     cout << "Flood filled " + to_string(filledBlocks) + " tiles in " + to_string((double)(endTime - startTime) / 1000000.0) + " ms" << endl;
-    minecraft->levelLoadUpdate("Melting..");
+    loadingScreen->levelLoadUpdate("Melting..");
     this->addLava();
-    minecraft->levelLoadUpdate("Growing..");
+    loadingScreen->levelLoadUpdate("Growing..");
     this->addBeaches(heightMap);
-    minecraft->levelLoadUpdate("Planting..");
+    loadingScreen->levelLoadUpdate("Planting..");
     this->plantTrees(heightMap);
     shared_ptr<Level> level = make_shared<Level>();
     level->setData(width, 64, height, this->blocks);
@@ -371,12 +366,7 @@ void LevelGen::carveTunnels(int32_t oreId, int32_t frequency, int32_t index, int
 }
 
 void LevelGen::setNextPhase(int32_t phase) {
-    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
-    if (!minecraft) {
-        return;
-    }
-
-    minecraft->setLoadingProgress(phase);
+    loadingScreen->setLoadingProgress(phase);
 }
 
 void LevelGen::addLava() {

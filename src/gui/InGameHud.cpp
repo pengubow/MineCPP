@@ -13,9 +13,9 @@ void InGameHud::render() {
     }
 
     shared_ptr<Font> font = minecraft->font;
-    minecraft->initGui();
+    minecraft->renderHelper->initGui();
     shared_ptr<Textures> textures = minecraft->textures;
-    glBindTexture(GL_TEXTURE_2D, textures->getTextureId("gui.png"));
+    glBindTexture(GL_TEXTURE_2D, textures->getTextureId("resources/textures/gui.png"));
     glEnable(GL_TEXTURE_2D);
     shared_ptr<Tesselator> t = Tesselator::instance;
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -36,7 +36,7 @@ void InGameHud::render() {
             glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
             glTranslatef(-1.5f, 0.5f, 0.5f);
             glScalef(-1.0f, -1.0f, -1.0f);
-            int32_t id = textures->getTextureId("terrain.png");
+            int32_t id = textures->getTextureId("resources/textures/terrain.png");
             glBindTexture(GL_TEXTURE_2D, id);
             glEnable(GL_TEXTURE_2D);
             t->begin();
@@ -47,7 +47,7 @@ void InGameHud::render() {
         }
     }
 
-    font->drawShadow("0.0.21a", 2, 2, 16777215);
+    font->drawShadow("0.0.22a_05", 2, 2, 16777215);
     font->drawShadow(minecraft->fpsString, 2, 12, 16777215);
     uint8_t var14 = 10;
     bool var15 = false;
@@ -58,7 +58,7 @@ void InGameHud::render() {
 
     for (int32_t var6 = 0; var6 < messages.size() && var6 < var14; ++var6) {
         if (messages[var6].counter < 200 || var15) {
-            font->drawShadow((messages[var6]).message, 2, scaledHeight - 8 - (var6 << 3) - 16, 16777215);
+            font->drawShadow((messages[var6]).message, 2, scaledHeight - 8 - var6 * 3 - 20, 16777215);
         }
     }
 
@@ -116,4 +116,12 @@ void InGameHud::blit(int32_t var0, int32_t var1, int32_t var2, int32_t var3, int
     t->vertexUV((float)(var0 + var4), (float)var1, -90.0f, (float)(var4 + 0) * var7, (float)var3 * var8);
     t->vertexUV((float)var0, (float)var1, -90.0f, 0.0f, (float)var3 * var8);
     t->end();
+}
+
+void InGameHud::addChatMessage(string message) {
+    messages.push_front(ChatLine(message));
+
+    while (messages.size() > 50) {
+        messages.pop_back();
+    }
 }

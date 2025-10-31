@@ -3,11 +3,10 @@
 #include "level/Level.h"
 #include "level/levelgen/synth/PerlinNoise.h"
 #include "level/levelgen/synth/Distort.h"
-
-class Minecraft;
+#include "ProgressListener.h"
 
 class LevelGen : public enable_shared_from_this<LevelGen> {
-	weak_ptr<Minecraft> minecraft;
+	shared_ptr<ProgressListener> loadingScreen;
 	int32_t width;
 	int32_t height;
 	int32_t depth;
@@ -15,7 +14,7 @@ class LevelGen : public enable_shared_from_this<LevelGen> {
 	vector<uint8_t> blocks;
 	vector<int32_t> coords = vector<int32_t>(1048576);
 public:
-	LevelGen(shared_ptr<Minecraft> minecraft);
+	LevelGen(shared_ptr<ProgressListener>& loadingScreen);
 
 	shared_ptr<Level> generateLevel(string name, int32_t width, int32_t height, int32_t depth);
 private:

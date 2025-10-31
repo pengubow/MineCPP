@@ -55,6 +55,7 @@ void Minecraft::setScreen(shared_ptr<Screen> screen) {
             int32_t height = this->height * 240 / this->height;
             shared_ptr<Minecraft> shared = shared_from_this();
             screen->init(shared, width, height);
+            hideGui = false;
         }
         else {
             this->grabMouse();
@@ -72,11 +73,23 @@ void Minecraft::checkGlError(string where) {
 }
 
 void Minecraft::destroy() {
+    if (soundPlayer != nullptr) {
+        soundPlayer->running = false;
+        soundPlayer.reset();
+    }
+
+    soundManager.reset();
+    
+    if (backgroundDownloader != nullptr) {
+        backgroundDownloader->closing = true;
+    }
+
     if (window) {
         glfwDestroyWindow(window);
         window = nullptr;
         Util::win = nullptr;
     }
+
     glfwTerminate();
 }
 
@@ -86,8 +99,11 @@ void Minecraft::run() {
         if (!glfwInit()) {
             throw runtime_error("Failed to initialize GLFW");
         }
-        fogColor0 = {fogColorRed, fogColorGreen, fogColorBlue, 1.0F};
-        fogColor1 = {(float)14 / 255.0F, (float)11 / 255.0F, (float)10 / 255.0F, 1.0F};
+        shared_ptr<Minecraft> mcshared = shared_from_this();
+        loadingScreen = make_shared<ProgressListener>(mcshared);
+        renderHelper = make_shared<RenderHelper>(mcshared);
+        levelIo = make_shared<LevelIO>(loadingScreen);
+        levelGen = make_shared<LevelGen>(loadingScreen);
         if (fullscreen) {
             GLFWmonitor* monitor = glfwGetPrimaryMonitor();
             const GLFWvidmode* vidMode = glfwGetVideoMode(monitor);
@@ -105,7 +121,7 @@ void Minecraft::run() {
         }
 
         glfwMakeContextCurrent(window);
-        glfwSetWindowTitle(window, "Minecraft 0.0.21a");
+        glfwSetWindowTitle(window, "Minecraft 0.0.22a_05");
         glfwSwapInterval(0);
 
         glfwSetScrollCallback(window, scroll_callback);
@@ -122,23 +138,16 @@ void Minecraft::run() {
         glLoadIdentity();
         glMatrixMode(GL_MODELVIEW);
         checkGlError("Startup");
-        font = make_shared<Font>("default.gif", textures);
+        font = make_shared<Font>("resources/textures/default.gif", textures);
         glViewport(0, 0, width, height);
-
-        shared_ptr<Minecraft> mcshared = shared_from_this();
-        levelIo = make_shared<LevelIO>(mcshared);
-        levelGen = make_shared<LevelGen>(mcshared);
         if (!server.empty() && user != nullptr) {
-            shared_ptr<Minecraft> shared = shared_from_this();
-            connectionManager = new ConnectionManager(shared, server, port, user->name, user->mpPass);
             level = nullptr;
         }
         else {
             bool levelCreated = false;
             try {
                 if (!loadMapUser.empty()) {
-                    cerr << "no" << endl;
-                    // var9 = loadLevel(loadMapUser, loadMapId);
+                    levelCreated = loadLevel(loadMapUser, loadMapId);
                 }
 
                 shared_ptr<Level> level;
@@ -178,9 +187,18 @@ void Minecraft::run() {
         if (level != nullptr) {
             setLevel(level);
         }
+        soundManager = make_shared<SoundManager>();
+        soundPlayer = make_shared<SoundPlayer>();
+        
+        //backgroundDownloader = make_shared<BackgroundDownloader>(mcshared);
 
+        soundManager->registerSoundsFromDirectory("resources/sounds/step");
+        soundManager->registerMusicFromDirectory("resources/sounds/music");
         checkGlError("Post startup");
         hud = make_shared<InGameHud>(mcshared, width, height);
+        if(!server.empty() && user != nullptr) {
+            connectionManager = new ConnectionManager(mcshared, server, port, user->name, user->mpPass);
+        }
     } catch (const exception& e) {
         cerr << e.what() << endl;
         tinyfd_messageBox("Failed to start Minecraft", e.what(), "ok", "error", 1);
@@ -237,7 +255,7 @@ void Minecraft::run() {
                     }
 
                     timer.fps -= (float)timer.ticks;
-                    timer.partialTicks = timer.fps;
+                    timer.a = timer.fps;
 
                     for (int32_t i = 0; i < timer.ticks; i++) {
                         ticksRan++;
@@ -245,12 +263,12 @@ void Minecraft::run() {
                     }
 
                     checkGlError("Pre render");
-                    float partialTicks = timer.partialTicks;
-                    if (displayActive && !Util::windowIsActive()) {
+                    float a = timer.a;
+                    if (renderHelper->displayActive && !Util::windowIsActive()) {
                         pauseGame();
                     }
 
-                    displayActive = Util::windowIsActive();
+                    renderHelper->displayActive = Util::windowIsActive();
                     if (mouseGrabbed) {
                         double xo = 0.0f;
                         double yo = 0.0f;
@@ -263,7 +281,7 @@ void Minecraft::run() {
 
                     if (!hideGui) {
                         if (level != nullptr) {
-                            render(timer.partialTicks);
+                            render(timer.a);
                             hud->render();
                             checkGlError("Rendered gui");
                         }
@@ -275,7 +293,7 @@ void Minecraft::run() {
                             glLoadIdentity();
                             glMatrixMode(GL_MODELVIEW);
                             glLoadIdentity();
-                            initGui();
+                            renderHelper->initGui();
                         }
 
                         if (screen) {
@@ -289,6 +307,7 @@ void Minecraft::run() {
                             screen->render(mouseX1, mouseY1);
                         }
 
+                        this_thread::yield();
                         glfwSwapBuffers(window);
                     }
                     
@@ -310,7 +329,6 @@ void Minecraft::run() {
         if (level != nullptr) {
             levelIo->save(level, gzopen("level.mine", "wb"));
         }
-        
 
         return;
     } catch (const StopGameException& e) {
@@ -377,7 +395,15 @@ void Minecraft::clickMouse() {
                         connectionManager->sendBlockChange(x, y, z, editMode, player->inventory->getSelected());
                     }
 
-                    tile->destroy(level, x, y, z, particleEngine);
+                    Tile::SoundType var12 = tile->soundType;
+                    auto it = Tile::soundTypeMap.find(var12);
+                    if (it != Tile::soundTypeMap.end()) {
+                        if(var12 != Tile::SoundType::NONE) {
+                            const auto& soundData = it->second;
+                            level->playSound("step." + soundData.name, (float)x, (float)y, (float)z, (soundData.getVolume() + 1.0f) / 2.0f, soundData.getPitch() * 0.8f);
+                            tile->destroy(level, x, y, z, particleEngine);
+                        }
+                    }
                 }
 
                 return;
@@ -401,11 +427,17 @@ void Minecraft::clickMouse() {
 }
 
 void Minecraft::tick() {
+    if (soundPlayer != nullptr) {
+        if (Timer::nanoTime() / 1000000 > soundManager->lastMusic && soundManager->playMusic(soundPlayer, "calm")) {
+            soundManager->lastMusic = Timer::nanoTime() / 1000000 + soundManager->random.nextInt(900000) + 300000;
+        }
+    }
+
     for (int32_t i = 0; i < hud->messages.size(); ++i) {
         hud->messages[i].counter++;
     }
 
-    glBindTexture(GL_TEXTURE_2D, this->textures->getTextureId("terrain.png"));
+    glBindTexture(GL_TEXTURE_2D, this->textures->getTextureId("resources/textures/terrain.png"));
 
     for(int32_t i = 0; i < textures->textureList.size(); i++) {
         shared_ptr<TextureFX> textureFx = textures->textureList[i];
@@ -415,10 +447,11 @@ void Minecraft::tick() {
         glTexSubImage2D(GL_TEXTURE_2D, 0, textureFx->iconIndex % 16 << 4, textureFx->iconIndex / 16 << 4, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, textures->textureBuffer.data());
     }
 
-    if (connectionManager != nullptr) {
+
+    if (connectionManager != nullptr && !dynamic_pointer_cast<ErrorScreen>(screen)) {
         if (!connectionManager->isConnected()) {
-            beginLevelLoading("Connecting..");
-            setLoadingProgress(0);
+            loadingScreen->beginLevelLoading("Connecting..");
+            loadingScreen->setLoadingProgress(0);
         }
         else {
             if (connectionManager->processData) {
@@ -449,7 +482,7 @@ void Minecraft::tick() {
     if (!screen || screen->allowUserInput) {
         while (true) {
             int32_t var1;
-            if (!screen && Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_LEFT) && (float)(ticksRan - prevFrameTime) >= timer.ticksPerSecond / 4.0f && mouseGrabbed) {
+            if (!screen && Util::isMouseKeyDown(GLFW_MOUSE_BUTTON_LEFT) && (float)(ticksRan - prevFrameTime) >= timer.ticksPerSecond / 4.0f && mouseGrabbed) {
                 clickMouse();
                 prevFrameTime = ticksRan;
             }
@@ -474,6 +507,10 @@ void Minecraft::tick() {
 
                 if (Util::isKeyDownPrev(GLFW_KEY_R)) {
                     player->resetPos();
+                }
+
+                if(Util::isKeyDownPrev(GLFW_KEY_M) && soundPlayer != nullptr) {
+                    soundPlayer->enabled = !soundPlayer->enabled;
                 }
 
                 if (Util::isKeyDownPrev(GLFW_KEY_ENTER)) {
@@ -515,21 +552,7 @@ void Minecraft::tick() {
             scrollWheel = 0;
             
             if (var1 != 0) {
-                var2 = var1;
-                shared_ptr<Inventory> inventory = player->inventory;
-                if (var1 > 0) {
-                    var2 = 1;
-                }
-
-                if (var2 < 0) {
-                    var2 = -1;
-                }
-
-                for (inventory->selectedSlot -= var2; inventory->selectedSlot < 0; inventory->selectedSlot += inventory->slots.size()) {}
-
-                while (inventory->selectedSlot >= inventory->slots.size()) {
-                    inventory->selectedSlot -= inventory->slots.size();
-                }
+                player->inventory->scrollHotbar(var1);
             }
 
             if (!screen) {
@@ -537,7 +560,7 @@ void Minecraft::tick() {
                     grabMouse();
                 }
                 else {
-                    if (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_LEFT) && (float)(ticksRan - prevFrameTime) >= timer.ticksPerSecond / 4.0f && mouseGrabbed) {
+                    if (Util::isMouseKeyDownPrev(GLFW_MOUSE_BUTTON_LEFT) && mouseGrabbed) {
                         clickMouse();
                         prevFrameTime = ticksRan;
                     }
@@ -564,72 +587,56 @@ void Minecraft::tick() {
                 }
             }
 
-            if (screen) {
-                screen->updateMouseEvents();
-            }
-
             break;
         }
     }
 
     if (screen) {
         prevFrameTime = ticksRan + 10000;
-        screen->updateMouseEvents();
-        screen->updateKeyboardEvents();
+        screen->updateEvents();
         if (screen) {
             screen->tick();
         }
     }
     
-    if(level != nullptr) {
+    if (level != nullptr) {
         levelRenderer->cloudTickCounter++;
         level->tickEntities();
         if (!isMultiplayer()) {
             level->tick();
         }
-        for (var2 = 0; var2 < particleEngine->particles.size(); ++var2) {
-            shared_ptr<Particle> particle = particleEngine->particles[var2];
-            particle->tick();
-            if (particle->removed) {
-                particleEngine->particles.erase(particleEngine->particles.begin() + var2);
-                var2--;
-            }
-        }
 
+        particleEngine->tick();
         player->tick();
     }
-}
-
-bool Minecraft::isMultiplayer() {
-    return connectionManager != nullptr;
 }
 
 void Minecraft::render(float a) {    
     glViewport(0, 0, width, height);
     float var18 = 1.0f / (float)(4 - levelRenderer->drawDistance);
     var18 = (float)pow((double)var18, 0.25);
-    fogColorRed = 0.6f * (1.0f - var18) + var18;
-    fogColorGreen = 0.8f * (1.0f - var18) + var18;
-    fogColorBlue = 1.0f * (1.0f - var18) + var18;
-    fogColorRed *= fogColorMultiplier;
-    fogColorGreen *= fogColorMultiplier;
-    fogColorBlue *= fogColorMultiplier;
+    renderHelper->fogColorRed = 0.6f * (1.0f - var18) + var18;
+    renderHelper->fogColorGreen = 0.8f * (1.0f - var18) + var18;
+    renderHelper->fogColorBlue = 1.0f * (1.0f - var18) + var18;
+    renderHelper->fogColorRed *= renderHelper->fogColorMultiplier;
+    renderHelper->fogColorGreen *= renderHelper->fogColorMultiplier;
+    renderHelper->fogColorBlue *= renderHelper->fogColorMultiplier;
     Tile* tile = Tile::tiles[level->getTile((int32_t)player->x, (int32_t)(player->y + 0.12f), (int32_t)player->z)];
     if (tile && tile->getLiquidType() != Liquid::none) {
         Liquid* liquid = tile->getLiquidType();
         if (liquid == Liquid::water) {
-            fogColorRed = 0.02f;
-            fogColorGreen = 0.02f;
-            fogColorBlue = 0.2f;
+            renderHelper->fogColorRed = 0.02f;
+            renderHelper->fogColorGreen = 0.02f;
+            renderHelper->fogColorBlue = 0.2f;
         }
         else if (liquid == Liquid::lava) {
-            fogColorRed = 0.6;
-            fogColorGreen = 0.1f;
-            fogColorBlue = 0.0f;
+            renderHelper->fogColorRed = 0.6;
+            renderHelper->fogColorGreen = 0.1f;
+            renderHelper->fogColorBlue = 0.0f;
         }
     }
 
-    glClearColor(fogColorRed, fogColorGreen, fogColorBlue, 0.0f);
+    glClearColor(renderHelper->fogColorRed, renderHelper->fogColorGreen, renderHelper->fogColorBlue, 0.0f);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     checkGlError("Set viewport");
     float interpolatedPitchRot = player->xRotO + (player->xRot - player->xRotO) * a;
@@ -651,11 +658,11 @@ void Minecraft::render(float a) {
     Vec3 var14 = Vec3(playerPos.x + dirX, playerPos.y + dirY, playerPos.z + dirZ);
     hitResult = level->clip(playerPos, var14);
     checkGlError("Picked");
-    fogColorMultiplier = 1.0F;
-    renderDistance = float(512 >> (levelRenderer->drawDistance << 1));
+    renderHelper->fogColorMultiplier = 1.0F;
+    renderHelper->renderDistance = float(512 >> (levelRenderer->drawDistance << 1));
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(70.0f, float(width) / height, 0.05f, renderDistance);
+    gluPerspective(70.0f, float(width) / height, 0.05f, renderHelper->renderDistance);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glTranslatef(0.0f, 0.0f, -0.3f);
@@ -687,7 +694,7 @@ void Minecraft::render(float a) {
 
     checkGlError("Update chunks");
     bool var21 = level->isSolid(player->x, player->y, player->z, 0.1f);
-    setupFog();
+    renderHelper->setupFog();
     glEnable(GL_FOG);
     levelRenderer->render(player, 0);
     if (var21) {
@@ -704,18 +711,18 @@ void Minecraft::render(float a) {
     }
 
     checkGlError("Rendered level");
-    toggleLight(true);
+    renderHelper->toggleLight(true);
     levelRenderer->renderEntities(frustum, a);
-    toggleLight(false);
-    setupFog();
+    renderHelper->toggleLight(false);
+    renderHelper->setupFog();
     checkGlError("Rendered entities");
     particleEngine->render(player.get(), a);
     checkGlError("Rendered particles");
     glCallList(levelRenderer->surroundLists);
     glDisable(GL_LIGHTING);
-    setupFog();
+    renderHelper->setupFog();
     levelRenderer->renderClouds(a);
-    setupFog();
+    renderHelper->setupFog();
     glEnable(GL_LIGHTING);
     if (hitResult.has_value()) {
         glDisable(GL_LIGHTING);
@@ -727,7 +734,7 @@ void Minecraft::render(float a) {
     }
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    setupFog();
+    renderHelper->setupFog();
     glCallList(levelRenderer->surroundLists + 1);
     glEnable(GL_BLEND);
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -735,7 +742,7 @@ void Minecraft::render(float a) {
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     if(var22 > 0) {
         glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, textures->getTextureId("terrain.png"));
+        glBindTexture(GL_TEXTURE_2D, textures->getTextureId("resources/textures/terrain.png"));
         glCallLists(levelRenderer->dummyBuffer.size(), GL_INT, levelRenderer->dummyBuffer.data());
         glDisable(GL_TEXTURE_2D);
     }
@@ -755,150 +762,8 @@ void Minecraft::render(float a) {
     }
 }
 
-void Minecraft::toggleLight(bool toggleLight) {
-    if (!toggleLight) {
-        glDisable(GL_LIGHTING);
-        glDisable(GL_LIGHT0);
-    }
-    else {
-        glEnable(GL_LIGHTING);
-        glEnable(GL_LIGHT0);
-        glEnable(GL_COLOR_MATERIAL);
-        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-        float var4 = 0.7f;
-        float var2 = 0.3f;
-        Vec3 var3 = Vec3(0.0f, -1.0f, 0.5f).normalize();
-        glLightfv(GL_LIGHT0, GL_POSITION, getBuffer(var3.x, var3.y, var3.z, 0.0f).data());
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, getBuffer(var2, var2, var2, 1.0f).data());
-        glLightfv(GL_LIGHT0, GL_AMBIENT, getBuffer(0.0f, 0.0f, 0.0f, 1.0f).data());
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, getBuffer(var4, var4, var4, 1.0f).data());
-    }
-}
-
-void Minecraft::initGui() {
-    int32_t width = this->width * 240 / this->height;
-    int32_t height = this->height * 240 / this->height;
-    glClear(GL_DEPTH_BUFFER_BIT);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0.0, width, height, 0.0, 100.0, 300.0);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glTranslatef(0.0f, 0.0f, -200.0f);
-}
-
-void Minecraft::setupFog() {
-    glFogfv(GL_FOG_COLOR, getBuffer(fogColorRed, fogColorGreen, fogColorBlue, 1.0f).data());
-    glNormal3f(0.0f, -1.0f, 0.0f);
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    Tile* tile = Tile::tiles[level->getTile((int32_t)player->x, (int32_t)(player->y + 0.12f), (int32_t)player->z)];
-    if (tile != nullptr && tile->getLiquidType() != Liquid::none) {
-        Liquid* liquid = tile->getLiquidType();
-        glFogi(GL_FOG_MODE, GL_EXP);
-        if (liquid == Liquid::water) {
-            glFogf(GL_FOG_DENSITY, 0.1f);
-            glLightModelfv(GL_LIGHT_MODEL_AMBIENT, getBuffer(0.4f, 0.4f, 0.9f, 1.0f).data());
-        }
-        else if(liquid == Liquid::lava) {
-            glFogf(GL_FOG_DENSITY, 2.0f);
-            glLightModelfv(GL_LIGHT_MODEL_AMBIENT, getBuffer(0.4f, 0.3f, 0.3f, 1.0f).data());
-        }
-    }
-    else {
-        glFogi(GL_FOG_MODE, GL_LINEAR);
-        glFogf(GL_FOG_START, 0.0f);
-        glFogf(GL_FOG_END, renderDistance);
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, getBuffer(1.0f, 1.0f, 1.0f, 1.0f).data());
-    }
-
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT, GL_AMBIENT);
-    glEnable(GL_LIGHTING);
-}
-
-vector<float>& Minecraft::getBuffer(float a, float b, float c, float d) {
-    this->lb.clear();
-    this->lb.reserve(4);
-    this->lb.push_back(a);
-    this->lb.push_back(b);
-    this->lb.push_back(c);
-    this->lb.push_back(d);
-    return this->lb;
-}
-
-void Minecraft::beginLevelLoading(string title) {
-    if (!running) {
-        throw StopGameException();
-    }
-    else {
-        this->title = title;
-        int32_t width = this->width * 240 / this->height;
-        int32_t height = this->height * 240 / this->height;
-        glClear(GL_DEPTH_BUFFER_BIT);
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        glOrtho(0.0, (double)width, (double)height, 0.0, 100.0, 300.0);
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-        glTranslatef(0.0f, 0.0f, -200.0f);
-    }
-}
-
-void Minecraft::levelLoadUpdate(string text) {
-    if (!running) {
-        throw StopGameException();
-    }
-    else {
-        this->text = text;
-        setLoadingProgress(-1);
-    }
-}
-
-void Minecraft::setLoadingProgress(int32_t var1) {
-    if (!running) {
-        throw StopGameException();
-    }
-    else {
-        int32_t width = this->width * 240 / this->height;
-        int32_t height = this->height * 240 / this->height;
-        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-        shared_ptr<Tesselator> t = Tesselator::instance;
-        glEnable(GL_TEXTURE_2D);
-        int32_t var5 = textures->getTextureId("dirt.png");
-        glBindTexture(GL_TEXTURE_2D, var5);
-        float var8 = 32.0F;
-        t->begin();
-        t->color(4210752);
-        t->vertexUV(0.0F, (float)height, 0.0f, 0.0f, (float)height / var8);
-        t->vertexUV((float)width, (float)height, 0.0f, (float)width / var8, (float)height / var8);
-        t->vertexUV((float)width, 0.0f, 0.0f, (float)width / var8, 0.0f);
-        t->vertexUV(0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-        t->end();
-        if(var1 >= 0) {
-            var5 = width / 2 - 50;
-            int32_t var6 = height / 2 + 16;
-            glDisable(GL_TEXTURE_2D);
-            t->begin();
-            t->color(8421504);
-            t->vertex((float)var5, (float)var6, 0.0f);
-            t->vertex((float)var5, (float)(var6 + 2), 0.0f);
-            t->vertex((float)(var5 + 100), (float)(var6 + 2), 0.0f);
-            t->vertex((float)(var5 + 100), (float)var6, 0.0f);
-            t->color(8454016);
-            t->vertex((float)var5, (float)var6, 0.0f);
-            t->vertex((float)var5, (float)(var6 + 2), 0.0f);
-            t->vertex((float)(var5 + var1), (float)(var6 + 2), 0.0f);
-            t->vertex((float)(var5 + var1), (float)var6, 0.0f);
-            t->end();
-            glEnable(GL_TEXTURE_2D);
-        }
-
-        font->drawShadow(title, (width - font->width(title)) / 2, height / 2 - 4 - 16, 16777215);
-        font->drawShadow(text, (width - font->width(text)) / 2, height / 2 - 4 + 8, 16777215);
-        glfwSwapBuffers(window);
-
-        this_thread::yield();
-    }
+bool Minecraft::isMultiplayer() {
+    return connectionManager != nullptr;
 }
 
 void Minecraft::generateLevel(int32_t var1) {
@@ -920,6 +785,10 @@ bool Minecraft::loadLevel(string var1, int32_t var2) {
 
 void Minecraft::setLevel(shared_ptr<Level> level) {
     this->level = level;
+    if (level != nullptr) {
+        level->rendererContext = shared_from_this();
+    }
+
     if (levelRenderer != nullptr) {
         shared_ptr<Level> rendererLevel = levelRenderer->level.lock();
         if (rendererLevel != nullptr) {
@@ -940,13 +809,5 @@ void Minecraft::setLevel(shared_ptr<Level> level) {
     if(player != nullptr) {
         player->setLevel(level);
         player->resetPos();
-    }
-}
-
-void Minecraft::addChatMessage(string message) {
-    hud->messages.push_front(ChatLine(message));
-
-    while (hud->messages.size() > 50) {
-        hud->messages.pop_back();
     }
 }

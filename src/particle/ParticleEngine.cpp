@@ -7,10 +7,21 @@
 
 ParticleEngine::ParticleEngine(shared_ptr<Level>& level, shared_ptr<Textures>& textures) : textures(textures) {};
 
+void ParticleEngine::tick() {
+    for (int32_t i = 0; i < particles.size(); i++) {
+        shared_ptr<Particle> particle = particles[i];
+        particle->tick();
+        if (particle->removed) {
+            particles.erase(particles.begin() + i);
+            i--;
+        }
+    }
+}
+
 void ParticleEngine::render(Player* player, float a) {
     if (!this->particles.empty()) {
         glEnable(GL_TEXTURE_2D);
-        int32_t id = textures->getTextureId("terrain.png");
+        int32_t id = textures->getTextureId("resources/textures/terrain.png");
         glBindTexture(GL_TEXTURE_2D, id);
         float xa = -((float)cos((double)player->yRot * M_PI / 180.0));
         float za = -((float)sin((double)player->yRot * M_PI / 180.0));

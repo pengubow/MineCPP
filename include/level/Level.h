@@ -15,6 +15,7 @@
 using namespace std;
 class LevelRenderer;
 class Entity;
+class Minecraft;
 
 class Level : public enable_shared_from_this<Level> {
 public:
@@ -41,6 +42,7 @@ public:
 private:
     bool networkMode = false;
 public:
+    weak_ptr<Minecraft> rendererContext;
     int32_t unprocessed = 0;
     int32_t tickCount = 0;
 
@@ -90,4 +92,6 @@ public:
     bool isWater(int32_t x, int32_t y, int32_t z);
     void setNetworkMode(bool networkMode);
     optional<HitResult> clip(Vec3& var1, Vec3& var2);
+    void playSound(string var1, shared_ptr<Entity> var2, float var3, float var4);
+    void playSound(string var1, float var2, float var3, float var4, float var5, float var6);
 };

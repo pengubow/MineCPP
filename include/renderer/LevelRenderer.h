@@ -1,3 +1,5 @@
+#pragma once
+
 #include <unordered_set>
 #include "level/Level.h"
 #include "renderer/Textures.h"

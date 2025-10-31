@@ -6,6 +6,7 @@
 #include "level/Level.h"
 #include "level/LevelIO.h"
 #include "gui/ErrorScreen.h"
+#include "gui/InGameHud.h"
 
 // chatgpt'd
 
@@ -166,8 +167,8 @@ void SocketConnection::processDataFunc() {
 
         if (manager->processData) {
             if (var3 == Packet::LOGIN) {
-                minecraft->beginLevelLoading(catch_get<string>(var11[1]));
-                minecraft->levelLoadUpdate(catch_get<string>(var11[2]));
+                minecraft->loadingScreen->beginLevelLoading(catch_get<string>(var11[1]));
+                minecraft->loadingScreen->levelLoadUpdate(catch_get<string>(var11[2]));
                 minecraft->player->userType = catch_get<int8_t>(var11[3]);
             } else if (var3 == Packet::LEVEL_INITIALIZE) {
                 minecraft->setLevel(nullptr);
@@ -176,7 +177,7 @@ void SocketConnection::processDataFunc() {
                 int16_t var13 = catch_get<int16_t>(var11[0]);
                 vector<uint8_t> var5 = catch_get<vector<uint8_t>>(var11[1]);
                 int8_t var6 = catch_get<int8_t>(var11[2]);
-                minecraft->setLoadingProgress(var6);
+                minecraft->loadingScreen->setLoadingProgress(var6);
                 var12->levelBuffer.insert(var12->levelBuffer.end(), var5.begin(), 
                                         var5.begin() + var13);
             } else if (var3 == Packet::LEVEL_FINALIZE) {
@@ -300,9 +301,9 @@ void SocketConnection::processDataFunc() {
                 string var19 = catch_get<string>(var11[1]);
 
                 if (var15 < 0) {
-                    minecraft->addChatMessage("&e" + var19);
+                    minecraft->hud->addChatMessage("&e" + var19);
                 } else {
-                    minecraft->addChatMessage(var19);
+                    minecraft->hud->addChatMessage(var19);
                 }
             } else if (var3 == Packet::KICK_PLAYER) {
                 string reason = catch_get<string>(var11[0]);

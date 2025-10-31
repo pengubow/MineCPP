@@ -22,6 +22,7 @@ Particle::Particle(shared_ptr<Level>& level, float x, float y, float z, float xa
     size = (float)(Random::random() * 0.5 + 0.5);
     lifetime = (int32_t)(4.0 / (Random::random() * 0.9 + 0.1));
     age = 0;
+    makeStepSound = false;
 }
 
 void Particle::tick() {

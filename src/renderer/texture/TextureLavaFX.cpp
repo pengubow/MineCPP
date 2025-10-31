@@ -38,7 +38,7 @@ void TextureLavaFX::onTick() {
     swap(green, red);
 
     for (int32_t i = 0; i < 256; i++) {
-        float var3 = red[i];
+        float var3 = red[i] * 2.0f;
         if (var3 > 1.0f) {
             var3 = 1.0f;
         }
@@ -47,7 +47,7 @@ void TextureLavaFX::onTick() {
             var3 = 0.0f;
         }
 
-        imageData[i << 2] = (uint8_t)(var3 * 200.0f + 55.0f);
+        imageData[i << 2] = (uint8_t)(var3 * 100.0f + 155.0f);
         imageData[(i << 2) + 1] = (uint8_t)(var3 * var3 * 255.0f);
         imageData[(i << 2) + 2] = (uint8_t)(var3 * var3 * var3 * var3 * 128.0f);
         imageData[(i << 2) + 3] = -1;

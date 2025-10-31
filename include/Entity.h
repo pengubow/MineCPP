@@ -6,7 +6,7 @@
 #include "phys/AABB.h"
 #include "renderer/Textures.h"
 
-class Entity {
+class Entity : public enable_shared_from_this<Entity> {
 public:
     static const int64_t serialVersionUID = 0;
     weak_ptr<Level> level;
@@ -31,6 +31,10 @@ public:
     float heightOffset = 0.0f;
     float bbWidth = 0.6f;
     float bbHeight = 1.8f;
+private:
+    float walkDist = 0.0f;
+public:
+    bool makeStepSound = true;
 
     Entity(shared_ptr<Level>& level);
 
@@ -57,5 +61,7 @@ public:
     float getBrightness();
     virtual void render(shared_ptr<Textures>& textures, float a);
     void setLevel(shared_ptr<Level>& level);
+    void playSound(string var1, float var2, float var3);
     void moveTo(float x, float y, float z, float yRot, float xRot);
+    float distanceTo(shared_ptr<Entity>& entity);
 };

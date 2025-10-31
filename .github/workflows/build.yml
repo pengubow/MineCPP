@@ -20,12 +20,12 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libglu1-mesa-dev libglfw3-dev zlib1g-dev
+          sudo apt-get install -y cmake libglu1-mesa-dev libglfw3-dev zlib1g-dev libvorbis-dev
 
       - name: Install dependencies (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          brew install glfw mesa-glu zlib
+          brew install glfw mesa-glu zlib libvorbis
 
       - name: Setup vcpkg (Windows)
         if: matrix.os == 'windows-latest'
@@ -33,7 +33,7 @@ jobs:
           git clone https://github.com/Microsoft/vcpkg.git
           cd vcpkg
           .\bootstrap-vcpkg.bat
-          .\vcpkg install glfw3:x64-windows zlib:x64-windows opengl:x64-windows
+          .\vcpkg install glfw3:x64-windows zlib:x64-windows opengl:x64-windows libvorbis:x64-windows
         shell: pwsh
 
       - name: Configure CMake (Linux/macOS)

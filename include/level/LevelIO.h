@@ -4,13 +4,14 @@
 #include <iostream>
 #include <zlib.h>
 #include "level/Level.h"
+#include "ProgressListener.h"
 
 class Minecraft;
 
 class LevelIO {
-    weak_ptr<Minecraft> minecraft;
+    shared_ptr<ProgressListener> progress;
 public:
-    LevelIO(shared_ptr<Minecraft>& minecraft);
+    LevelIO(shared_ptr<ProgressListener>& progress);
 
     shared_ptr<Level> load(const string& serverUri, const string& username, int levelId);
     shared_ptr<Level> load(gzFile file);

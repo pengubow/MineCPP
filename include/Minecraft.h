@@ -17,6 +17,11 @@
 #include "gui/Screen.h"
 #include "net/ConnectionManager.h"
 #include "ChatLine.h"
+#include "sound/SoundPlayer.h"
+#include "sound/SoundManager.h"
+#include "renderer/RenderHelper.h"
+#include "ProgressListener.h"
+#include "BackgroundDownloader.h"
 
 class InGameHud;
 
@@ -26,64 +31,52 @@ public:
 	int32_t width;
 	int32_t height;
 private:
-	array<float, 4> fogColor0;
-	array<float, 4> fogColor1;
 	Timer timer = Timer(20.0f);
 public:
 	shared_ptr<Level> level;
 	shared_ptr<LevelRenderer> levelRenderer;
 	shared_ptr<Player> player;
-private:
 	shared_ptr<ParticleEngine> particleEngine;
-public:
 	shared_ptr<User> user;
 	string minecraftUri;
 	atomic<bool> pause = false;
-private:
 	int32_t yMouseAxis = 1;
-public:
 	static shared_ptr<Textures> textures;
 	shared_ptr<Font> font;
-private:
 	int32_t editMode = 0;
-public:
 	shared_ptr<Screen> screen;
+	shared_ptr<ProgressListener> loadingScreen;
+	shared_ptr<RenderHelper> renderHelper;
 	shared_ptr<LevelIO> levelIo;
 private:
 	shared_ptr<LevelGen> levelGen;
+public:
+	shared_ptr<SoundManager> soundManager;
+private:
+	shared_ptr<BackgroundDownloader> backgroundDownloader;
 	int32_t ticksRan = 0;
 public:
 	string loadMapUser;
 	int32_t loadMapId = 0;
 	shared_ptr<InGameHud> hud;
-	ConnectionManager* connectionManager;
-	string server;
-	int32_t port = 0;
-private:
-	float fogColorRed = 0.5f;
-	float fogColorGreen = 0.8f;
-	float fogColorBlue = 1.0f;
-public:
-	atomic<bool> running = false;
-	string fpsString = "";
-private:
-	bool mouseGrabbed = false;
-	int32_t prevFrameTime = 0;
-	float renderDistance = 0.0f;
-	vector<int32_t> viewportBuffer = vector<int32_t>(16);
-	vector<GLuint> selectBuffer = vector<GLuint>(2000);
-	optional<HitResult> hitResult;
-	float fogColorMultiplier = 1.0f;
-	bool displayActive = false;
-	atomic<int32_t> unusedInt1 = 0;
-    atomic<int32_t> unusedInt2 = 0;
-	vector<float> lb = vector<float>(16);
-	string title = "";
-	string text = "";
-    static GLFWwindow* window;
-public:
 	bool hideGui = false;
 	ZombieModel playerModel = ZombieModel();
+	ConnectionManager* connectionManager = nullptr;
+	shared_ptr<SoundPlayer> soundPlayer;
+	optional<HitResult> hitResult;
+	string server;
+	int32_t port = 0;
+	atomic<bool> running = false;
+	string fpsString = "";
+	bool mouseGrabbed = false;
+private:
+	int32_t prevFrameTime = 0;
+	vector<int32_t> viewportBuffer = vector<int32_t>(16);
+	vector<GLuint> selectBuffer = vector<GLuint>(2000);
+	string title = "";
+	string text = "";
+public:
+    static GLFWwindow* window;
 
     Minecraft(int32_t width, int32_t height, bool fullscreen);
 
@@ -100,20 +93,10 @@ private:
 public:
     void tick();
 private:
-	bool isMultiplayer();
     void render(float a);
-	void toggleLight(bool toggleLight);
+	bool isMultiplayer();
 public:
-	void initGui();
-private:
-    void setupFog();
-    vector<float>& getBuffer(float a, float b, float c, float d);
-public:
-    void beginLevelLoading(string title);
-    void levelLoadUpdate(string text);
-    void setLoadingProgress(int32_t var1);
     void generateLevel(int32_t var1);
 	bool loadLevel(string var1, int32_t var2);
     void setLevel(shared_ptr<Level> level);
-	void addChatMessage(string message);
 };

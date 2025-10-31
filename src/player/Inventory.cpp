@@ -19,6 +19,14 @@ int32_t Inventory::getSlotContainsID(int32_t id) {
     return -1;
 }
 
+void Inventory::scrollHotbar(int32_t var1) {
+    for (selectedSlot -= var1; selectedSlot < 0; selectedSlot += slots.size()) {}
+
+    while (selectedSlot >= slots.size()) {
+        selectedSlot -= slots.size();
+    }
+}
+
 void Inventory::getSlotContainsTile(Tile* tile) {
     if (tile != nullptr) {
         int32_t slot = getSlotContainsID(tile->id);

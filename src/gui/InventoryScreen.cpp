@@ -33,7 +33,7 @@ void InventoryScreen::render(int32_t var1, int32_t var2) {
     drawCenteredString("Select block", width / 2, 40, 16777215);
     shared_ptr<Textures> textures = minecraft->textures;
     shared_ptr<Tesselator> t = Tesselator::instance;
-    int32_t id = textures->getTextureId("terrain.png");
+    int32_t id = textures->getTextureId("resources/textures/terrain.png");
     glBindTexture(GL_TEXTURE_2D, id);
     glEnable(GL_TEXTURE_2D);
 

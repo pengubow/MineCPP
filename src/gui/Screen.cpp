@@ -162,6 +162,11 @@ char getCharFromKey(int key, bool shift) {
     return 0;
 }
 
+void Screen::updateEvents() {
+    updateMouseEvents();
+    updateKeyboardEvents();
+}
+
 void Screen::updateMouseEvents() {
     GLFWwindow* window = Util::getGLFWWindow();
     shared_ptr<Minecraft> minecraft = this->minecraft.lock();

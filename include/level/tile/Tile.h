@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <optional>
+#include <map>
 #include "renderer/Tesselator.h"
 #include "level/liquid/Liquid.h"
 #include "level/Level.h"
@@ -9,6 +10,8 @@
 #include "Util/Random.h"
 
 class Tile {
+protected:
+    static Random random;
 public:
     static vector<Tile*> tiles;
     static vector<bool> shouldTick;
@@ -57,6 +60,34 @@ public:
     static Tile* blockGold;
     int32_t tex;
     int32_t id;
+
+    enum class SoundType {
+        NONE,
+        GRASS,
+        CLOTH,
+        GRAVEL,
+        STONE,
+        METAL,
+        WOOD
+    };
+
+    SoundType soundType = SoundType::NONE;
+
+    struct SoundTypeData {
+        string name;
+        float volume;
+        float pitch;
+        
+        float getVolume() const {
+            return volume / (random.nextFloat() * 0.4f + 1.0f) * 0.5f;
+        }
+        
+        float getPitch() const {
+            return pitch / (random.nextFloat() * 0.2f + 0.9f);
+        }
+    };
+
+    static const map<SoundType, SoundTypeData> soundTypeMap;
 private:
     float minX;
 	float minY;
@@ -69,6 +100,7 @@ public:
 protected:
     Tile(int32_t tex);
 
+    Tile* setSoundAndGravity(SoundType soundType, float var2, float particleGravity);
     void setTickSpeed(int32_t tickSpeed);
     void setTicking(bool shouldTick);
     void setShape(float minX, float minY, float minZ, float maxX, float maxY, float maxZ);

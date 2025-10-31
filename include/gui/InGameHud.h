@@ -18,4 +18,6 @@ public:
 	void render();
 private:
 	static void blit(int32_t var0, int32_t var1, int32_t var2, int32_t var3, int32_t var4, int32_t var5);
+public:
+	void addChatMessage(string message);
 };
