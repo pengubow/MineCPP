@@ -16,4 +16,5 @@ private:
     void draw(string str, int32_t x, int32_t y, int32_t color, bool darken);
 public:
     int32_t width(string str);
+    static string removeColorCodes(string var0);
 };

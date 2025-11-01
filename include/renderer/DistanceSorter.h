@@ -8,5 +8,5 @@ class DistanceSorter {
 public:
     DistanceSorter(shared_ptr<Player>& player);
 
-    bool operator()(shared_ptr<Chunk>& c0, shared_ptr<Chunk>& c1);
+    bool operator()(Chunk* c0, Chunk* c1);
 };

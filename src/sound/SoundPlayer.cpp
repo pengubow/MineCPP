@@ -29,7 +29,7 @@ void SoundPlayer::mix_audio(int16_t* output, ma_uint32 frameCount) {
     }
 
     for (ma_uint32 i = 0; i < frameCount; ++i) {
-        if (enabled) {
+        if (!options->music && !options->sound) {
             output[i * 2] = 0;
             output[i * 2 + 1] = 0;
         }
@@ -48,7 +48,8 @@ void SoundPlayer::mix_audio(int16_t* output, ma_uint32 frameCount) {
     }
 }
 
-SoundPlayer::SoundPlayer() : enabled(false), running(false) {
+SoundPlayer::SoundPlayer(Options* options) 
+    : running(false), options(options) {
     ma_device_config config = ma_device_config_init(ma_device_type_playback);
     config.playback.format = ma_format_s16;
     config.playback.channels = 2;

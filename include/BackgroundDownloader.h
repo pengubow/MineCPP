@@ -14,25 +14,14 @@ class Minecraft;
 
 class BackgroundDownloader {
 private:
-    enum class OS {
-        LINUX,
-        SOLARIS,
-        WINDOWS_OS,
-        MACOS,
-        UNKNOWN
-    };
-
     fs::path resourcesFolder;
     weak_ptr<Minecraft> minecraft;
 public:
-    atomic<bool> closing =false;
+    atomic<bool> closing = false;
 
-    static OS detectOS();
-    static fs::path getResourcesFolder();
+    BackgroundDownloader(const fs::path& workDir, shared_ptr<Minecraft>& minecraft);
+    void stop();
+private:
     void downloadResource(const string& url, const fs::path& file);
     void run();
-public:
-    BackgroundDownloader(shared_ptr<Minecraft> minecraft);
-    
-    void stop();
 };

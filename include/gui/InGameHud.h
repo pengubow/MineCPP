@@ -5,7 +5,7 @@
 #include "net/NetworkPlayer.h"
 #include "Minecraft.h"
 
-class InGameHud {
+class InGameHud : public Gui {
 public:
     deque<ChatLine> messages;
 private:
@@ -13,11 +13,10 @@ private:
 	int32_t scaledWidth;
 	int32_t scaledHeight;
 public:
+	string hoveredUsername;
+
 	InGameHud(shared_ptr<Minecraft>& minecraft, int32_t scaledWidth, int32_t scaledHeight);
 
-	void render();
-private:
-	static void blit(int32_t var0, int32_t var1, int32_t var2, int32_t var3, int32_t var4, int32_t var5);
-public:
+	void render(bool var1, int32_t var2, int32_t var3);
 	void addChatMessage(string message);
 };

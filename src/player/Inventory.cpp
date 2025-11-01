@@ -10,7 +10,7 @@ int32_t Inventory::getSelected() {
     return slots[selectedSlot];
 }
 
-int32_t Inventory::getSlotContainsID(int32_t id) {
+int32_t Inventory::containsTileAt(int32_t id) {
     for (int32_t i = 0; i < slots.size(); i++) {
         if (id == slots[i]) {
             return i;
@@ -29,7 +29,7 @@ void Inventory::scrollHotbar(int32_t var1) {
 
 void Inventory::getSlotContainsTile(Tile* tile) {
     if (tile != nullptr) {
-        int32_t slot = getSlotContainsID(tile->id);
+        int32_t slot = containsTileAt(tile->id);
         if (slot >= 0) {
             slots[slot] = slots[selectedSlot];
         }

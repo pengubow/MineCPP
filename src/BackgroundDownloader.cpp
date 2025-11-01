@@ -6,80 +6,15 @@
 #include "Minecraft.h"
 #include "sound/SoundManager.h"
 
-#ifdef _WIN32
-    #include <windows.h>
-    #include <shlobj.h>
-#else
-    #include <unistd.h>
-    #include <pwd.h>
-#endif
-
-BackgroundDownloader::OS BackgroundDownloader::detectOS() {
-    #ifdef _WIN32
-        return OS::WINDOWS_OS;
-    #elif __APPLE__
-        return OS::MACOS;
-    #elif __linux__
-        return OS::LINUX;
-    #elif __sun
-        return OS::SOLARIS;
-    #else
-        return OS::UNKNOWN;
-    #endif
-}
-
-fs::path BackgroundDownloader::getResourcesFolder() {
-    string homeDir;
-    
-    #ifdef _WIN32
-        char* appdata = getenv("APPDATA");
-        if (appdata) {
-            homeDir = appdata;
-        } else {
-            char* userProfile = getenv("USERPROFILE");
-            homeDir = userProfile ? userProfile : ".";
-        }
-    #else
-        const char* home = getenv("HOME");
-        if (home) {
-            homeDir = home;
-        } else {
-            struct passwd* pw = getpwuid(getuid());
-            homeDir = pw ? pw->pw_dir : ".";
-        }
-    #endif
-
-    OS os = detectOS();
-    fs::path baseDir;
-
-    switch (os) {
-        case OS::WINDOWS_OS:
-            baseDir = fs::path(homeDir) / ".minecraft";
-            break;
-        case OS::MACOS:
-            baseDir = fs::path(homeDir) / "Library/Application Support/minecraft";
-            break;
-        case OS::LINUX:
-        case OS::SOLARIS:
-        default:
-            baseDir = fs::path(homeDir) / ".minecraft";
-            break;
-    }
-
-    fs::path resourcesDir = baseDir / "resources";
-    if (!fs::exists(resourcesDir)) {
-        fs::create_directories(resourcesDir);
-    }
-
-    return resourcesDir;
-}
-
-BackgroundDownloader::BackgroundDownloader(shared_ptr<Minecraft> minecraft)
+BackgroundDownloader::BackgroundDownloader(const fs::path& workDir, shared_ptr<Minecraft>& minecraft)
     : minecraft(minecraft) {
     
-    resourcesFolder = getResourcesFolder();
+    resourcesFolder = workDir;
     if (!fs::exists(resourcesFolder)) {
-        throw runtime_error("Failed to create resources folder: " + resourcesFolder.string());
+        fs::create_directories(resourcesFolder);
+    }
+    if (!fs::exists(resourcesFolder)) {
+        throw runtime_error("The working directory could not be created: " + resourcesFolder.string());
     }
 
     thread t(&BackgroundDownloader::run, this);
@@ -91,28 +26,22 @@ void BackgroundDownloader::stop() {
 }
 
 void BackgroundDownloader::downloadResource(const string& url, const fs::path& file) {
-    size_t schemeEnd = url.find("://");
-    if (schemeEnd == string::npos) {
-        return;
-    }
-    
-    size_t hostStart = schemeEnd + 3;
-    size_t pathStart = url.find('/', hostStart);
+    size_t pathStart = url.find('/');
     
     string host;
     string path;
     
     if (pathStart == string::npos) {
-        host = url.substr(hostStart);
+        host = url;
         path = "/";
     } else {
-        host = url.substr(hostStart, pathStart - hostStart);
+        host = url.substr(0, pathStart);
         path = url.substr(pathStart);
     }
     
-    httplib::Client cli(host);
-    cli.set_connection_timeout(0, 500000);
-    cli.set_read_timeout(5, 0);
+    httplib::Client cli(host, 80);
+    cli.set_connection_timeout(50, 0);
+    cli.set_read_timeout(10, 0);
 
     auto res = cli.Get(path);
     if (!res || res->status != 200) {
@@ -120,13 +49,18 @@ void BackgroundDownloader::downloadResource(const string& url, const fs::path& f
         return;
     }
 
-    ofstream outfile(file, ios::binary);
-    if (!outfile) {
-        cerr << "Failed to open file: " << file << endl;
+    if (res->body.empty()) {
+        cout << "empty body" << endl;
         return;
     }
 
-    outfile.write(res->body.c_str(), res->body.size());
+    ofstream outfile(file, ios::binary);
+    if (!outfile) {
+        cout << "Failed to open file: " << file << endl;
+        return;
+    }
+
+    outfile.write(res->body.data(), res->body.size());
     outfile.close();
 }
 
@@ -169,13 +103,18 @@ void BackgroundDownloader::run() {
                 }
 
                 string name = resource.substr(0, commaPos1);
+
                 int size = stoi(resource.substr(commaPos1 + 1, commaPos2 - commaPos1 - 1));
 
+                const string prefix = "resources/sounds/";
+                if (name.substr(0, prefix.length()) == prefix) {
+                    name = name.substr(prefix.length());
+                }
+                
                 fs::path resourcePath = resourcesFolder / name;
 
                 if (!fs::exists(resourcePath) || (int)fs::file_size(resourcePath) != size) {
                     fs::create_directories(resourcePath.parent_path());
-                    
                     downloadResource(minecraft->minecraftUri + "/resources/" + name, resourcePath);
 
                     if (closing) {

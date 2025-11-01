@@ -30,7 +30,7 @@ void InventoryScreen::render(int32_t var1, int32_t var2) {
         int32_t var3 = height / 2 + tile / 8 * 24 - 48;
         fillGradient(var2 - 3, var3 - 8, var2 + 23, var3 + 24 - 6, -1862270977, -1056964609);
     }
-    drawCenteredString("Select block", width / 2, 40, 16777215);
+    drawCenteredString(font, "Select block", width / 2, 40, 16777215);
     shared_ptr<Textures> textures = minecraft->textures;
     shared_ptr<Tesselator> t = Tesselator::instance;
     int32_t id = textures->getTextureId("resources/textures/terrain.png");

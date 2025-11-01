@@ -17,4 +17,5 @@ namespace Util {
     bool isMouseKeyDown(int32_t key);
     bool isMouseKeyDownPrev(int32_t key);
     string trim(const string& s);
+    string getKeyName(int32_t key);
 }

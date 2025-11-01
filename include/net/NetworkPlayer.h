@@ -28,6 +28,7 @@ public:
     int32_t skinHeight;
     uint8_t* newTexture = nullptr;
     string name;
+    string displayName;
     int32_t tickCount = 0;
 private:
     shared_ptr<Textures> textures;

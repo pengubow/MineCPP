@@ -10,6 +10,7 @@ void LoadLevelScreen::run() {
     if (!minecraft) {
         return;
     }
+    
     try {
         status = "Getting level list..";
         httplib::Client cli(minecraft->minecraftUri);
@@ -67,7 +68,7 @@ void LoadLevelScreen::run() {
 }
 
 void LoadLevelScreen::setLevels(vector<string>& var1) {
-    for(int32_t var2 = 0; var2 < 5; ++var2) {
+    for (int32_t var2 = 0; var2 < 5; ++var2) {
         buttons[var2]->enabled = var1[var2] != "-";
         buttons[var2]->msg = var1[var2];
         buttons[var2]->visible = true;
@@ -77,12 +78,12 @@ void LoadLevelScreen::setLevels(vector<string>& var1) {
 void LoadLevelScreen::init() {
     thread t(&LoadLevelScreen::run, this);
     t.detach();
-    for(int32_t var1 = 0; var1 < 5; ++var1) {
-        buttons.push_back(make_shared<Button>(var1, width / 2 - 100, height / 4 + var1 * 24, 200, 20, "---"));
+    for (int32_t var1 = 0; var1 < 5; ++var1) {
+        buttons.push_back(make_shared<Button>(var1, width / 2 - 100, height / 4 + var1 * 24, "---"));
         buttons[var1]->visible = false;
     }
 
-    buttons.push_back(make_shared<Button>(5, width / 2 - 100, height / 4 + 144, 200, 20, "Cancel"));
+    buttons.push_back(make_shared<Button>(5, width / 2 - 100, height / 4 + 144, "Cancel"));
 }
 
 void LoadLevelScreen::buttonClicked(shared_ptr<Button>& button) {
@@ -96,6 +97,7 @@ void LoadLevelScreen::buttonClicked(shared_ptr<Button>& button) {
             if (!minecraft) {
                 return;
             }
+
             minecraft->setScreen(parent);
         }
 
@@ -107,6 +109,7 @@ void LoadLevelScreen::loadLevel(int32_t var1) {
     if (!minecraft) {
         return;
     }
+
     minecraft->loadLevel(minecraft->user->name, var1);
     minecraft->setScreen(nullptr);
     minecraft->grabMouse();
@@ -114,9 +117,9 @@ void LoadLevelScreen::loadLevel(int32_t var1) {
 
 void LoadLevelScreen::render(int32_t var1, int32_t var2) {
     fillGradient(0, 0, width, height, 1610941696, -1607454624);
-    drawCenteredString(title, width / 2, 40, 16777215);
-    if(!loaded) {
-        drawCenteredString(status, width / 2, height / 2 - 4, 16777215);
+    drawCenteredString(font, title, width / 2, 40, 16777215);
+    if (!loaded) {
+        drawCenteredString(font, status, width / 2, height / 2 - 4, 16777215);
     }
 
     Screen::render(var1, var2);

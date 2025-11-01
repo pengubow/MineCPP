@@ -166,8 +166,8 @@ void Level::swap(int32_t minX, int32_t minY, int32_t minZ, int32_t maxX, int32_t
         int32_t var8 = getTile(maxX, maxY, maxZ);
         setTileNoNeighborChange(minX, minY, minZ, var8);
         setTileNoNeighborChange(maxX, maxY, maxZ, var7);
-        updateNeighborAt(minX, minY, minZ, var8);
-        updateNeighborAt(maxX, maxY, maxZ, var7);
+        updateNeighborsAt(minX, minY, minZ, var8);
+        updateNeighborsAt(maxX, maxY, maxZ, var7);
     }
 }
 
@@ -768,11 +768,13 @@ optional<HitResult> Level::clip(Vec3& var1, Vec3& var2) {
 void Level::playSound(string var1, shared_ptr<Entity> var2, float var3, float var4) {
     shared_ptr<Minecraft> rendererContext = this->rendererContext.lock();
     if (rendererContext != nullptr) {
-        if (rendererContext->soundPlayer != nullptr) {
-            shared_ptr<AudioInfo> var6 = rendererContext->soundManager->getAudioInfo(var1, var3, var4);
-            if (var6 != nullptr) {
-                rendererContext->soundPlayer->play(var6, make_shared<EntitySoundPos>(var2, rendererContext->player));
-            }
+        if (rendererContext->soundPlayer == nullptr || !rendererContext->options->sound) {
+            return;
+        }
+
+        shared_ptr<AudioInfo> var6 = rendererContext->soundManager->getAudioInfo(var1, var3, var4);
+        if (var6 != nullptr) {
+            rendererContext->soundPlayer->play(var6, make_shared<EntitySoundPos>(var2, rendererContext->player));
         }
     }
 
@@ -781,11 +783,13 @@ void Level::playSound(string var1, shared_ptr<Entity> var2, float var3, float va
 void Level::playSound(string var1, float var2, float var3, float var4, float var5, float var6) {
     shared_ptr<Minecraft> rendererContext = this->rendererContext.lock();
     if (rendererContext != nullptr) {
-        if (rendererContext->soundPlayer != nullptr) {
-            shared_ptr<AudioInfo> var8 = rendererContext->soundManager->getAudioInfo(var1, var5, var6);
-            if (var8 != nullptr) {
-                rendererContext->soundPlayer->play(var8, make_shared<LevelSoundPos>(var2, var3, var4, rendererContext->player));
-            }
+        if (rendererContext->soundPlayer == nullptr || !rendererContext->options->sound) {
+            return;
+        }
+
+        shared_ptr<AudioInfo> var8 = rendererContext->soundManager->getAudioInfo(var1, var5, var6);
+        if (var8 != nullptr) {
+            rendererContext->soundPlayer->play(var8, make_shared<LevelSoundPos>(var2, var3, var4, rendererContext->player));
         }
     }
 

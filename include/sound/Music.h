@@ -4,6 +4,7 @@
 #include <vector>
 #include <queue>
 #include <mutex>
+#include <atomic>
 #include <vorbis/vorbisfile.h>
 #include "sound/Audio.h"
 
@@ -17,6 +18,7 @@ public:
     bool finished = false;
     
     Music(shared_ptr<SoundPlayer>& var1, const string& filepath);
+    ~Music();
     
     bool play(vector<int32_t>& var1, vector<int32_t>& var2, int32_t var3) override;
 
@@ -28,4 +30,6 @@ private:
     bool decodeFinished = false;
     vector<short> currentChunk;
     int currentChunkPos = 0;
+    thread decodeThread;
+    atomic<bool> stopDecoding = false;
 };

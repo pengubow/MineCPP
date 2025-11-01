@@ -7,13 +7,13 @@
 #include "GL_compat.h"
 
 NetworkPlayer::NetworkPlayer(shared_ptr<Minecraft>& minecraft, int32_t id, string name, int32_t x, int32_t y, int32_t z, float yRot, float xRot)
-    : Entity(minecraft->level), minecraft(minecraft), name(name), 
-    xp(x), yp(y), zp(z) {
+    : Entity(minecraft->level), minecraft(minecraft), displayName(name), 
+    name(Font::removeColorCodes(name)), xp(x), yp(y), zp(z) {
     zombieModel = minecraft->playerModel;
+    displayName = name;
     setPos((float)x / 32.0f, (float)y / 32.0f, (float)z / 32.0f);
     this->xRot = xRot;
     this->yRot = yRot;
-    this->heightOffset = 1.62f;
     make_shared<NetworkSkinDownloadThread>(this)->start();
 }
 
@@ -157,7 +157,7 @@ void NetworkPlayer::render(shared_ptr<Textures>& textures, float a) {
     glColor3f(var7, var7, var7);
     var7 = 1.0F / 16.0F;
     float var8 = (float)(-abs(cos((double)var6 * 0.6662)) * 5.0 * (double)var3 - 23.0);
-    glTranslatef(xo + (x - xo) * a, yo + (y - yo) * a - heightOffset, 
+    glTranslatef(xo + (x - xo) * a, yo + (y - yo) * a - 1.62f, 
         zo + (z - zo) * a);
     glScalef(1.0f, -1.0f, 1.0f);
     glTranslatef(0.0f, var8 * var7, 0.0f);
@@ -174,14 +174,14 @@ void NetworkPlayer::render(shared_ptr<Textures>& textures, float a) {
     
     a = 0.05f;
     glScalef(a, -a, a);
-    glTranslatef((float)(-minecraft->font->width(name)) / 2.0f, 0.0f, 0.0f);
+    glTranslatef((float)(-minecraft->font->width(displayName)) / 2.0f, 0.0f, 0.0f);
     glNormal3f(1.0f, -1.0f, 1.0f);
     glDisable(GL_LIGHTING);
     glDisable(GL_COLOR_BUFFER_BIT);
     if (name == "Notch") {
-        minecraft->font->draw(name, 0, 0, 16776960);
+        minecraft->font->draw(displayName, 0, 0, 16776960);
     } else {
-        minecraft->font->draw(name, 0, 0, 16777215);
+        minecraft->font->draw(displayName, 0, 0, 16777215);
     }
 
     glEnable(GL_COLOR_BUFFER_BIT);

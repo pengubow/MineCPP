@@ -22,8 +22,9 @@ private:
     int32_t maxX;
     int32_t maxY;
     int32_t maxZ;
-    vector<bool> skipRenderPass = vector<bool>(2);
 public:
+    vector<bool> skipRenderPass = vector<bool>(2);
+
     bool isInFrustum = false;
 
     Chunk(shared_ptr<Level>& level, int32_t minX, int32_t minY, int32_t minZ, int32_t var5, int32_t var6);

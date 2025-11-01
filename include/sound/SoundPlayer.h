@@ -19,15 +19,16 @@ using namespace std;
 #include "Util/miniaudio.h"
 #include "sound/Audio.h"
 #include "sound/AudioInfo.h"
+#include "Options.h"
 
 using namespace std;
 
 class SoundPlayer : public enable_shared_from_this<SoundPlayer> {
 public:
     bool running = false;
-    bool enabled = false;
+    Options* options;
     
-    SoundPlayer();
+    SoundPlayer(Options* options);
     ~SoundPlayer();
     
     void play(shared_ptr<Audio> var1);

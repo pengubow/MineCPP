@@ -12,13 +12,28 @@ void FallingTile::neighborChanged(shared_ptr<Level>& level, int32_t x, int32_t y
 }
 
 void FallingTile::tryToFall(shared_ptr<Level>& level, int32_t x, int32_t y, int32_t z) {
-    int32_t var4 = x;
-    int32_t var5 = y;
+    int32_t y2 = y;
 
-    int32_t var6;
-    for(var6 = z; level->getTile(var4, var5 - 1, var6) == 0 && var5 > 0; --var5) {}
+    while (true) {
+        int32_t var9 = y2 - 1;
+        int32_t tile = level->getTile(x, var9, z);
+        bool var10000;
+        if (tile == 0) {
+            var10000 = true;
+        }
+        else {
+            Liquid* liquid = Tile::tiles[tile]->getLiquidType();
+            var10000 = liquid == Liquid::water ? true : liquid == Liquid::lava;
+        }
 
-    if(var5 != y) {
-        level->swap(x, y, z, var4, var5, var6);
+        if (!var10000 || y2 <= 0) {
+            if (y2 != y) {
+                level->swap(x, y, z, x, y2, z);
+            }
+
+            return;
+        }
+
+        --y2;
     }
 }

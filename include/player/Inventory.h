@@ -9,7 +9,7 @@ public:
     Inventory();
 
     int32_t getSelected();
-    int32_t getSlotContainsID(int32_t id);
+    int32_t containsTileAt(int32_t id);
     void scrollHotbar(int32_t var1);
     void getSlotContainsTile(Tile* tile);
 };

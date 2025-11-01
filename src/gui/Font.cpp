@@ -108,3 +108,17 @@ int32_t Font::width(string str) {
     }
     return len;
 }
+
+string Font::removeColorCodes(string var0) {
+    string var1;
+    
+    for (size_t var2 = 0; var2 < var0.length(); ++var2) {
+        if (var0[var2] == 38) {
+            ++var2;
+        } else {
+            var1 += var0[var2];
+        }
+    }
+    
+    return var1;
+}

@@ -22,6 +22,7 @@
 #include "renderer/RenderHelper.h"
 #include "ProgressListener.h"
 #include "BackgroundDownloader.h"
+#include "Options.h"
 
 class InGameHud;
 
@@ -34,26 +35,25 @@ private:
 	Timer timer = Timer(20.0f);
 public:
 	shared_ptr<Level> level;
-	shared_ptr<LevelRenderer> levelRenderer;
+	unique_ptr<LevelRenderer> levelRenderer;
 	shared_ptr<Player> player;
 	shared_ptr<ParticleEngine> particleEngine;
 	shared_ptr<User> user;
 	string minecraftUri;
 	atomic<bool> pause = false;
-	int32_t yMouseAxis = 1;
 	static shared_ptr<Textures> textures;
 	shared_ptr<Font> font;
 	int32_t editMode = 0;
 	shared_ptr<Screen> screen;
 	shared_ptr<ProgressListener> loadingScreen;
-	shared_ptr<RenderHelper> renderHelper;
-	shared_ptr<LevelIO> levelIo;
+	unique_ptr<RenderHelper> renderHelper;
+	unique_ptr<LevelIO> levelIo;
 private:
-	shared_ptr<LevelGen> levelGen;
+	unique_ptr<LevelGen> levelGen;
 public:
-	shared_ptr<SoundManager> soundManager;
+	unique_ptr<SoundManager> soundManager;
 private:
-	shared_ptr<BackgroundDownloader> backgroundDownloader;
+	unique_ptr<BackgroundDownloader> backgroundDownloader;
 	int32_t ticksRan = 0;
 public:
 	string loadMapUser;
@@ -64,6 +64,7 @@ public:
 	ConnectionManager* connectionManager = nullptr;
 	shared_ptr<SoundPlayer> soundPlayer;
 	optional<HitResult> hitResult;
+	unique_ptr<Options> options;
 	string server;
 	int32_t port = 0;
 	atomic<bool> running = false;

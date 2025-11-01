@@ -101,9 +101,9 @@ void Minecraft::run() {
         }
         shared_ptr<Minecraft> mcshared = shared_from_this();
         loadingScreen = make_shared<ProgressListener>(mcshared);
-        renderHelper = make_shared<RenderHelper>(mcshared);
-        levelIo = make_shared<LevelIO>(loadingScreen);
-        levelGen = make_shared<LevelGen>(loadingScreen);
+        renderHelper = make_unique<RenderHelper>(mcshared);
+        levelIo = make_unique<LevelIO>(loadingScreen);
+        levelGen = make_unique<LevelGen>(loadingScreen);
         if (fullscreen) {
             GLFWmonitor* monitor = glfwGetPrimaryMonitor();
             const GLFWvidmode* vidMode = glfwGetVideoMode(monitor);
@@ -121,7 +121,7 @@ void Minecraft::run() {
         }
 
         glfwMakeContextCurrent(window);
-        glfwSetWindowTitle(window, "Minecraft 0.0.22a_05");
+        glfwSetWindowTitle(window, "Minecraft 0.0.23a_01");
         glfwSwapInterval(0);
 
         glfwSetScrollCallback(window, scroll_callback);
@@ -150,7 +150,6 @@ void Minecraft::run() {
                     levelCreated = loadLevel(loadMapUser, loadMapId);
                 }
 
-                shared_ptr<Level> level;
                 gzFile mine = gzopen("level.mine", "rb");
                 gzFile dat = gzopen("level.dat", "rb");
                 if (mine) {
@@ -162,9 +161,10 @@ void Minecraft::run() {
                     levelCreated = level != nullptr;
                     if (!levelCreated) {
                         level = levelIo->loadLegacy(gzopen("level.dat", "rb"));
-                        levelCreated = level != nullptr;
                     }
                 }
+
+                levelCreated = level != nullptr;
                 if (levelCreated) {
                     setLevel(level);
                 }
@@ -179,21 +179,20 @@ void Minecraft::run() {
         }
         
 
-        levelRenderer = make_shared<LevelRenderer>(textures);
+        levelRenderer = make_unique<LevelRenderer>(textures);
         particleEngine = make_shared<ParticleEngine>(level, textures);
-        shared_ptr<MovementInputFromOptions> shared = make_shared<MovementInputFromOptions>();
-        player = make_shared<Player>(level, shared);
+        options = make_unique<Options>(mcshared, "");
+        shared_ptr<MovementInputFromOptions> movementInputFromOptions = make_shared<MovementInputFromOptions>(options.get());
+        player = make_unique<Player>(level, movementInputFromOptions);
         player->resetPos();
         if (level != nullptr) {
             setLevel(level);
         }
-        soundManager = make_shared<SoundManager>();
-        soundPlayer = make_shared<SoundPlayer>();
+        soundManager = make_unique<SoundManager>();
+        soundPlayer = make_shared<SoundPlayer>(options.get());
         
-        //backgroundDownloader = make_shared<BackgroundDownloader>(mcshared);
-
-        soundManager->registerSoundsFromDirectory("resources/sounds/step");
-        soundManager->registerMusicFromDirectory("resources/sounds/music");
+        
+        backgroundDownloader = make_unique<BackgroundDownloader>("resources/sounds", mcshared);
         checkGlError("Post startup");
         hud = make_shared<InGameHud>(mcshared, width, height);
         if(!server.empty() && user != nullptr) {
@@ -276,13 +275,24 @@ void Minecraft::run() {
                         xo = xo - width / 2;
                         yo = yo - height / 2;
                         glfwSetCursorPos(window, width / 2, height / 2);
-                        player->turn(xo, -yo * (float)yMouseAxis);
+                        float invert = 1;
+                        if (options->invertMouse) {
+                            invert = -1;
+                        }
+                        player->turn(xo, -yo * invert);
                     }
 
                     if (!hideGui) {
+                        int32_t width = this->width * 240 / this->height;
+                        int32_t height = this->height * 240 / this->height;
+                        double mouseX;
+                        double mouseY;
+                        glfwGetCursorPos(window, &mouseX, &mouseY);
+                        int32_t mouseX1 = mouseX * width / this->width;
+                        int32_t mouseY1 = mouseY * height / this->height;
                         if (level != nullptr) {
                             render(timer.a);
-                            hud->render();
+                            hud->render(screen != nullptr, mouseX1, mouseY1);
                             checkGlError("Rendered gui");
                         }
                         else {
@@ -297,13 +307,6 @@ void Minecraft::run() {
                         }
 
                         if (screen) {
-                            int32_t width = this->width * 240 / this->height;
-                            int32_t height = this->height * 240 / this->height;
-                            double mouseX;
-                            double mouseY;
-                            glfwGetCursorPos(window, &mouseX, &mouseY);
-                            int32_t mouseX1 = mouseX * width / this->width;
-                            int32_t mouseY1 = mouseY * height / this->height;
                             screen->render(mouseX1, mouseY1);
                         }
 
@@ -332,6 +335,7 @@ void Minecraft::run() {
 
         return;
     } catch (const StopGameException& e) {
+        return;
     } catch (const exception& e) {
         cerr << e.what() << endl;
         return;
@@ -505,15 +509,11 @@ void Minecraft::tick() {
                     pauseGame();
                 }
 
-                if (Util::isKeyDownPrev(GLFW_KEY_R)) {
+                if (Util::isKeyDownPrev(options->load.key)) {
                     player->resetPos();
                 }
 
-                if(Util::isKeyDownPrev(GLFW_KEY_M) && soundPlayer != nullptr) {
-                    soundPlayer->enabled = !soundPlayer->enabled;
-                }
-
-                if (Util::isKeyDownPrev(GLFW_KEY_ENTER)) {
+                if (Util::isKeyDownPrev(options->save.key)) {
                     level->setSpawnPos((int32_t)player->x, (int32_t)player->y, (int32_t)player->z, player->yRot);
                     player->resetPos();
                 }
@@ -525,7 +525,7 @@ void Minecraft::tick() {
                 }
 
                 if (Util::isKeyDownPrev(GLFW_KEY_Y)) {
-                    yMouseAxis = -yMouseAxis;
+                    options->invertMouse = !options->invertMouse;
                 }
 
                 if (Util::isKeyDownPrev(GLFW_KEY_G) && connectionManager == nullptr && level->entities.size() < 256) {
@@ -533,16 +533,16 @@ void Minecraft::tick() {
                     level->entities.push_back(zombie);
                 }
 
-                if (Util::isKeyDownPrev(GLFW_KEY_F)) {
-                    bool isShiftDown = Util::isKeyDown(GLFW_KEY_LEFT_SHIFT) || Util::isKeyDown(GLFW_KEY_RIGHT_SHIFT);
-                    levelRenderer->drawDistance = levelRenderer->drawDistance + (isShiftDown ? -1 : 1) & 3;
+                if (Util::isKeyDownPrev(options->toggleFog.key)) {
+                    bool isShiftUp = !Util::isKeyDown(GLFW_KEY_LEFT_SHIFT) && !Util::isKeyDown(GLFW_KEY_RIGHT_SHIFT);
+                    options->setOption(4, isShiftUp ? 1 : -1);
                 }
 
-                if (Util::isKeyDownPrev(GLFW_KEY_B)) {
+                if (Util::isKeyDownPrev(options->build.key)) {
                     setScreen(make_shared<InventoryScreen>());
                 }
 
-                if (Util::isKeyDownPrev(GLFW_KEY_T) && connectionManager && connectionManager->isConnected()) {
+                if (Util::isKeyDownPrev(options->chat.key) && connectionManager && connectionManager->isConnected()) {
                     player->releaseAllKeys();
                     setScreen(make_shared<ChatScreen>());
                 }
@@ -576,7 +576,7 @@ void Minecraft::tick() {
                         }
 
                         shared_ptr<Inventory> inventory = player->inventory;
-                        int32_t slot = inventory->getSlotContainsID(tile);
+                        int32_t slot = inventory->containsTileAt(tile);
                         if (slot >= 0) {
                             inventory->selectedSlot = slot;
                         }
@@ -613,7 +613,7 @@ void Minecraft::tick() {
 
 void Minecraft::render(float a) {    
     glViewport(0, 0, width, height);
-    float var18 = 1.0f / (float)(4 - levelRenderer->drawDistance);
+    float var18 = 1.0f / (float)(4 - options->renderDistance);
     var18 = (float)pow((double)var18, 0.25);
     renderHelper->fogColorRed = 0.6f * (1.0f - var18) + var18;
     renderHelper->fogColorGreen = 0.8f * (1.0f - var18) + var18;
@@ -659,7 +659,7 @@ void Minecraft::render(float a) {
     hitResult = level->clip(playerPos, var14);
     checkGlError("Picked");
     renderHelper->fogColorMultiplier = 1.0F;
-    renderHelper->renderDistance = float(512 >> (levelRenderer->drawDistance << 1));
+    renderHelper->renderDistance = float(512 >> (options->renderDistance << 1));
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluPerspective(70.0f, float(width) / height, 0.05f, renderHelper->renderDistance);
@@ -675,16 +675,16 @@ void Minecraft::render(float a) {
     checkGlError("Set up camera");
     glEnable(GL_CULL_FACE);
     Frustum& frustum = Frustum::getFrustum();
-    for (shared_ptr<Chunk> c : levelRenderer->sortedChunks) {
+    for (Chunk* c : levelRenderer->sortedChunks) {
         c->isInFrustumFunc(frustum);
     }
 
-    vector<shared_ptr<Chunk>> dirty(levelRenderer->dirtyChunks.begin(), levelRenderer->dirtyChunks.end());
+    vector<Chunk*> dirty(levelRenderer->dirtyChunks.begin(), levelRenderer->dirtyChunks.end());
     DirtyChunkSorter sorter(player);
     sort(dirty.begin(), dirty.end(), sorter);
 
     int32_t rebuildCount = 4;
-    for (shared_ptr<Chunk> c : dirty) {
+    for (Chunk* c : dirty) {
         c->rebuild();
         levelRenderer->dirtyChunks.erase(c);
         if (--rebuildCount == 0) {

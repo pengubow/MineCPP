@@ -2,6 +2,7 @@
 #include <thread>
 #include <vorbis/vorbisfile.h>
 #include "sound/Music.h"
+#include "sound/SoundPlayer.h"
 
 Music::Music(shared_ptr<SoundPlayer>& var1, const string& filepath)
     : player(var1), finished(false) {
@@ -17,20 +18,22 @@ Music::Music(shared_ptr<SoundPlayer>& var1, const string& filepath)
     if (ov_open(file, vf, NULL, 0) < 0) {
         cerr << "Failed to open OGG: " << filepath << endl;
         fclose(file);
+        file = nullptr;
         free(vf);
         vf = nullptr;
         finished = true;
         return;
     }
 
-    thread([this]() {
+    file = nullptr;
+
+    decodeThread = thread([this]() {
         char buffer[4096];
         int bitstream;
         long bytesRead;
         vector<short> bigChunk;
-        int chunkCount = 0;
         
-        while ((bytesRead = ov_read(vf, buffer, sizeof(buffer), 0, 2, 1, &bitstream)) > 0) {
+        while (!stopDecoding && vf && (bytesRead = ov_read(vf, buffer, sizeof(buffer), 0, 2, 1, &bitstream)) > 0) {
             for (long i = 0; i < bytesRead; i += 2) {
                 short sample = (short)((buffer[i + 1] << 8) | (buffer[i] & 0xFF));
                 bigChunk.push_back(sample);
@@ -52,10 +55,31 @@ Music::Music(shared_ptr<SoundPlayer>& var1, const string& filepath)
             lock_guard<mutex> lock(chunkMutex);
             decodeFinished = true;
         }
-    }).detach();
+    });
+}
+
+Music::~Music() {
+    stopDecoding = true;
+    if (decodeThread.joinable()) {
+        decodeThread.join();
+    }
+    
+    if (vf) {
+        ov_clear(vf);
+        free(vf);
+    }
+    
+    if (file) {
+        fclose(file);
+        file = nullptr;
+    }
 }
 
 bool Music::play(vector<int32_t>& var1, vector<int32_t>& var2, int32_t var3) {
+    if (!player || !player->options->music) {
+        return false;
+    }
+
     {
         lock_guard<mutex> lock(chunkMutex);
         if (currentChunk.empty() && !decodedChunks.empty()) {

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "renderer/Tesselator.h"
+#include "gui/Gui.h"
 #include "gui/Button.h"
 
 class Minecraft;
 
-class Screen {
+class Screen : public Gui {
 protected:
 	weak_ptr<Minecraft> minecraft;
 	int32_t width;
@@ -13,20 +13,18 @@ protected:
 public:
 	bool allowUserInput = false;
     vector<shared_ptr<Button>> buttons;
+protected:
+	shared_ptr<Font> font;
+public:
+
 	virtual void render(int32_t var1, int32_t var2);
 protected:
     virtual void keyPressed(char var1, int32_t key);
 	virtual void mousePressed(int32_t x, int32_t y, int32_t clickType);
-    virtual void buttonClicked(shared_ptr<Button>& var1);
+    virtual void buttonClicked(shared_ptr<Button>& button);
 public:
 	virtual void init(shared_ptr<Minecraft>& minecraft, int32_t width, int32_t height);
 	virtual void init();
-protected:
-	static void fill(int32_t var0, int32_t var1, int32_t var2, int32_t var3, int32_t var4);
-	static void fillGradient(int32_t var0, int32_t var1, int32_t x, int32_t y, int32_t var4, int32_t var5);
-public:
-	void drawCenteredString(string msg, int32_t x, int32_t y, int32_t var4);
-	void drawString(string var1, int32_t var2, int32_t var3, int32_t var4);
 	void updateEvents();
 	void updateMouseEvents();
 	void updateKeyboardEvents();

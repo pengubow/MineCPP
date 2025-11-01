@@ -14,25 +14,29 @@ void LevelRenderer::compileSurroundingGround() {
     }
 
     int32_t var1;
-    if (!sortedChunks.empty()) {
-        for(var1 = 0; var1 < sortedChunks.size(); ++var1) {
-            sortedChunks[var1]->clear();
+
+    for (Chunk* chunk : chunks) {
+        if (chunk) {
+            delete chunk;
         }
     }
+
+    sortedChunks.clear();
+    chunks.clear();
 
     xChunks = level->width / 16;
     yChunks = level->depth / 16;
     zChunks = level->height / 16;
-    sortedChunks = vector<shared_ptr<Chunk>>(xChunks * yChunks * zChunks);
-    chunks = vector<shared_ptr<Chunk>>(xChunks * yChunks * zChunks);
+    sortedChunks.resize(xChunks * yChunks * zChunks);
+    chunks.resize(xChunks * yChunks * zChunks);
 
     var1 = 0;
 
     int var4;
-    for(int var2 = 0; var2 < xChunks; ++var2) {
-        for(int var3 = 0; var3 < yChunks; ++var3) {
-            for(var4 = 0; var4 < zChunks; ++var4) {
-                sortedChunks[(var4 * yChunks + var3) * xChunks + var2] = make_shared<Chunk>(level, var2 << 4, var3 << 4, var4 << 4, 16, chunkRenderLists + var1);
+    for (int var2 = 0; var2 < xChunks; ++var2) {
+        for (int var3 = 0; var3 < yChunks; ++var3) {
+            for (var4 = 0; var4 < zChunks; ++var4) {
+                sortedChunks[(var4 * yChunks + var3) * xChunks + var2] = new Chunk(level, var2 << 4, var3 << 4, var4 << 4, 16, chunkRenderLists + var1);
                 chunks[(var4 * yChunks + var3) * xChunks + var2] = sortedChunks[(var4 * yChunks + var3) * xChunks + var2];
                 var1 += 2;
             }

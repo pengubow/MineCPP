@@ -33,9 +33,9 @@ void NetworkSkinDownloadThread::run() {
         }
 
         cout << "Failed to load texture for " << player->name << endl;
-        return;
     } catch (const exception& e) {
         cerr << e.what() << endl;
+        return;
     }
 }
 

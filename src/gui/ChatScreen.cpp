@@ -1,5 +1,6 @@
 #include <GLFW/glfw3.h>
 #include "gui/ChatScreen.h"
+#include "gui/InGameHud.h"
 #include "net/ConnectionManager.h"
 #include "net/Packet.h"
 #include "comm/SocketConnection.h"
@@ -28,7 +29,7 @@ void ChatScreen::keyPressed(char var1, int32_t key) {
         minecraft->setScreen(nullptr);
     }
     else if (key == GLFW_KEY_ENTER) {
-        string var4 = Util::trim(TypedMsg);
+        string var4 = Util::trim(typedMsg);
         if (var4.length() > 0) {
             if (!minecraft->connectionManager) {
                 throw runtime_error("On java, this caused NullPointerException");
@@ -39,18 +40,37 @@ void ChatScreen::keyPressed(char var1, int32_t key) {
         minecraft->setScreen(nullptr);
     }
     else {
-        if (key == GLFW_KEY_BACKSPACE && TypedMsg.length() > 0) {
-            TypedMsg.pop_back();
+        if (key == GLFW_KEY_BACKSPACE && typedMsg.length() > 0) {
+            typedMsg.pop_back();
         }
 
         string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ,.:-_\'*!\\\"#%/()=+?[]{}<>@|$;";
-        if (allowed.find(var1) != string::npos && TypedMsg.length() < 64 - (minecraft->user->name.length() + 2)) {
-            TypedMsg += var1;
+        if (allowed.find(var1) != string::npos && typedMsg.length() < 64 - (minecraft->user->name.length() + 2)) {
+            typedMsg += var1;
         }
     }
 }
 
 void ChatScreen::render(int32_t var1, int32_t var2) {
     fill(2, height - 14, width - 2, height - 2, INT32_MIN);
-    drawString("> " + TypedMsg + (counter / 6 % 2 == 0 ? "_" : ""), 4, height - 12, 14737632);
+    drawString(font, "> " + typedMsg + (counter / 6 % 2 == 0 ? "_" : ""), 4, height - 12, 14737632);
+}
+
+void ChatScreen::mousePressed(int32_t x, int32_t y, int32_t clickType) {
+    shared_ptr<Minecraft> minecraft = this->minecraft.lock();
+    if (!minecraft) {
+        return;
+    }
+
+    if (clickType == 0 && !minecraft->hud->hoveredUsername.empty()) {
+        if (typedMsg.length() > 0 && typedMsg.back() != ' ') {
+            typedMsg += " ";
+        }
+
+        typedMsg += minecraft->hud->hoveredUsername;
+        int32_t var1 = 64 - (minecraft->user->name.length() + 2);
+        if (typedMsg.length() > var1) {
+            typedMsg = typedMsg.substr(0, var1);
+        }
+    }
 }
